@@ -1,0 +1,200 @@
+Address:
+  type: object
+  description: |
+    Representation of an address.
+
+    As addresses are only used for delivery, we require a phone number.
+  required:
+    - name
+    - streetAddress
+    - city
+    - country
+    - phoneNumber
+  properties:
+    name:
+      type: string
+    companyName:
+      type: string
+    streetAddress:
+      type: string
+    postCode:
+      type: string
+    city:
+      type: string
+    state:
+      type: string
+    country:
+      type: string
+      pattern: "^[A-Za-z]{2}$"
+    phoneNumber:
+      type: string
+      pattern: "^\\+?[0-9\\.- ]+$"
+
+EventBridgeHeader:
+  type: object
+  description: Headers for EventBridge schema definitions.
+  properties:
+    version:
+      type: string
+    id:
+      type: string
+      format: uuid
+    account:
+      type: string
+      pattern: "^[0-9]{12}$"
+    time:
+      type: string
+      format: date-time
+    source:
+      type: string
+    detail-type:
+      type: string
+    resources:
+      type: array
+      items:
+        type: string
+
+Message:
+  type: object
+  description: |
+    Response message schema.
+
+    This is used for confirmation messages or error messages.
+  required:
+    - message
+  properties:
+    message:
+      type: string
+
+Order:
+  type: object
+  description: Representation of a single order.
+  required:
+    - orderId
+    - userId
+    - createdDate
+    - modifiedDate
+    - products
+    - address
+    - deliveryPrice
+    - total
+  properties:
+    orderId:
+      type: string
+      format: uuid
+      description: Unique identifier for the order.
+    userId:
+      type: string
+      format: uuid
+      description: End-user related to the order.
+    createdDate:
+      type: string
+      format: date-time
+      description: When the order was created.
+    modifiedDate:
+      type: string
+      format: date-time
+      description: When the order was last modified.
+    status:
+      type: string
+      description: Status of the order.
+    products:
+      type: array
+      description: Array of products in the order.
+      items:
+        $ref: "#/Product"
+    address:
+      $ref: "#/Address"
+    deliveryPrice:
+      type: integer
+      description: Cost of delivery for the order.
+      minimum: 0
+    paymentToken:
+      type: string
+      description: Payment token to process payment for the order.
+    total:
+      type: string
+      description: Total cost for the order.
+
+Package:
+  type: object
+  description: |
+    Dimension and weight of the packaging for a product.
+
+    Width, length and height do not have to be specific dimensions or one
+    bigger than the other. They all have to represent the three dimensions of
+    the box in which the product is packaged for shipping.
+  properties:
+    width:
+      type: integer
+      description: Width of the package in millimeters.
+      minimum: 0
+    length:
+      type: integer
+      description: Length of the package in millimeters.
+      minimum: 0
+    height:
+      type: integer
+      description: Height of the package in millimeters.
+      minimum: 0
+    weight:
+      type: integer
+      description: Weight of the package in grams.
+      minimum: 0
+
+Product:
+  type: object
+  description: |
+    Representation of a single product type.
+  required:
+    - productId
+    - name
+    - package
+    - price
+  properties:
+    productId:
+      type: string
+      format: uuid
+      description: Unique identifier in UUID format for the product.
+    createdDate:
+      type: string
+      format: date-time
+      description: Product creation date.
+    modifiedDate:
+      type: string
+      format: date-time
+      description: Product last modification date.
+    name:
+      type: string
+      description: User-facing product name.
+    category:
+      type: string
+      description: User-facing product category.
+    tags:
+      type: array
+      description: Array of searchable tags about the product.
+      items:
+        type: string
+    pictures:
+      type: array
+      description: Array of pictures about the product.
+      items:
+        type: string
+        format: uri
+    package:
+      $ref: "#/Package"
+    price:
+      type: integer
+      description: Price for the product.
+      minimum: 0
+
+Products:
+  type: object
+  description: JSON object containing an array products.
+  required:
+    - products
+  properties:
+    products:
+      type: array
+      items:
+        $ref: "#/Product"
