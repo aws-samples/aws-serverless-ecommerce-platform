@@ -14,9 +14,10 @@ paths:
 
         This will return a 4XX error if there are discrepancies between products
         in the request and database.
+
+        __Remark__: This is an internal API that requires valid IAM credentials
+        and signature.
       operationId: validateProducts
-      x-amazon-apigateway-auth:
-        type: AWS_IAM
       requestBody:
         required: true
         content:
@@ -38,3 +39,9 @@ paths:
             application/json:
               schema:
                 $ref: "schemas.yaml#/Message"
+      x-amazon-apigateway-auth:
+        type: AWS_IAM
+      x-amazon-apigateway-integration:
+        httpMethod: "POST"
+        type: aws_proxy
+        uri: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ValidateFunction.Arn}/invocations"
