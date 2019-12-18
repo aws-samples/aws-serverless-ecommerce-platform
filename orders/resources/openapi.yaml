@@ -1,0 +1,96 @@
+openapi: "3.0.2"
+info:
+  title: Orders API
+  version: 1.0.0
+  description: Orders service API definition
+  license:
+    name: MIT-0
+
+paths:
+  /:
+    get:
+      description: |
+        Retrieve orders belonging to the user.
+      operationId: getOrders
+      security:
+        - UserPool: []
+      responses:
+        200:
+          description: Array of orders
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orders:
+                    type: list
+                    items:
+                      $ref: "schemas.yaml#/Order"
+        default:
+          description: Something went wrong
+          content:
+            application/json:
+              schema:
+                $ref: "schemas.yaml#/Message"
+    post:
+      description: |
+        Create a new order.
+      operationId: createOrder
+      security:
+        - UserPool: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderRequest"
+      responses:
+        200:
+          description: Newly created order
+          content:
+            application/json:
+              schema:
+                $ref: "schemas.yaml#/Order"
+        4XX:
+          description: User error
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "schemas.yaml#/Message"
+                  - $ref: "#/components/schemas/OrderRequest"
+        default:
+          description: Something went wrong
+          content:
+            application/json:
+              schema:
+                $ref: "schemas.yaml#/Message"
+
+components:
+  schemas:
+    OrderRequest:
+      type: object
+      description: Information necessary for creating an order.
+      properties:
+        products:
+          type: array
+          items:
+            $ref: "schemas.yaml#/Product"
+        address:
+          $ref: "schemas.yaml/#Address"
+        deliveryPrice:
+          type: integer
+          minimum: 0
+        total:
+          type: integer
+          minimum: 0
+  securitySchemes:
+    UserPool:
+      type: apiKey
+      name: Authorization
+      in: header
+      x-amazon-apigateway-authtype: cognito_user_pools
+      x-amazon-apigateway-authorizer:
+        type: cognito_user_pools
+        providerARNs:
+          - "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${UserPool}"

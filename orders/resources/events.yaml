@@ -1,0 +1,48 @@
+openapi: "3.0.2"
+info:
+  title: Orders events
+  version: 1.0.0
+  license:
+    name: MIT-0
+
+paths: {}
+
+components:
+  schemas:
+    OrderCreated:
+      x-amazon-events-source: ecommerce.order
+      x-amazon-events-detail-type: OrderCreated
+      description: Event emitted when an order is created.
+      allOf:
+        - $ref: "schemas.yaml#/EventBridgeHeader"
+        - type: object
+          properties:
+            detail:
+              $ref: "schemas.yaml#/Order"
+
+    OrderModified:
+      x-amazon-events-source: ecommerce.order
+      x-amazon-events-detail-type: OrderModified
+      description: Event emitted when an order is modified.
+      allOf:
+        - $ref: "schemas.yaml#/EventBridgeHeader"
+        - type: object
+          properties:
+            detail:
+              type: object
+              properties:
+                old:
+                  $ref: "schemas.yaml#/Order"
+                new:
+                  $ref: "schemas.yaml#/Order"
+
+    OrderCancelled:
+      x-amazon-events-source: ecommerce.order
+      x-amazon-events-detail-type: OrderCancelled
+      description: Event emitted when an order is cancelled.
+      allOf:
+        - $ref: "schemas.yaml#/EventBridgeHeader"
+        - type: object
+          properties:
+            detail:
+              $ref: "schemas.yaml#/Order"
