@@ -1,0 +1,40 @@
+openapi: "3.0.2"
+info:
+  title: Products API
+  version: 1.0.0
+  description: Products service API definition
+  license:
+    name: MIT-0
+
+paths:
+  /backend/validate:
+    post:
+      description: |
+        Validates an array of products.
+
+        This will return a 4XX error if there are discrepancies between products
+        in the request and database.
+      operationId: validateProducts
+      x-amazon-apigateway-auth:
+        type: AWS_IAM
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "schemas.yaml#/Products"
+      responses:
+        4XX:
+          description: Invalid products
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "schemas.yaml#/Products"
+                  - $ref: "schemas.yaml#/Message"
+        default:
+          description: OK or server error
+          content:
+            application/json:
+              schema:
+                $ref: "schemas.yaml#/Message"

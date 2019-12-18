@@ -1,0 +1,48 @@
+openapi: "3.0.2"
+info:
+  title: Products events
+  version: 1.0.0
+  license:
+    name: MIT-0
+
+paths: {}
+
+components:
+  schemas:
+    ProductCreated:
+      x-amazon-events-source: ecommerce.products
+      x-amazon-events-detail-type: ProductCreated
+      description: Event emitted when a product is created.
+      allOf:
+        - $ref: "schemas.yaml#/EventBridgeHeader"
+        - type: object
+          properties:
+            detail:
+              $ref: "schemas.yaml#/Product"
+
+    ProductModified:
+      x-amazon-events-source: ecommerce.products
+      x-amazon-events-detail-type: ProductModified
+      description: Event emitted when a product is modified.
+      allOf:
+        - $ref: "schemas.yaml#/EventBridgeHeader"
+        - type: object
+          properties:
+            detail:
+              type: object
+              properties:
+                old:
+                  $ref: "schemas.yaml#/Product"
+                new:
+                  $ref: "schemas.yaml#/Product"
+
+    ProductDeleted:
+      x-amazon-events-sources: ecommerce.products
+      x-amazon-events-detail-type: ProductDeleted
+      description: Event emitted when a product is deleted.
+      allOf:
+        - $ref: "schemas.yaml#/EventBridgeHeader"
+        - type: object
+          properties:
+            detail:
+              $ref: "schemas.yaml#/Product"
