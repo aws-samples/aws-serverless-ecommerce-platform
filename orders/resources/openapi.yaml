@@ -21,15 +21,15 @@ paths:
                 type: object
                 properties:
                   orders:
-                    type: list
+                    type: array
                     items:
-                      $ref: "schemas.yaml#/Order"
+                      $ref: "../../shared/resources/schemas.yaml#/Order"
         default:
           description: Something went wrong
           content:
             application/json:
               schema:
-                $ref: "schemas.yaml#/Message"
+                $ref: "../../shared/resources/schemas.yaml#/Message"
       security:
         - UserPool: []
       x-amazon-apigateway-integration:
@@ -46,8 +46,6 @@ paths:
         This operation is a control point to transform unvalidated customer input
         into an order that can be trusted by other services.
       operationId: createOrder
-      security:
-        - UserPool: []
       requestBody:
         required: true
         content:
@@ -60,21 +58,21 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "schemas.yaml#/Order"
+                $ref: "../../shared/resources/schemas.yaml#/Order"
         4XX:
           description: User error
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: "schemas.yaml#/Message"
+                  - $ref: "../../shared/resources/schemas.yaml#/Message"
                   - $ref: "#/components/schemas/OrderRequest"
         default:
           description: Something went wrong
           content:
             application/json:
               schema:
-                $ref: "schemas.yaml#/Message"
+                $ref: "../../shared/resources/schemas.yaml#/Message"
       security:
         - UserPool: []
       x-amazon-apigateway-integration:
@@ -87,6 +85,14 @@ paths:
       description: |
         Retrieve a single order belonging to the user.
       operationId: getOrder
+      parameters:
+        - name: orderId
+          in: path
+          description: Order ID in UUID format
+          required: true
+          schema:
+            type: string
+            format: uuid
       responses:
         200:
           description: Order item
@@ -96,13 +102,13 @@ paths:
                 type: object
                 properties:
                   order:
-                    $ref: "schemas.yaml#/Order"
+                    $ref: "../../shared/resources/schemas.yaml#/Order"
         default:
           description: Something went wrong
           content:
             application/json:
               schema:
-                $ref: "schemas.yaml#/Message"
+                $ref: "../../shared/resources/schemas.yaml#/Message"
       security:
         - UserPool: []
       x-amazon-apigateway-integration:
@@ -116,7 +122,15 @@ paths:
         Retrieve a single order.
 
         This is a backend operation that requires IAM credentials.
-      operationId: getOrder
+      operationId: backendGetOrder
+      parameters:
+        - name: orderId
+          in: path
+          description: Order ID in UUID format
+          required: true
+          schema:
+            type: string
+            format: uuid
       responses:
         200:
           description: Order item
@@ -126,13 +140,13 @@ paths:
                 type: object
                 properties:
                   order:
-                    $ref: "schemas.yaml#/Order"
+                    $ref: "../../shared/resources/schemas.yaml#/Order"
         default:
           description: Something went wrong
           content:
             application/json:
               schema:
-                $ref: "schemas.yaml#/Message"
+                $ref: "../../shared/resources/schemas.yaml#/Message"
       x-amazon-apigateway-auth:
         type: AWS_IAM
       x-amazon-apigateway-integration:
@@ -150,9 +164,9 @@ components:
         products:
           type: array
           items:
-            $ref: "schemas.yaml#/Product"
+            $ref: "../../shared/resources/schemas.yaml#/Product"
         address:
-          $ref: "schemas.yaml/#Address"
+          $ref: "../../shared/resources/schemas.yaml#/Address"
         deliveryPrice:
           type: integer
           minimum: 0

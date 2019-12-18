@@ -17,13 +17,13 @@ paths:
 
         __Remark__: This is an internal API that requires valid IAM credentials
         and signature.
-      operationId: validateProducts
+      operationId: backendValidateProducts
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "schemas.yaml#/Products"
+              $ref: "../../shared/resources/schemas.yaml#/Products"
       responses:
         4XX:
           description: Invalid products
@@ -31,14 +31,14 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - $ref: "schemas.yaml#/Products"
-                  - $ref: "schemas.yaml#/Message"
+                  - $ref: "../../shared/resources/schemas.yaml#/Products"
+                  - $ref: "../../shared/resources/schemas.yaml#/Message"
         default:
           description: OK or server error
           content:
             application/json:
               schema:
-                $ref: "schemas.yaml#/Message"
+                $ref: "../../shared/resources/schemas.yaml#/Message"
       x-amazon-apigateway-auth:
         type: AWS_IAM
       x-amazon-apigateway-integration:

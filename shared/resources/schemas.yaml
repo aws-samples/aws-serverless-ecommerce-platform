@@ -28,7 +28,6 @@ Address:
       pattern: "^[A-Za-z]{2}$"
     phoneNumber:
       type: string
-      pattern: "^\\+?[0-9\\.- ]+$"
 
 EventBridgeHeader:
   type: object
