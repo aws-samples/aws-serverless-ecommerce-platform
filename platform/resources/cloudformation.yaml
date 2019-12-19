@@ -9,5 +9,6 @@ Resources:
   SchemaRegistryNameParameter:
     Type: AWS::SSM::Parameter
     Properties:
-        Name: /ecommerce/platform/schema-registry/name
-        Value: !GetAtt SchemaRegistry.RegistryName
+      Name: /ecommerce/platform/schema-registry/name
+      Type: String
+      Value: !GetAtt SchemaRegistry.RegistryName

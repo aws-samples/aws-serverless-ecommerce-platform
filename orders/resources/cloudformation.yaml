@@ -33,3 +33,10 @@ Resources:
           Name: "AWS::Include"
           Parameters:
             Location: "events.yaml"
+
+  ApiUrlParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /ecommerce/orders/api/url
+      Type: String
+      Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com/Prod/"

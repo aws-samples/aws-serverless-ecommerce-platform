@@ -25,6 +25,7 @@ Resources:
     Type: AWS::SSM::Parameter
     Properties:
       Name: /ecommerce/platform/user-pool/arn
+      Type: String
       Value: !GetAtt UserPool.Arn
 ```
 
