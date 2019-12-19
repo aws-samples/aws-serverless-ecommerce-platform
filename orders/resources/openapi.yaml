@@ -6,26 +6,12 @@ info:
   license:
     name: MIT-0
 
-tags:
-  - name: auth-anonymous
-    description: |
-      This operation does not require any authentication.
-  - name: auth-backend
-    description: |
-      This operation requires IAM signature for service-to-service communication.
-  - name: auth-user
-    description: |
-      This operation requires a valid JWT token from a user. The JWT token should
-      be sent in the "Authorization" header.
-
 paths:
   /:
     get:
       description: |
         Retrieve orders belonging to the user.
       operationId: getOrders
-      tags:
-        - auth-user
       responses:
         200:
           description: Array of orders
@@ -61,8 +47,6 @@ paths:
         This operation is a control point to transform unvalidated customer input
         into an order that can be trusted by other services.
       operationId: createOrder
-      tags:
-        - auth-user
       requestBody:
         required: true
         content:
@@ -103,8 +87,6 @@ paths:
       description: |
         Retrieve a single order belonging to the user.
       operationId: getOrder
-      tags:
-        - auth-user
       parameters:
         - name: orderId
           in: path
@@ -144,8 +126,6 @@ paths:
 
         This is a backend operation that requires IAM credentials.
       operationId: backendGetOrder
-      tags:
-        - auth-backend
       parameters:
         - name: orderId
           in: path
