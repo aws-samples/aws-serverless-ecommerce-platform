@@ -44,4 +44,5 @@ paths:
       x-amazon-apigateway-integration:
         httpMethod: "POST"
         type: aws_proxy
-        uri: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ValidateFunction.Arn}/invocations"
+        uri:
+          Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ValidateFunction.Arn}/invocations"

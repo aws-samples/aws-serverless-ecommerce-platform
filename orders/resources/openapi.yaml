@@ -35,7 +35,8 @@ paths:
       x-amazon-apigateway-integration:
         httpMethod: "POST"
         type: aws_proxy
-        uri: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetOrdersFunction.Arn}/invocations"
+        uri:
+          Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetOrdersFunction.Arn}/invocations"
     post:
       description: |
         Create a new order.
@@ -78,7 +79,8 @@ paths:
       x-amazon-apigateway-integration:
         httpMethod: "POST"
         type: aws_proxy
-        uri: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CreateOrderFunction.Arn}/invocations"
+        uri:
+          Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CreateOrderFunction.Arn}/invocations"
 
   /{orderId}:
     get:
@@ -114,7 +116,8 @@ paths:
       x-amazon-apigateway-integration:
         httpMethod: "POST"
         type: aws_proxy
-        uri: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetOrderFunction.Arn}/invocations"
+        uri:
+          Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetOrderFunction.Arn}/invocations"
 
   /backend/{orderId}:
     get:
@@ -152,7 +155,8 @@ paths:
       x-amazon-apigateway-integration:
         httpMethod: "POST"
         type: aws_proxy
-        uri: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetOrderFunction.Arn}/invocations"
+        uri:
+          Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetOrderFunction.Arn}/invocations"
 
 
 components:
@@ -182,4 +186,4 @@ components:
       x-amazon-apigateway-authorizer:
         type: cognito_user_pools
         providerARNs:
-          - "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${UserPool}"
+          - Ref: UserPoolArn
