@@ -1,0 +1,142 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: 'AWS::Serverless-2016-10-31'
+
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+
+  RetentionInDays:
+    Type: Number
+    Default: 30
+
+  UserPoolArn:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Cognito User Pool ARN
+    Default: /ecommerce/platform/user-pool/arn
+
+  EventBusName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: EventBridge Event Bus Name
+    Default: /ecommerce/platform/event-bus/name
+
+  SchemaRegistryName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: EventBridge Schema Registry Name
+    Default: /ecommerce/platform/schema-registry/name
+
+
+Globals:
+  Function:
+    Timeout: 30
+    Environment:
+      Variables:
+        ENVIRONMENT: !Ref Environment
+        EVENT_BUS_NAME: !Ref EventBusName
+
+Resources:
+  #############
+  # FUNCTIONS #
+  #############
+
+  GetOrdersFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: #TODO
+      Handler: #TODO
+      CodeUri: #TODO
+      Events:
+        UserApi:
+          Type: Api
+          Properties:
+            Path: /
+            Method: GET
+            RestApiId: !Ref Api
+
+  GetOrdersLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${GetOrdersFunction.Arn}"
+      RetentionInDays: !Ref RetentionInDays
+
+  GetOrderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: #TODO
+      Handler: #TODO
+      CodeUri: #TODO
+      Events:
+        UserApi:
+          Type: Api
+          Properties:
+            Path: /{orderId}
+            Method: GET
+            RestApiId: !Ref Api
+        BackendApi:
+          Type: Api
+          Properties:
+            Path: /backend/{orderId}
+            Method: GET
+            RestApiId: !Ref Api
+
+  GetOrderLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${GetOrderFunction.Arn}"
+      RetentionInDays: !Ref RetentionInDays
+
+  PostOrderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: #TODO
+      Handler: #TODO
+      CodeUri: #TODO
+      Events:
+        UserApi:
+          Type: Api
+          Properties:
+            Path: /
+            Method: POST
+            RestApiId: !Ref Api
+
+  PostOrderLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${PostOrderFunction.Arn}"
+      RetentionInDays: !Ref RetentionInDays
+
+  ###############
+  # API GATEWAY #
+  ###############
+
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      DefinitionBody:
+        Fn::Transform:
+          Name: "AWS::Include"
+          Parameters:
+            Location: "resources/openapi.yaml"
+      TracingEnabled: true
+
+  ApiUrlParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /ecommerce/orders/api/url
+      Type: String
+      Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+
+  ###########
+  # SCHEMAS #
+  ###########
+
+  Schemas:
+    Type: AWS::EventSchemas::Schema
+    Properties:
+      RegistryName: !Ref SchemaRegistryName
+      Content:
+        Fn::Transform:
+          Name: "AWS::Include"
+          Parameters:
+            Location: "resources/events.yaml"

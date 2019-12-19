@@ -1,0 +1,37 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: 'AWS::Serverless-2016-10-31'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+
+
+Resources:
+  #############
+  # EVENT BUS #
+  #############
+  EventBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: ecommerce
+
+  EventBusNameParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /ecommerce/platform/event-bus/name
+      Type: String
+      Value: !Ref EventBus
+
+  ###################
+  # SCHEMA REGISTRY #
+  ###################
+  SchemaRegistry:
+    Type: AWS::EventSchemas::Registry
+
+  SchemaRegistryNameParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /ecommerce/platform/schema-registry/name
+      Type: String
+      Value: !GetAtt SchemaRegistry.RegistryName
