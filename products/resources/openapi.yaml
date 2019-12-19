@@ -6,6 +6,18 @@ info:
   license:
     name: MIT-0
 
+tags:
+  - name: auth-anonymous
+    description: |
+      This operation does not require any authentication.
+  - name: auth-backend
+    description: |
+      This operation requires IAM signature for service-to-service communication.
+  - name: auth-user
+    description: |
+      This operation requires a valid JWT token from a user. The JWT token should
+      be sent in the "Authorization" header.
+
 paths:
   /backend/validate:
     post:
@@ -18,6 +30,8 @@ paths:
         __Remark__: This is an internal API that requires valid IAM credentials
         and signature.
       operationId: backendValidateProducts
+      tags:
+        - auth-backend
       requestBody:
         required: true
         content:
