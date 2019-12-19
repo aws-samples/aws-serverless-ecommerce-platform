@@ -1,0 +1,35 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: 'AWS::Serverless-2016-10-31'
+
+
+Parameters:
+  UserPoolArn:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Cognito User Pool ARN
+    Default: /ecommerce/platform/user-pool/arn
+
+  SchemaRegistryName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: EventBridge Schema Registry Name
+    Default: /ecommerce/platform/schema-registry/name
+
+Resources:
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      DefinitionBody:
+        Fn::Transform:
+          Name: "AWS::Include"
+          Parameters:
+            Location: "openapi.yaml"
+      TracingEnabled: true
+
+  Schemas:
+    Type: AWS::EventSchemas::Schema
+    Properties:
+      RegistryName: !Ref SchemaRegistryName
+      Content:
+        Fn::Transform:
+          Name: "AWS::Include"
+          Parameters:
+            Location: "events.yaml"
