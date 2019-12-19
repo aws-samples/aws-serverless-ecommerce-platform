@@ -12,9 +12,25 @@ SSM Parameter names should follow this convention: `/ecommerce/{serviceName}/{re
 /ecommerce/orders/api/url
 ```
 
+Here is how to create SSM parameters for your resources in CloudFormation:
+
+```yaml
+Resources:
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      # ...
+
+  UserPoolArnParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /ecommerce/platform/user-pool/arn
+      Value: !GetAtt UserPool.Arn
+```
+
 To use resources in your service, you should use CloudFormation parameters. For example:
 
-```
+```yaml
 Parameters:
   UserPoolArn:
     Type: AWS::SSM::Parameter::Value<String>
