@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "Serverless Ecommerce Platform is a sample implementation of a serverless backend for an e-commerce website",
   "scripts": {
-    "lint:openapi": "for openapi in */resources/openapi.yaml; do swagger-cli validate $openapi; done"
+    "lint:openapi": "for openapi in */resources/openapi*.yaml; do npx swagger-cli validate $openapi; done",
+    "lint:events": "for events in */resources/events*.yaml; do npx swagger-cli validate $events; done",
+    "lint": "npm run lint:openapi && npm run lint:events"
   },
   "repository": "github:aws-samples/aws-serverless-ecommerce-platform",
   "license": "MIT-0",
