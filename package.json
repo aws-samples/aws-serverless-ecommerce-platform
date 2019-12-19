@@ -1,0 +1,18 @@
+{
+  "name": "aws-serverless-ecommerce-platform",
+  "version": "1.0.0",
+  "description": "Serverless Ecommerce Platform is a sample implementation of a serverless backend for an e-commerce website",
+  "scripts": {
+    "lint:openapi": "for openapi in */resources/openapi.yaml; do swagger-cli validate $openapi; done"
+  },
+  "repository": "github:aws-samples/aws-serverless-ecommerce-platform",
+  "license": "MIT-0",
+  "bugs": {
+    "url": "https://github.com/aws-samples/aws-serverless-ecommerce-platform/issues"
+  },
+  "homepage": "https://github.com/aws-samples/aws-serverless-ecommerce-platform#readme",
+  "dependencies": {},
+  "devDependencies": {
+    "swagger-cli": "^2.3.4"
+  }
+}
