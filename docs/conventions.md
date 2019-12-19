@@ -1,6 +1,14 @@
 Conventions
 ===========
 
+## Service folder structure
+
+Each service should have the following structure in its folder:
+
+* __/{service}/template.yaml__: CloudFormation template for the service.
+* __/{service}/resources/openapi.yaml__ (optional): File containing the OpenAPI specification. This is optional if the service does not provide an API.
+* __/{service}/resources/events.yaml__ (optional): File containing the event schemas for EventBridge in OpenAPI format. This is optional if the service does not emit events.
+
 ## Passing resources across services
 
 Passing resources such as Amazon API Gateway URLs, SNS topics, etc. across services must be done through SSM Parameters.
