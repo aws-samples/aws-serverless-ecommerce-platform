@@ -1,0 +1,13 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: 'AWS::Serverless-2016-10-31'
+
+
+Resources:
+  SchemaRegistry:
+    Type: AWS::EventSchemas::Registry
+
+  SchemaRegistryNameParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+        Name: /ecommerce/platform/schema-registry/name
+        Value: !GetAtt SchemaRegistry.RegistryName
