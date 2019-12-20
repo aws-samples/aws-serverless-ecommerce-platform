@@ -1,0 +1,11 @@
+{
+  "productId": "0db9ed72-3912-4099-829f-d2925399e4a3",
+  "name": "Correct product",
+  "package": {
+    "width": 200,
+    "length": 100,
+    "height": 50,
+    "weight": 1000
+  },
+  "price": 500
+}
