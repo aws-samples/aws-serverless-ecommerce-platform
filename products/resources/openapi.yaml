@@ -25,7 +25,13 @@ paths:
             schema:
               $ref: "../../shared/resources/schemas.yaml#/Products"
       responses:
-        4XX:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "../../shared/resources/schemas.yaml#/Message"
+        400:
           description: Invalid products
           content:
             application/json:
@@ -33,8 +39,14 @@ paths:
                 allOf:
                   - $ref: "../../shared/resources/schemas.yaml#/Products"
                   - $ref: "../../shared/resources/schemas.yaml#/Message"
-        default:
-          description: OK or server error
+        4XX:
+          description: Client error
+          content:
+            application/json:
+              schema:
+                $ref: "../../shared/resources/schemas.yaml#/Message"
+        5XX:
+          description: Internal error
           content:
             application/json:
               schema:
