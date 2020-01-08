@@ -25,6 +25,11 @@ def setup_module(module):
     This will inject test data in the DynamoDB table
     """
 
+    # Checking if this is a test environment
+    env = ssm.get_parameter(Name="/ecommerce/products/environment")["Parameter"]["Value"]
+    if env.lower() == "prod":
+        pytest.exit("Prod environment detected. Aborting.")
+
     with open(DATA_FILENAME) as fp:
         correct_product = json.load(fp)
 
