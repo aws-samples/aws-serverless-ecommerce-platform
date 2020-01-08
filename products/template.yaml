@@ -1,0 +1,95 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: 'AWS::Serverless-2016-10-31'
+
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    Description: Environment name
+  RetentionInDays:
+    Type: Number
+    Default: 30
+    Description: CloudWatch Logs retention period for Lambda functions
+  # # Not needed at the moment
+  # EventBusName:
+  #   Type: AWS::SSM::Parameter::Value<String>
+  #   Description: EventBridge Event Bus Name
+  #   Default: /ecommerce/platform/event-bus/name
+
+
+Globals:
+  Function:
+    Runtime: python3.8
+    Timeout: 30
+    Environment:
+      Variables:
+        ENVIRONMENT: !Ref Environment
+        EVENT_BUS_NAME: !Ref EventBusName
+        TABLE_NAME: !Ref Table
+
+
+Resources:
+  #########
+  # TABLE #
+  #########
+  Table:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: productId
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: productId
+          KeyType: HASH
+
+  TableParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /ecommerce/products/table/name
+      Type: String
+      Value: !Ref Table
+
+  #############
+  # FUNCTIONS #
+  #############
+  ValidateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      CodeUri: src/validate/
+      Events:
+        BackendApi:
+          Type: Api
+          Properties:
+            Path: /backend/validate
+            Method: POST
+            RestApiId: !Ref Api
+
+  ValidateLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${GetOrderFunction.Arn}"
+      RetentionInDays: !Ref RetentionInDays
+
+  ###############
+  # API GATEWAY #
+  ###############
+
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      DefinitionBody:
+        Fn::Transform:
+          Name: "AWS::Include"
+          Parameters:
+            Location: "resources/openapi.yaml"
+      TracingEnabled: true
+
+  ApiUrlParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /ecommerce/products/api/url
+      Type: String
+      Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
