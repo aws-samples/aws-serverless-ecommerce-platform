@@ -1,1 +1,2 @@
+aws-lambda-logging
 aws-lambda-powertools

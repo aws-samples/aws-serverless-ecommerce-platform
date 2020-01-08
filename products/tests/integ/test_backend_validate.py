@@ -132,8 +132,7 @@ def test_backend_validate_empty(iam_auth):
     assert response.status_code == 200
 
     res_body = response.json()
-    assert "products" in res_body
-    assert len(res_body["products"]) == 0
+    assert "products" not in res_body
 
 
 def test_backend_validate_correct(iam_auth, correct_product):
@@ -148,8 +147,7 @@ def test_backend_validate_correct(iam_auth, correct_product):
     assert response.status_code == 200
 
     res_body = response.json()
-    assert "products" in res_body
-    assert len(res_body["products"]) == 0
+    assert "products" not in res_body
 
 
 def test_backend_validate_incorrect_price(iam_auth, correct_product, incorrect_product_price):

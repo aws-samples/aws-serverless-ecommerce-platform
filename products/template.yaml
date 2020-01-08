@@ -28,8 +28,9 @@ Globals:
         ENVIRONMENT: !Ref Environment
         # EVENT_BUS_NAME: !Ref EventBusName
         TABLE_NAME: !Ref Table
-        POWERTOOLS_SERVICE_NAME: "products"
+        POWERTOOLS_SERVICE_NAME: products
         POWERTOOLS_TRACE_DISABLED: "false"
+        LOG_LEVEL: INFO
 
 
 Resources:
@@ -69,6 +70,9 @@ Resources:
             Path: /backend/validate
             Method: POST
             RestApiId: !Ref Api
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref Table
 
   ValidateLogGroup:
     Type: AWS::Logs::LogGroup
