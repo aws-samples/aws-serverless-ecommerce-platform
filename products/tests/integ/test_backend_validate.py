@@ -39,9 +39,10 @@ def iam_auth():
     """
 
     url = urlparse(ENDPOINT_URL)
+    region = boto3.session.Session().region_name
 
     return BotoAWSRequestsAuth(aws_host=url.netloc,
-                               aws_region=os.environ["AWS_REGION"],
+                               aws_region=region,
                                aws_service='execute-api')
 
 
