@@ -27,6 +27,7 @@ def build(service: str):
 
     # Copy files to build directory
     build_dir = os.path.join(service, "build")
+    os.mkdir(build_dir)
 
     # Copy folders
     for name in ["src", "resources", "tests"]:
