@@ -8,6 +8,13 @@ Parameters:
 
 
 Resources:
+  EnvironmentParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /ecommerce/platform/environment
+      Type: String
+      Value: !Ref Environment
+
   #############
   # EVENT BUS #
   #############
