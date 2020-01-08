@@ -17,7 +17,7 @@ def get_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def prep_service(service: str):
+def build(service: str):
     """
     Check if the service exists and prepares it for deployment
     """
@@ -78,6 +78,4 @@ def package_template(service: str, build_dir: str):
 
 if __name__ == "__main__":
     args = get_args()
-
-    # Prepare service
-    prep_service(args.service)
+    build(args.service)

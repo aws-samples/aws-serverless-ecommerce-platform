@@ -1,0 +1,36 @@
+#!/usr/bin/env python3
+
+
+import argparse
+import os
+import subprocess
+
+
+def get_args() -> argparse.Namespace:
+    """
+    Return arguments from the command line
+    """
+    parser = argparse.ArgumentParser("deploy")
+    parser.add_argument("service")
+
+    return parser.parse_args()
+
+
+def deploy(service: str):
+    build_dir = os.path.join(service, "build")
+    template_file = os.path.join(build_dir, "template.out")
+
+    stack_name = "ecommerce-{}".format(service)
+
+    if not os.path.isdir(build_dir) or not os.path.isfile(template_file):
+        raise ValueError("'{}' or '{}' not found.".format(build_dir, template_file))
+
+    subprocess.run(["aws", "cloudformation", "deploy",
+        "--stack-name", stack_name,
+        "--capabilities", "CAPABILITY_IAM",
+        "--template-file", template_file])
+
+
+if __name__ == "__main__":
+    args = get_args()
+    deploy(args.service)
