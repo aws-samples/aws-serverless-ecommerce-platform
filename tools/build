@@ -43,6 +43,9 @@ def build(service: str):
     # Parse OpenAPI specifications and copy in the build folder, if any
     copy_openapi(service, build_dir)
 
+    # Install Python3 packages
+    install_packages(service, build_dir)
+
     # Package CloudFormation template
     package_template(service, build_dir)
 
@@ -59,6 +62,21 @@ def copy_openapi(service: str, build_dir: str):
         return
 
     subprocess.run(["speccy", "resolve", openapi_file, "-o", openapi_out_file])
+
+def install_packages(service: str, build_dir: str):
+    source_dir = os.path.join(build_dir, "src")
+    if not os.path.isdir(source_dir):
+        return
+
+    # Loop through directories in the 'src' folder
+    for name in os.listdir(source_dir):
+        path = os.path.join(source_dir, name)
+
+        # If there is a requirements.txt file, we need to install extra packages.
+        if os.path.isfile(os.path.join(path, "requirements.txt")):
+            subprocess.run(["/usr/bin/env", "python3", "-m", "pip", "install",
+                "--requirement", os.path.join(path, "requirements.txt"),
+                "--target", path])
 
 def package_template(service: str, build_dir: str):
     """
