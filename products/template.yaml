@@ -25,7 +25,7 @@ Globals:
     Environment:
       Variables:
         ENVIRONMENT: !Ref Environment
-        EVENT_BUS_NAME: !Ref EventBusName
+        # EVENT_BUS_NAME: !Ref EventBusName
         TABLE_NAME: !Ref Table
 
 
@@ -70,7 +70,7 @@ Resources:
   ValidateLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "/aws/lambda/${GetOrderFunction.Arn}"
+      LogGroupName: !Sub "/aws/lambda/${ValidateFunction}"
       RetentionInDays: !Ref RetentionInDays
 
   ###############
@@ -85,6 +85,7 @@ Resources:
           Name: "AWS::Include"
           Parameters:
             Location: "resources/openapi.yaml"
+      StageName: Prod
       TracingEnabled: true
 
   ApiUrlParameter:
@@ -92,4 +93,4 @@ Resources:
     Properties:
       Name: /ecommerce/products/api/url
       Type: String
-      Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+      Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com/Prod"

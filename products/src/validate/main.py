@@ -3,4 +3,7 @@ ValidateFunction
 """
 
 def handler(event, context):
-    pass
+    return {
+        "statusCode": 200,
+        "body": "This is a test"
+    }

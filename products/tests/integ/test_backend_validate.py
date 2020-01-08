@@ -7,8 +7,11 @@ import pytest
 import requests
 
 
-TABLE_NAME = os.environ["TABLE_NAME"]
-ENDPOINT_URL = os.environ["ENDPOINT_URL"]
+ssm = boto3.client("ssm")
+
+
+TABLE_NAME = ssm.get_parameter(Name="/ecommerce/products/table/name")["Parameter"]["Value"]
+ENDPOINT_URL = ssm.get_parameter(Name="/ecommerce/products/api/url")["Parameter"]["Value"]
 PATH = "/backend/validate"
 
 DIRNAME = os.path.dirname(__file__)
@@ -26,7 +29,7 @@ def setup_module(module):
         correct_product = json.load(fp)
 
     table = boto3.resource('dynamodb').Table(TABLE_NAME)
-    table.put_item(correct_product)
+    table.put_item(Item=correct_product)
 
 
 @pytest.fixture
