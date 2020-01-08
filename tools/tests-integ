@@ -4,6 +4,7 @@
 import argparse
 import os
 import subprocess
+import boto3
 
 
 def get_args() -> argparse.Namespace:
@@ -20,6 +21,16 @@ def tests_integ(service: str):
     """
     Run integration tests for a service
     """
+
+    ssm = boto3.client("ssm")
+
+    try:
+        env = ssm.get_parameter(Name="/ecommerce/{}/environment".format(service))
+    except:
+        raise ValueError("SSM parameter '/ecommerce/{}/environment' not found".format(service))
+
+    if env["Parameter"]["Value"].lower() == "prod":
+        raise ValueError("Prod environment detected")
 
     tests_dir = os.path.join(service, "tests", "integ")
     if not os.path.isdir(tests_dir):
