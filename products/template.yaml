@@ -11,11 +11,10 @@ Parameters:
     Type: Number
     Default: 30
     Description: CloudWatch Logs retention period for Lambda functions
-  # # Not needed at the moment
-  # EventBusName:
-  #   Type: AWS::SSM::Parameter::Value<String>
-  #   Description: EventBridge Event Bus Name
-  #   Default: /ecommerce/platform/event-bus/name
+  EventBusName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: EventBridge Event Bus Name
+    Default: /ecommerce/platform/event-bus/name
 
 
 Globals:
@@ -26,7 +25,7 @@ Globals:
     Environment:
       Variables:
         ENVIRONMENT: !Ref Environment
-        # EVENT_BUS_NAME: !Ref EventBusName
+        EVENT_BUS_NAME: !Ref EventBusName
         TABLE_NAME: !Ref Table
         POWERTOOLS_SERVICE_NAME: products
         POWERTOOLS_TRACE_DISABLED: "false"
