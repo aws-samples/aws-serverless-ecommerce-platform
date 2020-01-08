@@ -118,6 +118,7 @@ Resources:
           Name: "AWS::Include"
           Parameters:
             Location: "resources/openapi.yaml"
+      StageName: Prod
       TracingEnabled: true
 
   ApiUrlParameter:
@@ -125,7 +126,7 @@ Resources:
     Properties:
       Name: /ecommerce/orders/api/url
       Type: String
-      Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+      Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com/Prod"
 
   ###########
   # SCHEMAS #

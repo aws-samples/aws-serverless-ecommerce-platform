@@ -22,11 +22,14 @@ Globals:
   Function:
     Runtime: python3.8
     Timeout: 30
+    Tracing: Active
     Environment:
       Variables:
         ENVIRONMENT: !Ref Environment
         # EVENT_BUS_NAME: !Ref EventBusName
         TABLE_NAME: !Ref Table
+        POWERTOOLS_SERVICE_NAME: "products"
+        POWERTOOLS_TRACE_DISABLED: "false"
 
 
 Resources:
