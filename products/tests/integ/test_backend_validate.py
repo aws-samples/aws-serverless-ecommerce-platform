@@ -1,15 +1,32 @@
 import json
 import os
 from urllib.parse import urlparse
-from aws_requests_auth.aws_auth import AWSRequestsAuth
+from aws_requests_auth.boto_utils import BotoAWSRequestsAuth
+import boto3
 import pytest
 import requests
 
 
+TABLE_NAME = os.environ["TABLE_NAME"]
 ENDPOINT_URL = os.environ["ENDPOINT_URL"]
 PATH = "/backend/validate"
 
-DIR_NAME = os.path.dirname(__file__)
+DIRNAME = os.path.dirname(__file__)
+DATA_FILENAME = os.path.join(DIRNAME, "data", "correct_product.json")
+
+
+def setup_module(module):
+    """
+    Setup the module
+
+    This will inject test data in the DynamoDB table
+    """
+
+    with open(DATA_FILENAME) as fp:
+        correct_product = json.load(fp)
+
+    table = boto3.resource('dynamodb').Table(TABLE_NAME)
+    table.put_item(correct_product)
 
 
 @pytest.fixture
@@ -20,20 +37,28 @@ def iam_auth():
 
     url = urlparse(ENDPOINT_URL)
 
-    return AWSRequestsAuth(aws_host=url.netloc,
-                           aws_region=os.environ["AWS_REGION"],
-                           aws_service='execute-api')
+    return BotoAWSRequestsAuth(aws_host=url.netloc,
+                               aws_region=os.environ["AWS_REGION"],
+                               aws_service='execute-api')
 
 
 @pytest.fixture
 def correct_product():
-    with open(os.path.join(DIR_NAME, "data", "correct_product.json")) as fp:
+    """
+    Return the correct product
+    """
+
+    with open(os.path.join(DIRNAME, "data", "correct_product.json")) as fp:
         return json.load(fp)
 
 
 @pytest.fixture
 def incorrect_product_price():
-    with open(os.path.join(DIR_NAME, "data", "correct_product.json")) as fp:
+    """
+    Return the product with an incorrect price
+    """
+
+    with open(os.path.join(DIRNAME, "data", "correct_product.json")) as fp:
         product = json.load(fp)
 
     product["price"] += 200
@@ -43,7 +68,11 @@ def incorrect_product_price():
 
 @pytest.fixture
 def incorrect_product_length():
-    with open(os.path.join(DIR_NAME, "data", "correct_product.json")) as fp:
+    """
+    Return the product with an incorrect length
+    """
+
+    with open(os.path.join(DIRNAME, "data", "correct_product.json")) as fp:
         product = json.load(fp)
 
     product["package"]["length"] += 200
@@ -53,7 +82,11 @@ def incorrect_product_length():
 
 @pytest.fixture
 def incorrect_product_weight():
-    with open(os.path.join(DIR_NAME, "data", "correct_product.json")) as fp:
+    """
+    Return the product with an incorrect weight
+    """
+
+    with open(os.path.join(DIRNAME, "data", "correct_product.json")) as fp:
         product = json.load(fp)
 
     product["package"]["weight"] += 200
