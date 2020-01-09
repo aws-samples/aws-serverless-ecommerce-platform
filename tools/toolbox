@@ -4,10 +4,17 @@ import argparse
 import os
 import shutil
 import subprocess
+from typing import List
 import boto3
 
 
-COMMANDS = ["build", "clean", "deploy", "package", "tests-func", "tests-integ"]
+class SplitAction(argparse.Action):
+    """
+    Split a string of comma-separated values into a list
+    """
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, values.split(','))
 
 
 def get_args() -> argparse.Namespace:
@@ -15,7 +22,7 @@ def get_args() -> argparse.Namespace:
     Return arguments from the command line
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("command", choices=COMMANDS)
+    parser.add_argument("commands", action=SplitAction)
     parser.add_argument("service")
 
     return parser.parse_args()
@@ -53,15 +60,20 @@ class ToolBox:
     def tests_dir(self):
         return os.path.join(self.service, "tests")
 
-    def run(self, command: str):
+    def run(self, commands: List[str]):
         if not os.path.isdir(self.service_dir) or self.service in ["docs", "shared", "tools"]:
             raise ValueError("Service '{}' does not exist".format(self.service))
 
-        cmd = getattr(self, "cmd_{}".format(command.replace("-", "_")), None)
-        if cmd is None:
-            raise ValueError("Command '{}' does not exist".format(command))
+        cmds = []
 
-        cmd()
+        for command in commands:
+            cmd = getattr(self, "cmd_{}".format(command.replace("-", "_")), None)
+            if cmd is None:
+                raise ValueError("Command '{}' does not exist".format(command))
+            cmds.append(cmd)
+
+        for cmd in cmds:
+            cmd()
 
     def cmd_build(self):
         """
@@ -89,34 +101,6 @@ class ToolBox:
 
         # Install Python3 packages
         self._install_packages()
-
-    def _copy_openapi(self):
-        """
-        Parse OpenAPI specs and returns a merged document
-        """
-
-        openapi_file = os.path.join(self.resources_dir, "openapi.yaml")
-        openapi_out_file = os.path.join(self.resources_build_dir, "openapi.yaml")
-
-        # Skip if there are no OpenAPI specifications for that service
-        if not os.path.isfile(openapi_file):
-            return
-
-        subprocess.run(["speccy", "resolve", openapi_file, "-o", openapi_out_file])
-
-    def _install_packages(self):
-        if not os.path.isdir(self.source_build_dir):
-            return
-
-        # Loop through directories in the 'src' folder
-        for name in os.listdir(self.source_build_dir):
-            path = os.path.join(self.source_build_dir, name)
-
-            # If there is a requirements.txt file, we need to install extra packages.
-            if os.path.isfile(os.path.join(path, "requirements.txt")):
-                subprocess.run(["/usr/bin/env", "python3", "-m", "pip", "install",
-                    "--requirement", os.path.join(path, "requirements.txt"),
-                    "--target", path])
 
     def cmd_clean(self):
         shutil.rmtree(self.build_dir)
@@ -186,8 +170,36 @@ class ToolBox:
 
         subprocess.run(["pytest", tests_dir])
 
+    def _copy_openapi(self):
+        """
+        Parse OpenAPI specs and returns a merged document
+        """
+
+        openapi_file = os.path.join(self.resources_dir, "openapi.yaml")
+        openapi_out_file = os.path.join(self.resources_build_dir, "openapi.yaml")
+
+        # Skip if there are no OpenAPI specifications for that service
+        if not os.path.isfile(openapi_file):
+            return
+
+        subprocess.run(["speccy", "resolve", openapi_file, "-o", openapi_out_file])
+
+    def _install_packages(self):
+        if not os.path.isdir(self.source_build_dir):
+            return
+
+        # Loop through directories in the 'src' folder
+        for name in os.listdir(self.source_build_dir):
+            path = os.path.join(self.source_build_dir, name)
+
+            # If there is a requirements.txt file, we need to install extra packages.
+            if os.path.isfile(os.path.join(path, "requirements.txt")):
+                subprocess.run(["/usr/bin/env", "python3", "-m", "pip", "install",
+                    "--requirement", os.path.join(path, "requirements.txt"),
+                    "--target", path])
+
 if __name__ == "__main__":
     args = get_args()
 
     toolbox = ToolBox(args.service)
-    toolbox.run(args.command)
+    toolbox.run(args.commands)
