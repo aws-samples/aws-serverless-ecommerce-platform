@@ -25,7 +25,7 @@ tools/toolbox products build package deploy tests-integ
 
 The following commands are supported: `build`, `clean`, `deploy`, `package`, `tests-func` and `tests-integ`.
 
-### Build command
+### `build` command
 
 The __build__ command copies files from the `src/` and `resources/` folders of a service as well as `template.yaml` into a `build/` folder, transforms the OpenAPI specifications and install required Python packages in the Lambda folders.
 
