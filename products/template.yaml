@@ -99,6 +99,13 @@ Resources:
           Properties:
             Stream: !GetAtt Table.StreamArn
             StartingPosition: TRIM_HORIZON
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: "*"
 
   TableUpdateLogGroup:
     Type: AWS::Logs::LogGroup
