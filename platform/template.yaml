@@ -29,16 +29,3 @@ Resources:
       Name: /ecommerce/platform/event-bus/name
       Type: String
       Value: !Ref EventBus
-
-  ###################
-  # SCHEMA REGISTRY #
-  ###################
-  SchemaRegistry:
-    Type: AWS::EventSchemas::Registry
-
-  SchemaRegistryNameParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: /ecommerce/platform/schema-registry/name
-      Type: String
-      Value: !GetAtt SchemaRegistry.RegistryName
