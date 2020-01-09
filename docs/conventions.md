@@ -10,6 +10,7 @@ Each service should have the following structure in its folder:
 * __/{service}/src/{function}/__ (optional): Source code for Lambda functions.
 * __/{service}/template.yaml__: CloudFormation template for the service.
 * __/{service}/tests/integ/__ (optional): Contains integration tests that are run on a deployed infrastructure.
+* __/{service}/tests/func/{function}/__ (optional): Contains functional tests that are run locally. 
 
 ## Passing resources across services
 
