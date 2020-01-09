@@ -1,0 +1,38 @@
+#!/usr/bin/env python3
+
+import argparse
+import os
+import subprocess
+
+
+def get_args() -> argparse.Namespace:
+    """
+    Return arguments from the command line
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument("service")
+
+    return parser.parse_args()
+
+
+def tests_functional(service: str):
+    """
+    Run functional tests for each Lambda function
+    """
+
+    build_dir = os.path.join(service, "build")
+    tests_dir = os.path.join(service, "tests", "functional")
+
+    # If there are no tests, abort
+    if not os.path.isdir(tests_dir):
+        raise ValueError("'{}' does not exist".format(tests_dir))
+
+    print("Running tests in {}".format(tests_dir))
+
+    os.environ["BUILD_DIR"] = build_dir
+
+    subprocess.run(["pytest", tests_dir])
+
+if __name__ == "__main__":
+    args = get_args()
+    tests_functional(args.service)

@@ -30,7 +30,8 @@ def build(service: str):
     os.mkdir(build_dir)
 
     # Copy folders
-    for name in ["src", "resources", "tests"]:
+    # No need to copy tests folder
+    for name in ["src", "resources"]:
         if not os.path.isdir(os.path.join(service, name)):
             continue
         shutil.copytree(os.path.join(service, name), os.path.join(build_dir, name))
