@@ -29,6 +29,8 @@ The following commands are supported: `build`, `clean`, `deploy`, `package`, `te
 
 The __build__ command copies files from the `src/` and `resources/` folders of a service as well as `template.yaml` into a `build/` folder, transforms the OpenAPI specifications and install required Python packages in the Lambda folders.
 
+It installs Python packages by looking at the `src/{function}/requirements.txt` file.
+
 ### `clean` command
 
 The __clean__ command deletes the `build/` folder of a service.
