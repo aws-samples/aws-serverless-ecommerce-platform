@@ -8,22 +8,13 @@ from typing import List
 import boto3
 
 
-class SplitAction(argparse.Action):
-    """
-    Split a string of comma-separated values into a list
-    """
-
-    def __call__(self, parser, namespace, values, option_string=None):
-        setattr(namespace, self.dest, values.split(','))
-
-
 def get_args() -> argparse.Namespace:
     """
     Return arguments from the command line
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("commands", action=SplitAction)
     parser.add_argument("service")
+    parser.add_argument("commands", nargs="+")
 
     return parser.parse_args()
 
@@ -139,7 +130,7 @@ class ToolBox:
         Run functional tests for each Lambda function
         """
 
-        tests_dir = os.path.join(self.tests_dir, "functional")
+        tests_dir = os.path.join(self.tests_dir, "func")
 
         # If there are no tests, abort
         if not os.path.isdir(tests_dir):
