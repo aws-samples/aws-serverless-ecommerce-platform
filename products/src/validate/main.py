@@ -69,6 +69,28 @@ def validate_products(products: List[dict]) -> Set[Union[List[dict], str]]:
 
 
 @tracer.capture_method
+def compare_product(user_product: dict, ddb_product: Optional[dict]) -> Optional[Set[Union[dict, str]]]:
+    """
+    Compare the user-provided product with the data provided by DynamoDB
+    """
+
+    if ddb_product is None:
+        return user_product, "Product '{}' not found".format(user_product["productId"])
+
+    # Validate schema
+    for key in ddb_product.keys():
+        if key not in user_product:
+            return ddb_product, "Missing '{}' in product '{}'".format(key, user_product["productId"])
+
+        if user_product[key] != ddb_product[key]:
+            return ddb_product, "Invalid value for '{}': want '{}', got '{}' in product '{}'".format(key, ddb_product[key], user_product[key], user_product["productId"])
+
+    # All good, return nothing
+    return
+
+
+
+@tracer.capture_method
 def validate_product(product: dict) -> Optional[Set[Union[dict, str]]]:
     """
     Validate a single product
@@ -91,19 +113,7 @@ def validate_product(product: dict) -> Optional[Set[Union[dict, str]]]:
         }
     ).get("Item", None)
 
-    if ddb_product is None:
-        return product, "Product '{}' not found".format(product["productId"])
-
-    # Validate schema
-    for key in ddb_product.keys():
-        if key not in product:
-            return ddb_product, "Missing '{}' in product".format(key)
-
-        if product[key] != ddb_product[key]:
-            return ddb_product, "Invalid value for '{}': want '{}', got '{}'".format(key, ddb_product[key], product[key])
-
-    # All good, return nothing
-    return
+    return compare_product(product, ddb_product)
 
 @logger_inject_lambda_context
 @tracer.capture_lambda_handler
