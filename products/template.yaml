@@ -53,6 +53,8 @@ Resources:
       KeySchema:
         - AttributeName: productId
           KeyType: HASH
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
 
   TableParameter:
     Type: AWS::SSM::Parameter
@@ -67,7 +69,7 @@ Resources:
   ValidateFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: main.handler
+      Handler: validate.handler
       CodeUri: src/validate/
       Events:
         BackendApi:
@@ -84,6 +86,24 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub "/aws/lambda/${ValidateFunction}"
+      RetentionInDays: !Ref RetentionInDays
+
+  TableUpdateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: table_update.handler
+      CodeUri: src/table_update/
+      Events:
+        DynamoDB:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt Table.StreamArn
+            StartingPosition: TRIM_HORIZON
+
+  TableUpdateLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${TableUpdateFunction}"
       RetentionInDays: !Ref RetentionInDays
 
   ###############

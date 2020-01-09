@@ -7,7 +7,6 @@ import uuid
 import pytest
 
 
-
 def setup_module(module):
     os.environ["ENVIRONMENT"] = "test"
     os.environ["TABLE_NAME"] = ""
@@ -16,9 +15,13 @@ def setup_module(module):
     sys.path.insert(0, os.path.join(os.environ["BUILD_DIR"], "src", "validate"))
 
 
+def teardown_module(module):
+    sys.path.pop(0)
+
+
 @pytest.fixture
-def main():
-    return importlib.import_module("main")
+def validate():
+    return importlib.import_module("validate")
 
 
 @pytest.fixture
@@ -36,53 +39,53 @@ def product():
     }
 
 
-def test_message_string(main):
+def test_message_string(validate):
     """
     Test message() with a string as input
     """
 
     msg = "This is a test"
-    retval = main.message(msg)
+    retval = validate.message(msg)
 
     assert retval["body"] == json.dumps({"message": msg})
     assert retval["statusCode"] == 200
 
-def test_message_dict(main):
+def test_message_dict(validate):
     """
     Test message() with a dict as input
     """
 
     obj = {"key": "value"}
-    retval = main.message(obj)
+    retval = validate.message(obj)
 
     assert retval["body"] == json.dumps(obj)
     assert retval["statusCode"] == 200
 
-def test_message_status(main):
+def test_message_status(validate):
     """
     Test message() with a different status code
     """
 
     status_code = 400
-    retval = main.message("Message", status_code)
+    retval = validate.message("Message", status_code)
     assert retval["statusCode"] == status_code
 
 
-def test_compare_product_correct(main, product):
+def test_compare_product_correct(validate, product):
     """
     Compare a product that matches the DynamoDB item
     """
 
-    retval = main.compare_product(product, product)
+    retval = validate.compare_product(product, product)
 
     assert retval is None
 
 
-def test_compare_product_wrong_package(main, product):
+def test_compare_product_wrong_package(validate, product):
     user_product = copy.deepcopy(product)
     user_product["package"]["weight"] += 100
 
-    retval = main.compare_product(user_product, product)
+    retval = validate.compare_product(user_product, product)
 
     assert retval is not None
     assert retval[0] == product
@@ -90,11 +93,11 @@ def test_compare_product_wrong_package(main, product):
     assert retval[1].find(product["productId"]) != -1
 
 
-def test_compare_product_wrong_price(main, product):
+def test_compare_product_wrong_price(validate, product):
     user_product = copy.deepcopy(product)
     user_product["price"] += 100
 
-    retval = main.compare_product(user_product, product)
+    retval = validate.compare_product(user_product, product)
 
     assert retval is not None
     assert retval[0] == product
@@ -102,8 +105,8 @@ def test_compare_product_wrong_price(main, product):
     assert retval[1].find(product["productId"]) != -1
 
 
-def test_compare_product_missing(main, product):
-    retval = main.compare_product(product, None)
+def test_compare_product_missing(validate, product):
+    retval = validate.compare_product(product, None)
 
     assert retval is not None
     assert retval[0] == product
