@@ -1,0 +1,193 @@
+#!/usr/bin/env python3
+
+import argparse
+import os
+import shutil
+import subprocess
+import boto3
+
+
+COMMANDS = ["build", "clean", "deploy", "package", "tests-func", "tests-integ"]
+
+
+def get_args() -> argparse.Namespace:
+    """
+    Return arguments from the command line
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument("command", choices=COMMANDS)
+    parser.add_argument("service")
+
+    return parser.parse_args()
+
+
+class ToolBox:
+    def __init__(self, service: str):
+        self.service = service
+
+    @property
+    def build_dir(self):
+        return os.path.join(self.service, "build")
+
+    @property
+    def resources_dir(self):
+        return os.path.join(self.service, "resources")
+
+    @property
+    def resources_build_dir(self):
+        return os.path.join(self.service, "build", "resources")
+
+    @property
+    def service_dir(self):
+        return self.service
+
+    @property
+    def source_dir(self):
+        return os.path.join(self.service, "src")
+
+    @property
+    def source_build_dir(self):
+        return os.path.join(self.service, "build", "src")
+
+    @property
+    def tests_dir(self):
+        return os.path.join(self.service, "tests")
+
+    def run(self, command: str):
+        if not os.path.isdir(self.service_dir) or self.service in ["docs", "shared", "tools"]:
+            raise ValueError("Service '{}' does not exist".format(self.service))
+
+        cmd = getattr(self, "cmd_{}".format(command.replace("-", "_")), None)
+        if cmd is None:
+            raise ValueError("Command '{}' does not exist".format(command))
+
+        cmd()
+
+    def cmd_build(self):
+        """
+        Check if the service exists and prepares it for deployment
+        """
+
+        # Copy files to build directory
+        os.mkdir(self.build_dir)
+
+        # Copy folders
+        # No need to copy tests folder
+        for name in ["src", "resources"]:
+            if not os.path.isdir(os.path.join(self.service_dir, name)):
+                continue
+            shutil.copytree(os.path.join(self.service_dir, name), os.path.join(self.build_dir, name))
+
+        # Copy files
+        for name in ["template.yaml"]:
+            if not os.path.isfile(os.path.join(self.service_dir, name)):
+                continue
+            shutil.copy2(os.path.join(self.service_dir, name), os.path.join(self.build_dir, name))
+
+        # Parse OpenAPI specifications and copy in the build folder, if any
+        self._copy_openapi()
+
+        # Install Python3 packages
+        self._install_packages()
+
+    def _copy_openapi(self):
+        """
+        Parse OpenAPI specs and returns a merged document
+        """
+
+        openapi_file = os.path.join(self.resources_dir, "openapi.yaml")
+        openapi_out_file = os.path.join(self.resources_build_dir, "openapi.yaml")
+
+        # Skip if there are no OpenAPI specifications for that service
+        if not os.path.isfile(openapi_file):
+            return
+
+        subprocess.run(["speccy", "resolve", openapi_file, "-o", openapi_out_file])
+
+    def _install_packages(self):
+        if not os.path.isdir(self.source_build_dir):
+            return
+
+        # Loop through directories in the 'src' folder
+        for name in os.listdir(self.source_build_dir):
+            path = os.path.join(self.source_build_dir, name)
+
+            # If there is a requirements.txt file, we need to install extra packages.
+            if os.path.isfile(os.path.join(path, "requirements.txt")):
+                subprocess.run(["/usr/bin/env", "python3", "-m", "pip", "install",
+                    "--requirement", os.path.join(path, "requirements.txt"),
+                    "--target", path])
+
+    def cmd_clean(self):
+        shutil.rmtree(self.build_dir)
+
+    def cmd_deploy(self):
+        template_file = os.path.join(self.build_dir, "template.out")
+
+        stack_name = "ecommerce-{}".format(self.service)
+
+        if not os.path.isdir(self.build_dir) or not os.path.isfile(template_file):
+            raise ValueError("'{}' or '{}' not found.".format(self.build_dir, template_file))
+
+        subprocess.run(["aws", "cloudformation", "deploy",
+            "--stack-name", stack_name,
+            "--capabilities", "CAPABILITY_IAM",
+            "--template-file", template_file])
+
+    def cmd_package(self):
+        """
+        Package the CloudFormation template
+        """
+
+        s3_bucket = os.environ.get("S3_BUCKET", "{}-src".format(os.environ["USER"]))
+
+        workdir = os.getcwd()
+        os.chdir(self.build_dir)
+        subprocess.run(["aws", "cloudformation", "package", "--s3-bucket", s3_bucket,
+            "--template-file", "template.yaml",
+            "--output-template-file", "template.out"])
+
+        os.chdir(workdir)
+
+
+    def cmd_tests_func(self):
+        """
+        Run functional tests for each Lambda function
+        """
+
+        tests_dir = os.path.join(self.tests_dir, "functional")
+
+        # If there are no tests, abort
+        if not os.path.isdir(tests_dir):
+            raise ValueError("'{}' does not exist".format(tests_dir))
+
+        os.environ["BUILD_DIR"] = self.build_dir
+
+        subprocess.run(["pytest", tests_dir])
+
+    def cmd_tests_integ(self):
+        """
+        Run integration tests for a service
+        """
+
+        ssm = boto3.client("ssm")
+
+        tests_dir = os.path.join(self.tests_dir, "integ")
+        if not os.path.isdir(tests_dir):
+            raise ValueError("'{}' does not exist".format(tests_dir))
+
+        try:
+            env = ssm.get_parameter(Name="/ecommerce/{}/environment".format(self.service))
+        except:
+            raise ValueError("SSM parameter '/ecommerce/{}/environment' not found".format(self.service))
+
+        if env["Parameter"]["Value"].lower() == "prod":
+            raise ValueError("Prod environment detected")
+
+        subprocess.run(["pytest", tests_dir])
+
+if __name__ == "__main__":
+    args = get_args()
+
+    toolbox = ToolBox(args.service)
+    toolbox.run(args.command)
