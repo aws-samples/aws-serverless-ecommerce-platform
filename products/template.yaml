@@ -155,6 +155,7 @@ Resources:
 
   ListenerParameter:
     Type: AWS::SSM::Parameter
+    Condition: IsNotProd
     Properties:
       Name: /ecommerce/products/listener/url
       Type: String
