@@ -68,7 +68,7 @@ def insert_data():
         "Source": "ecommerce.products",
         "Resources": [product["productId"]],
         "DetailType": "ProductCreated",
-        "Detail": product,
+        "Detail": json.dumps(product),
         "EventBusName": "EVENT_BUS_NAME"
     }
 
@@ -119,7 +119,7 @@ def remove_data():
         "Source": "ecommerce.products",
         "Resources": [product["productId"]],
         "DetailType": "ProductDeleted",
-        "Detail": product,
+        "Detail": json.dumps(product),
         "EventBusName": "EVENT_BUS_NAME"
     }
 
@@ -138,6 +138,10 @@ def test_process_record_insert(table_update, insert_data):
 
             if key not in b:
                 continue
+
+            if key == "Detail" and isinstance(value, str):
+                value = json.loads(value)
+                b[key] = json.loads(b[key])
 
             if isinstance(value, dict):
                 _compare_dict(value, b[key])
@@ -160,6 +164,10 @@ def test_process_record_remove(table_update, remove_data):
 
             if key not in b:
                 continue
+
+            if key == "Detail" and isinstance(value, str):
+                value = json.loads(value)
+                b[key] = json.loads(b[key])
 
             if isinstance(value, dict):
                 _compare_dict(value, b[key])

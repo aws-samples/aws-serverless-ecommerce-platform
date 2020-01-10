@@ -7,6 +7,9 @@ Parameters:
     Type: String
     Default: dev
     Description: Environment name
+  LogLevel:
+    Type: String
+    Default: INFO
   RetentionInDays:
     Type: Number
     Default: 30
@@ -29,7 +32,11 @@ Globals:
         TABLE_NAME: !Ref Table
         POWERTOOLS_SERVICE_NAME: products
         POWERTOOLS_TRACE_DISABLED: "false"
-        LOG_LEVEL: INFO
+        LOG_LEVEL: !Ref LogLevel
+
+
+Conditions:
+  IsNotProd: !Not [!Equals [!Ref Environment, prod]]
 
 
 Resources:
@@ -134,3 +141,21 @@ Resources:
       Name: /ecommerce/products/api/url
       Type: String
       Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+
+  ############
+  # LISTENER #
+  ############
+  Listener:
+    Type: AWS::CloudFormation::Stack
+    Condition: IsNotProd
+    Properties:
+      TemplateURL: ../../shared/templates/listener.yaml
+      Parameters:
+        Source: "ecommerce.products"
+
+  ListenerParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /ecommerce/products/listener/url
+      Type: String
+      Value: !GetAtt Listener.Outputs.QueueUrl

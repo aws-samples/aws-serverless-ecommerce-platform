@@ -24,6 +24,21 @@ logger = logger_setup()
 tracer = Tracer()
 
 
+class Encoder(json.JSONEncoder):
+    """
+    Helper class to convert a DynamoDB item to JSON
+    """
+    def default(self, o):
+        if isinstance(o, datetime.datetime):
+            return o.isoformat()
+        if isinstance(o, decimal.Decimal):
+            if abs(o) % 1 > 0:
+                return float(o)
+            else:
+                return int(o)
+        return super(Encoder, self).default(o)
+
+
 @tracer.capture_method
 def process_record(record: dict) -> Optional[dict]:
     """
@@ -40,25 +55,25 @@ def process_record(record: dict) -> Optional[dict]:
     # ProductCreated
     if record["eventName"].upper() == "INSERT":
         event["DetailType"] = "ProductCreated"
-        event["Detail"] = {
+        event["Detail"] = json.dumps({
             k: type_deserializer.deserialize(v)
             for k, v
             in record["dynamodb"]["NewImage"].items()
-        }
+        }, cls=Encoder)
     
     # ProductDeleted
     elif record["eventName"].upper() == "REMOVE": 
         event["DetailType"] = "ProductDeleted"
-        event["Detail"] = {
+        event["Detail"] = json.dumps({
             k: type_deserializer.deserialize(v)
             for k, v
             in record["dynamodb"]["OldImage"].items()
-        }
+        }, cls=Encoder)
 
     # ProductModified
     elif record["eventName"].upper() == "MODIFY":
         event["DetailType"] = "ProductModified"
-        event["Detail"] = {
+        event["Detail"] = json.dumps({
             "new": {
                 k: type_deserializer.deserialize(v)
                 for k, v
@@ -69,7 +84,7 @@ def process_record(record: dict) -> Optional[dict]:
                 for k, v
                 in record["dynamodb"]["OldImage"].items()
             }
-        }
+        }, cls=Encoder)
 
     # Unknown action
     else:
@@ -80,7 +95,8 @@ def process_record(record: dict) -> Optional[dict]:
 
 @tracer.capture_method
 def send_events(events: List[dict]):
-    eventbridge.put_events(Entires=events)
+    logger.info("Sending {} events to EventBridge".format(len(events)))
+    eventbridge.put_events(Entries=events)
 
 
 @logger_inject_lambda_context
@@ -90,6 +106,22 @@ def handler(event, context):
     Lambda function handler for Products Table stream
     """
 
+    logger.debug({
+        "message": "Input event",
+        "event": event
+    })
+
+    logger.debug({
+        "message": "Records received",
+        "records": event.get("Records", [])
+    })
+
     events = [process_record(record) for record in event.get("Records", [])]
+
+    logger.info("Received {} event(s)".format(len(events)))
+    logger.debug({
+        "message": "Events processed from records",
+        "events": events
+    })
 
     send_events(events)
