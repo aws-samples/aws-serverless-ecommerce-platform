@@ -1,0 +1,50 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+
+Parameters:
+  Source:
+    Type: String
+    Description: EventBridge source value
+  EventBusName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: EventBridge Event Bus Name
+    Default: /ecommerce/platform/event-bus/name
+
+
+Resources:
+  Queue:
+    Type: AWS::SQS::Queue
+
+  QueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: "events.amazonaws.com"
+            Action:
+              - sqs:SendMessage
+            Resource: !GetAtt Queue.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !GetAtt Rule.Arn
+      Queues:
+        - !Ref Queue
+
+  Rule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventBusName: !Ref EventBusName
+      EventPattern: !Sub '{"source": ["${Source}"]}'
+      State: ENABLED
+      Targets:
+        - Id: ListenerQueue
+          Arn: !GetAtt Queue.Arn
+
+
+Outputs:
+  QueueUrl:
+    Value: !Ref Queue
+    Description: Queue URL
