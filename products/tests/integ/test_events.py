@@ -34,8 +34,15 @@ def product():
 
 
 def test_table_update(product):
+    """
+    Test that the TableUpdate function reacts to changes to DynamoDB and sends
+    events to EventBridge
+    """
+    # Add a new item
     table.put_item(Item=product)
 
+    # Listen for messages on EventBridge through a listener SQS queue
+    found = False
     messages = []
     for i in range(TIMEOUT//20):
         retval = sqs.receive_message(
@@ -44,14 +51,35 @@ def test_table_update(product):
         )
         messages.extend(retval.get("Messages", []))
 
-    found = False
+    # Parse messages
     for message in messages:
         print("MESSAGE RECEIVED:", message)
         body = json.loads(message["Body"])
-        if product["productId"] not in body["resources"]:
-            continue
-        else:
+        if product["productId"] in body["resources"]:
             found = True
             assert body["detail-type"] == "ProductCreated"
+
+    assert found == True
+
+    # Delete the item
+    table.delete_item(Key={"productId": product["productId"]})
+
+    # Listen for messages on EventBridge through a listener SQS queue
+    found = False
+    messages = []
+    for i in range(TIMEOUT//20):
+        retval = sqs.receive_message(
+            QueueUrl=QUEUE_URL,
+            WaitTimeSeconds=20
+        )
+        messages.extend(retval.get("Messages", []))
+
+    # Parse messages
+    for message in messages:
+        print("MESSAGE RECEIVED:", message)
+        body = json.loads(message["Body"])
+        if product["productId"] in body["resources"]:
+            found = True
+            assert body["detail-type"] == "ProductDeleted"
 
     assert found == True
