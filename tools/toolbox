@@ -125,12 +125,12 @@ class ToolBox:
         os.chdir(workdir)
 
 
-    def cmd_tests_func(self):
+    def cmd_tests_unit(self):
         """
-        Run functional tests for each Lambda function
+        Run unit tests for each Lambda function
         """
 
-        tests_dir = os.path.join(self.tests_dir, "func")
+        tests_dir = os.path.join(self.tests_dir, "unit")
 
         # If there are no tests, abort
         if not os.path.isdir(tests_dir):

@@ -61,10 +61,10 @@ Integration tests are found in the `tests/integ/` folder of a service. See [conv
 
 _Please note that you need to run the __deploy__ command beforehand._
 
-### `tests-func` command
+### `tests-unit` command
 
-The __tests-func__ commands run functional tests against the source of Lambda functions on the local machine.
+The __tests-unit__ commands run unit tests against the source of Lambda functions on the local machine.
 
-Functional tests are found in the `tests/func/` folder of a service. See [conventions](conventions.md).
+Unit tests are found in the `tests/unit/` folder of a service. See [conventions](conventions.md).
 
 _Please note that you need to run the __build__ command beforehand._
