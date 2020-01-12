@@ -7,15 +7,26 @@ None of these decisions are set in stone, unless the engineering effort to rever
 
 > Some decisions are consequential and irreversible or nearly irreversible – one-way doors – and these decisions must be made methodically, carefully, slowly, with great deliberation and consultation. If you walk through and don’t like what you see on the other side, you can’t get back to where you were before. We can call these Type 1 decisions. But most decisions aren’t like that – they are changeable, reversible – they’re two-way doors. If you’ve made a suboptimal Type 2 decision, you don’t have to live with the consequences for that long. You can reopen the door and go back through. Type 2 decisions can and should be made quickly by high judgment individuals or small groups.
 
-## 2019-XX-XX EventBridge as event bus
+## 2019-12-18 EventBridge as event bus
 
-## 2019-XX-XX Mono-repo
+## 2019-12-18 Mono-repo approach
 
-## 2019-XX-XX SSM Parameters and CloudFormation ImportValues
+This decision is more of a consequence of the purpose of this project. As this project is mostly meant to showcase what a serverless implementation of an e-commerce backend with micro-services looks like, discoverability is an important factor.
 
-## 2019-XX-XX OpenAPI vs SAM events
+Two alternatives were considered:
 
-## 2019-XX-XX SSM Parameter names and separation of environments
+* A single repository containing every micro-services, shared resources, tools, documentation, etc.
+* One repository per micro-service, one for shared resources, tooling, infrastructure, etc.
+
+Having a single repository is easier to share, as one only need to share a single link and people can see all the resources for that project. This is also easier to maintain regarding permissions, communications, etc.
+
+However, the mono-repo approach is not fundamental to this project and other design decisions should strive to work for both mono- and poly-repo approaches. For example, the `shared` folder could be provided as an external library, loaded into the build environment, etc. Same thing for the `tools` folder.
+
+## 2019-12-18 SSM Parameters and CloudFormation ImportValues
+
+## 2019-12-18 OpenAPI vs SAM events
+
+## 2019-12-18 SSM Parameter names and separation of environments
 
 ## 2020-01-10 Capturing events on the event bus for non-prod environments
 
