@@ -8,11 +8,24 @@ The __Serverless Ecommerce Platform__ is a sample implementation of a serverless
 |  Services  | Description                               |
 |------------|-------------------------------------------|
 | Users      | Provides user management, authentication and authorization. |
-| Products   | Source of truth for products information. |
-| Orders     | Manages order creation and status.        |
+| [Products](products/) | Source of truth for products information. |
+| [Orders](orders/) | Manages order creation and status.        |
 | Warehouse  | Manages inventory and packaging orders.   |
 | Delivery   | Manages shipping and tracking packages.   |
 | Payment    | Manages payment collection and refunds.   |
+
+## Shared resources
+
+| Name       | Description                               |
+|------------|-------------------------------------------|
+| [Docs](docs/) | Documentation application for all services. |
+| [Shared](shared/) | Shared resources accessible for all services, such as common CloudFormation templates and OpenAPI schemas. |
+| [Tools](tools/) | Tools used to build services.             |
+
+
+## Documentation
+
+See the [docs](docs/) folder for the documentation.
 
 ## License
 

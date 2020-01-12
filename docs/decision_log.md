@@ -28,6 +28,8 @@ However, the mono-repo approach is not fundamental to this project and other des
 
 ## 2019-12-18 SSM Parameter names and separation of environments
 
+## 2020-01-08 Python for tests and Lambda functions
+
 ## 2020-01-10 Capturing events on the event bus for non-prod environments
 
 Some integration tests within the boundaries of a service should capture events sent to the EventBridge event bus to ensure that actions emit events according to the contracts set in `{service}/resources/events.yaml`.
