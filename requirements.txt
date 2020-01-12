@@ -1,0 +1,4 @@
+awscli
+aws-requests-auth
+pytest
+requests

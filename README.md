@@ -27,6 +27,10 @@ The __Serverless Ecommerce Platform__ is a sample implementation of a serverless
 
 See the [docs](docs/) folder for the documentation.
 
+## Contributing
+
+See the [contributing](CONTRIBUTING.md) and [setup](docs/setup.md) documents to learn how to contribute to this project.
+
 ## License
 
 This library is licensed under the MIT-0 License. See the LICENSE file.
