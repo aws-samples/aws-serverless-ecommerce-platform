@@ -1,4 +1,5 @@
 awscli
 aws-requests-auth
 pytest
+pytest-cov
 requests
