@@ -52,6 +52,10 @@ class ToolBox:
         return os.path.join(self.service, "tests")
 
     def run(self, commands: List[str]):
+        """
+        Run a sequence of commands
+        """
+
         if not os.path.isdir(self.service_dir) or self.service in ["docs", "shared", "tools"]:
             raise ValueError("Service '{}' does not exist".format(self.service))
 
@@ -68,7 +72,13 @@ class ToolBox:
 
     def cmd_build(self):
         """
-        Check if the service exists and prepares it for deployment
+        'build' command
+
+        This command performs the following operations:
+        
+        * Copy files to the 'build' folder
+        * Merge OpenAPI document for API Gateway
+        * Install packages for Lambda functions
         """
 
         # Copy files to build directory
@@ -94,9 +104,22 @@ class ToolBox:
         self._install_packages()
 
     def cmd_clean(self):
+        """
+        'clean' command
+
+        Removes the 'build' folder for the service.
+        """
+
         shutil.rmtree(self.build_dir)
 
     def cmd_deploy(self):
+        """
+        'deploy' command
+
+        Deploys the service to the developer's AWS account. This assumes that
+        this is a development stack.
+        """
+
         template_file = os.path.join(self.build_dir, "template.out")
 
         stack_name = "ecommerce-{}".format(self.service)
@@ -104,30 +127,38 @@ class ToolBox:
         if not os.path.isdir(self.build_dir) or not os.path.isfile(template_file):
             raise ValueError("'{}' or '{}' not found.".format(self.build_dir, template_file))
 
-        subprocess.run(["aws", "cloudformation", "deploy",
+        process = subprocess.run(["aws", "cloudformation", "deploy",
             "--stack-name", stack_name,
             "--capabilities", "CAPABILITY_IAM",
             "--template-file", template_file])
+        process.check_returncode()
 
     def cmd_package(self):
         """
-        Package the CloudFormation template
+        'package' command
+
+        Package the CloudFormation template and stores artifacts into an S3
+        bucket provided by the 'S3_BUCKET' environment variable.
         """
 
         s3_bucket = os.environ.get("S3_BUCKET", "{}-src".format(os.environ["USER"]))
 
         workdir = os.getcwd()
         os.chdir(self.build_dir)
-        subprocess.run(["aws", "cloudformation", "package", "--s3-bucket", s3_bucket,
+        process = subprocess.run(["aws", "cloudformation", "package", "--s3-bucket", s3_bucket,
             "--template-file", "template.yaml",
             "--output-template-file", "template.out"])
 
         os.chdir(workdir)
+        # Make sure that we return to the work directory before triggering a failure
+        process.check_returncode()
 
 
     def cmd_tests_unit(self):
         """
-        Run unit tests for each Lambda function
+        'tests-unit' command
+
+        Run unit tests for Lambda functions defined in the service.
         """
 
         tests_dir = os.path.join(self.tests_dir, "unit")
@@ -138,11 +169,14 @@ class ToolBox:
 
         os.environ["BUILD_DIR"] = self.build_dir
 
-        subprocess.run(["pytest", tests_dir])
+        process = subprocess.run(["pytest", tests_dir])
+        process.check_returncode()
 
     def cmd_tests_integ(self):
         """
-        Run integration tests for a service
+        'tests-integ' command
+
+        Run integration tests for a service.
         """
 
         ssm = boto3.client("ssm")
@@ -159,7 +193,8 @@ class ToolBox:
         if env["Parameter"]["Value"].lower() == "prod":
             raise ValueError("Prod environment detected")
 
-        subprocess.run(["pytest", tests_dir])
+        process = subprocess.run(["pytest", tests_dir])
+        process.check_returncode()
 
     def _copy_openapi(self):
         """
@@ -173,9 +208,13 @@ class ToolBox:
         if not os.path.isfile(openapi_file):
             return
 
-        subprocess.run(["speccy", "resolve", openapi_file, "-o", openapi_out_file])
+        process = subprocess.run(["speccy", "resolve", openapi_file, "-o", openapi_out_file])
+        process.check_returncode()
 
     def _install_packages(self):
+        """
+        Install packages for Lambda functions in the service
+        """
         if not os.path.isdir(self.source_build_dir):
             return
 
@@ -185,9 +224,10 @@ class ToolBox:
 
             # If there is a requirements.txt file, we need to install extra packages.
             if os.path.isfile(os.path.join(path, "requirements.txt")):
-                subprocess.run(["/usr/bin/env", "python3", "-m", "pip", "install",
+                process = subprocess.run(["/usr/bin/env", "python3", "-m", "pip", "install",
                     "--requirement", os.path.join(path, "requirements.txt"),
                     "--target", path])
+                process.check_returncode()
 
 if __name__ == "__main__":
     args = get_args()
