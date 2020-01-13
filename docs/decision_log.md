@@ -22,13 +22,73 @@ Having a single repository is easier to share, as one only need to share a singl
 
 However, the mono-repo approach is not fundamental to this project and other design decisions should strive to work for both mono- and poly-repo approaches. For example, the `shared` folder could be provided as an external library, loaded into the build environment, etc. Same thing for the `tools` folder.
 
-## 2019-12-18 SSM Parameters and CloudFormation ImportValues
+## 2019-12-18 SSM Parameters vs CloudFormation ImportValues
+
+With multiple services each deployed using different CloudFormation stacks, we need a way to share resource references between services, such as API Gateway URL, EventBridge event bus name, etc.
+
+As these values change infrequently, we can limit ourselves to only load these values at deployment time, rather than checking for every Lambda function invocation. This means that the SSM Parameter store and CloudFormation ImportValues are two natural choices for this. Both allow references directly in the CloudFormation stack, rather than loading and passing parameter values to the stack.
+
+For ImportValue, this is done by using `Outputs` in the template creating the reference, and `!ImportValue` in the templates that need to access that resource.
+
+For SSM Parameter, this is done by creating a new resource and using template parameters as such:
+
+```yaml
+Parameters:
+  # Load value from an SSM Parameter
+  UserPoolArn:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Cognito User Pool ARN
+    Default: /ecommerce/platform/user-pool/arn
+
+Resources:
+  # Create a new SSM Parameter
+  UserPoolArnParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /ecommerce/platform/user-pool/arn
+      Type: String
+      Value: !GetAtt UserPool.Arn
+```
+
+_TODO_
 
 ## 2019-12-18 OpenAPI vs SAM events
 
+When creating an API Gateway and associating paths to Lambda functions, SAM (Serverless Application Model) provides a lot of convenience. We can simply create the functions and associate with the right path, authorization model, etc. as such:
+
+```yaml
+Resources:
+  MyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      #...
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /my/path
+            Method: GET
+```
+
+When providing the OpenAPI specification instead, we need to add the OpenAPI specification for that path and add API Gateway-specific extensions on top of defining Lambda functions in the CloudFormation template. However, from a documentation and collaboration approach, using OpenAPI directly has several benefits.
+
+We can create an OpenAPI document and share it with other teams before building the service itself. While there might be differences between the initial document and released version, it's easier to discuss about the contract itself with the future consumers of that API.
+
+We can also create a shared library of schemas for common object types, such as products, addresses, etc. that can be used by multiple services.
+
+On the topic of schemas, SAM templates do not provide a built-in way to define the schema accepted or sent by a specific service, which means that services will need to add that manually in their document or build another method to share schemas.
+
+As such, every service that plan on using API Gateway should provide an OpenAPI document describing the paths and schemas related to that API.
+
 ## 2019-12-18 SSM Parameter names and separation of environments
 
+
+
 ## 2020-01-08 Python for tests and Lambda functions
+
+Multiple languages were considered for the code part of this project. As the point of this project is not to showcase how to build serverless micro-services _in a specific language_, it is better to pick a language that a lot of people are comfortable with or that is easy to understand.
+
+According to StackOverflow's survey, Python is used by _X%_ of developers in professional setting. Furthermore, Python's syntax is relatively easy to catch on.
 
 ## 2020-01-10 Capturing events on the event bus for non-prod environments
 

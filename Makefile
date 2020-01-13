@@ -34,7 +34,6 @@ setup: validate
 activate: validate-pyenv
 	$(info [*] Activate virtualenv $(NAME))
 	$(shell eval "$$(pyenv init -)" && eval "$$(pyenv virtualenv-init -)" && pyenv activate $(NAME) && pyenv local $(NAME))
-
 requirements:
 	$(info [*] Install requirements)
 	@pip install -r requirements.txt
