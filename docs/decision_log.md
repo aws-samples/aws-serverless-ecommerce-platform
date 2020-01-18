@@ -82,7 +82,17 @@ As such, every service that plan on using API Gateway should provide an OpenAPI 
 
 ## 2019-12-18 SSM Parameter names and separation of environments
 
+## 2020-01-08 SAM CLI vs custom script
 
+As this project uses [SAM](https://github.com/awslabs/serverless-application-model) for defining infrastructure as code, it could be interesting to use the [SAM CLI](https://github.com/awslabs/aws-sam-cli) to manage building, packaging and deploying the different services.
+
+However, to ensure that every developers follow the same standard, providing an overlay tool can be beneficial. Such a tool can also offer functionalities specific to the project or that do not exist in SAM CLI, such as:
+
+* merging OpenAPI documents from multiple files for API Gateway
+* automate testing for both Lambda functions and the service as a whole
+* enforce security rules (e.g. IAM permissions)
+
+As every service should provide tests and OpenAPI documents that are used in a standardized way, it's better to build a tool (that could leverage SAM CLI) that will provide these functionalities.
 
 ## 2020-01-08 Python for tests and Lambda functions
 
