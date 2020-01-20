@@ -284,4 +284,7 @@ if __name__ == "__main__":
     args = get_args()
 
     toolbox = ToolBox(args.service)
-    toolbox.run(args.commands)
+    try:
+        toolbox.run(args.commands)
+    except Exception as exc:
+        print("Exception caught: {}".format(exc))
