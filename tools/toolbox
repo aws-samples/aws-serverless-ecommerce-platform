@@ -175,13 +175,15 @@ class ToolBox:
         os.environ["BUILD_DIR"] = self.build_dir
 
         # Inject shared modules for unit tests in the PYTHONPATH
-        tests_modules = os.path.join(self.shared_dir, "tests", "unit")
+        shared_tests = os.path.join(self.shared_dir, "tests", "unit")
         if os.environ.get("PYTHONPATH", "") != "":
-            os.environ["PYTHONPATH"] = "{}:{}".format(tests_modules, os.environ["PYTHONPATH"])
+            os.environ["PYTHONPATH"] = "{}:{}".format(shared_tests, os.environ["PYTHONPATH"])
         else:
-            os.environ["PYTHONPATH"] = tests_modules
+            os.environ["PYTHONPATH"] = shared_tests
 
-        process = subprocess.run(["pytest", tests_dir])
+        process = subprocess.run(["pytest", tests_dir,
+            "--cov", self.build_dir,
+            "--cov-config", os.path.join(shared_tests, "coveragerc")])
         process.check_returncode()
 
     def cmd_tests_integ(self):
