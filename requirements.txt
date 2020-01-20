@@ -1,7 +1,9 @@
 awscli
 aws-requests-auth
 cfn-lint
+jsonschema
 pylint
 pytest
 pytest-cov
+PyYAML
 requests

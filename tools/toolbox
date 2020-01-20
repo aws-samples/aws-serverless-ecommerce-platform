@@ -183,6 +183,29 @@ class ToolBox:
             ])
             process.check_returncode()
 
+    def cmd_metadata(self):
+        """
+        'metadata' command
+
+        Display metadata about the service
+        """
+
+        metadata = self._get_metadata()
+
+        print("Service name: {}".format(metadata["name"]))
+        if metadata.get("permissions", []):
+            print("Permissions:")
+            for permission in metadata["permissions"]:
+                print(" - Service: {}".format(permission["service"]))
+                for key, value in permission.get("api", {}).items():
+                    print("   {}: {}".format(key, ",".join(value)))
+                if permission.get("events", []):
+                    print("   events: {}".format(",".join(permission["events"])))
+
+        if metadata.get("dependencies", []):
+            print("Dependencies:")
+            for dependency in metadata["dependencies"]:
+                print(" - {}".format(dependency))
 
     def cmd_package(self):
         """
@@ -203,7 +226,6 @@ class ToolBox:
         os.chdir(workdir)
         # Make sure that we return to the work directory before triggering a failure
         process.check_returncode()
-
 
     def cmd_tests_unit(self):
         """
@@ -278,6 +300,30 @@ class ToolBox:
 
         process = subprocess.run(["speccy", "resolve", openapi_file, "-o", openapi_out_file])
         process.check_returncode()
+
+    def _get_metadata(self):
+        """
+        Load metadata for the service
+        """
+
+        import jsonschema
+        import yaml
+
+        schema_file = os.path.join(self.shared_dir, "metadata", "schema.yaml")
+        metadata_file = os.path.join(self.service, "metadata.yaml")
+
+        if not os.path.isfile(metadata_file):
+            raise ValueError("Missing metadata file '{}'".format(metadata_file))
+
+        with open(schema_file) as fp:
+            schema = yaml.load(fp, Loader=yaml.SafeLoader)
+
+        with open(metadata_file) as fp:
+            metadata = yaml.load(fp, Loader=yaml.SafeLoader)
+
+        jsonschema.validate(metadata, schema)
+
+        return metadata
 
     def _install_packages(self):
         """

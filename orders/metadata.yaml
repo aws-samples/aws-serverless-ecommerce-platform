@@ -1,0 +1,4 @@
+name: orders
+dependencies:
+  - platform
+  - products
