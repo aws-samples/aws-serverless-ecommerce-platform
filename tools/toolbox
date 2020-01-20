@@ -147,13 +147,13 @@ class ToolBox:
         - Lambda function code
         """
 
-        # Check CloudFormation template
+        # Lint CloudFormation template
         template_file = os.path.join(self.service, "template.yaml")
         if os.path.isfile(template_file):
             process = subprocess.run(["cfn-lint", template_file])
             process.check_returncode()
 
-        # Check Lambda code
+        # Lint Lambda function code
         if not os.path.isdir(self.source_dir):
             return
 
@@ -172,6 +172,16 @@ class ToolBox:
             "--rcfile", os.path.join(self.shared_dir, "lint", "pylintrc")
         ] + files)
         process.check_returncode()
+
+        # Lint OpenAPI specifications
+        openapi_file = os.path.join(self.resources_dir, "openapi.yaml")
+        if os.path.isfile(openapi_file):
+            process = subprocess.run([
+                "speccy",
+                "--config", os.path.join(self.shared_dir, "lint", "speccy.yaml"),
+                "lint", openapi_file
+            ])
+            process.check_returncode()
 
 
     def cmd_package(self):

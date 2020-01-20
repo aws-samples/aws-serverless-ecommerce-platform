@@ -1,0 +1,7 @@
+lint:
+  rules:
+    - strict
+  skip:
+    - info-contact
+    - operation-tags
+    - openapi-tags
