@@ -1,8 +1,5 @@
 import copy
-import importlib
 import json
-import os
-import sys
 import uuid
 import pytest
 from fixtures import lambda_module
