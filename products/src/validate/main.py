@@ -16,25 +16,25 @@ ENVIRONMENT = os.environ["ENVIRONMENT"]
 TABLE_NAME = os.environ["TABLE_NAME"]
 
 
-logger = logger_setup()
-table = boto3.resource("dynamodb").Table(TABLE_NAME)
-tracer = Tracer()
+logger = logger_setup() # pylint: disable=invalid-name
+table = boto3.resource("dynamodb").Table(TABLE_NAME) # pylint: disable=invalid-name,no-member
+tracer = Tracer() # pylint: disable=invalid-name
 
 
 class DecimalEncoder(json.JSONEncoder):
     """
     Helper class to convert a DynamoDB item to JSON
     """
-    def default(self, o):
+
+    def default(self, o): # pylint: disable=method-hidden
         if isinstance(o, decimal.Decimal):
             if abs(o) % 1 > 0:
                 return float(o)
-            else:
-                return int(o)
+            return int(o)
         return super(DecimalEncoder, self).default(o)
 
 
-def message(msg: Union[dict, str], status_code:int = 200) -> dict:
+def message(msg: Union[dict, str], status_code: int = 200) -> dict:
     """
     Prepares a message for API Gateway
     """
@@ -55,7 +55,7 @@ def validate_products(products: List[dict]) -> Set[Union[List[dict], str]]:
 
     If all products are valid, this will return an empty list.
     """
-    
+
     validated_products = []
     reasons = []
 
@@ -83,10 +83,12 @@ def compare_product(user_product: dict, ddb_product: Optional[dict]) -> Optional
             return ddb_product, "Missing '{}' in product '{}'".format(key, user_product["productId"])
 
         if user_product[key] != ddb_product[key]:
-            return ddb_product, "Invalid value for '{}': want '{}', got '{}' in product '{}'".format(key, ddb_product[key], user_product[key], user_product["productId"])
+            return ddb_product, "Invalid value for '{}': want '{}', got '{}' in product '{}'".format(
+                key, ddb_product[key], user_product[key], user_product["productId"]
+            )
 
     # All good, return nothing
-    return
+    return None
 
 
 
@@ -117,7 +119,7 @@ def validate_product(product: dict) -> Optional[Set[Union[dict, str]]]:
 
 @logger_inject_lambda_context
 @tracer.capture_lambda_handler
-def handler(event, context):
+def handler(event, _):
     """
     Lambda function handler for /backend/validate
     """
@@ -125,8 +127,8 @@ def handler(event, context):
     # Extract the list of products
     try:
         body = json.loads(event["body"])
-    except:
-        logger.warn()
+    except Exception as exc: # pylint: disable=broad-except
+        logger.warning("Exception caught: %s", exc)
         return message("Failed to parse JSON body", 400)
 
     if "products" not in body:
