@@ -11,6 +11,8 @@ In the context of this project, __unit tests__ refers to tests of pieces of code
 
 To add tests for your service, you must create a `tests/unit` within your service folder and write test cases using [pytest](https://docs.pytest.org/en/latest/) conventions. The `shared/tests/unit` folder is present in `sys.path` and contains fixtures and tools to help with testing code within Lambda functions.
 
+Unit tests should have a test coverage of __at least 90%__. Otherwise, `tools/toolbox $SERVICE tests-unit` will return a failure.
+
 ### `lambda_module` fixture
 
 To load the python module in the Lambda function folder containing the handler, you can leverage the `lambda_module` fixture as such:
