@@ -14,6 +14,7 @@ _TODO_
 
 Each service should have the following structure in its folder:
 
+* __/{service}/metadata.yaml__: File containing information about the service, such as its name, permissions and dependencies.
 * __/{service}/resources/openapi.yaml__ (optional): File containing the OpenAPI specification. This is optional if the service does not provide an API.
 * __/{service}/resources/events.yaml__ (optional): File containing the event schemas for EventBridge in OpenAPI format. This is optional if the service does not emit events.
 * __/{service}/src/{function}/__ (optional): Source code for Lambda functions. This is optional if the service does not provide Lambda functions or include the code in the template itself.
