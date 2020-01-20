@@ -7,21 +7,59 @@ import uuid
 import pytest
 
 
-def setup_module(module):
-    os.environ["ENVIRONMENT"] = "test"
-    os.environ["EVENT_BUS_NAME"] = "EVENT_BUS_NAME"
-    os.environ["POWERTOOLS_TRACE_DISABLED"] = "true"
+FUNCTION_DIR = "table_update"
+MODULE_NAME = "main"
+ENVIRON = {
+    "ENVIRONMENT": "test",
+    "EVENT_BUS_NAME": "EVENT_BUS_NAME",
+    "POWERTOOLS_TRACE_DISABLED": "true"
+}
 
-    sys.path.insert(0, os.path.join(os.environ["BUILD_DIR"], "src", "table_update"))
 
+@pytest.fixture(scope="module")
+def lambda_module():
+    """
+    Main module of the Lambda function
 
-def teardown_module(module):
+    This also load environment variables and the path to the Lambda function
+    prior to loading the module itself.
+    """
+
+    # Inject environment variables
+    backup_environ = {}
+    for key, value in ENVIRON.items():
+        if key in os.environ:
+            backup_environ[key] = os.environ[key]
+        os.environ[key] = value
+
+    # Add path for Lambda function
+    sys.path.insert(0, os.path.join(os.environ["BUILD_DIR"], "src", FUNCTION_DIR))
+
+    # Save the list of previously loaded modules
+    prev_modules = list(sys.modules.keys())
+
+    # Return the function module
+    module = importlib.import_module(MODULE_NAME)
+    yield module
+
+    # Delete newly loaded modules
+    new_keys = list(sys.modules.keys())
+    for key in new_keys:
+        if key not in prev_modules:
+            del sys.modules[key]
+
+    # Delete function module
+    del module
+
+    # Remove the Lambda function from path
     sys.path.pop(0)
 
-
-@pytest.fixture
-def table_update():
-    return importlib.import_module("table_update")
+    # Restore environment variables
+    for key in ENVIRON.keys():
+        if key in backup_environ:
+            os.environ[key] = backup_environ[key]
+        else:
+            del os.environ[key]
 
 
 @pytest.fixture
@@ -125,12 +163,13 @@ def remove_data():
 
     return {"record": record, "event": event}
 
-def test_process_record_insert(table_update, insert_data):
+
+def test_process_record_insert(lambda_module, insert_data):
     """
     Test process_record() against an INSERT event
     """
 
-    retval = table_update.process_record(insert_data["record"])
+    retval = lambda_module.process_record(insert_data["record"])
 
     def _compare_dict(a: dict, b: dict):
         for key, value in a.items():
@@ -151,12 +190,12 @@ def test_process_record_insert(table_update, insert_data):
     _compare_dict(insert_data["event"], retval)
 
 
-def test_process_record_remove(table_update, remove_data):
+def test_process_record_remove(lambda_module, remove_data):
     """
     Test process_record() against a REMOVE event
     """
 
-    retval = table_update.process_record(remove_data["record"])
+    retval = lambda_module.process_record(remove_data["record"])
 
     def _compare_dict(a: dict, b: dict):
         for key, value in a.items():

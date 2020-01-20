@@ -76,7 +76,7 @@ Resources:
   ValidateFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: validate.handler
+      Handler: main.handler
       CodeUri: src/validate/
       Events:
         BackendApi:
@@ -98,7 +98,7 @@ Resources:
   TableUpdateFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: table_update.handler
+      Handler: main.handler
       CodeUri: src/table_update/
       Events:
         DynamoDB:
