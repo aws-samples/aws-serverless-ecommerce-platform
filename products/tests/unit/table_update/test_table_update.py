@@ -5,61 +5,17 @@ import os
 import sys
 import uuid
 import pytest
+from fixtures import lambda_module
 
-
-FUNCTION_DIR = "table_update"
-MODULE_NAME = "main"
-ENVIRON = {
-    "ENVIRONMENT": "test",
-    "EVENT_BUS_NAME": "EVENT_BUS_NAME",
-    "POWERTOOLS_TRACE_DISABLED": "true"
-}
-
-
-@pytest.fixture(scope="module")
-def lambda_module():
-    """
-    Main module of the Lambda function
-
-    This also load environment variables and the path to the Lambda function
-    prior to loading the module itself.
-    """
-
-    # Inject environment variables
-    backup_environ = {}
-    for key, value in ENVIRON.items():
-        if key in os.environ:
-            backup_environ[key] = os.environ[key]
-        os.environ[key] = value
-
-    # Add path for Lambda function
-    sys.path.insert(0, os.path.join(os.environ["BUILD_DIR"], "src", FUNCTION_DIR))
-
-    # Save the list of previously loaded modules
-    prev_modules = list(sys.modules.keys())
-
-    # Return the function module
-    module = importlib.import_module(MODULE_NAME)
-    yield module
-
-    # Delete newly loaded modules
-    new_keys = list(sys.modules.keys())
-    for key in new_keys:
-        if key not in prev_modules:
-            del sys.modules[key]
-
-    # Delete function module
-    del module
-
-    # Remove the Lambda function from path
-    sys.path.pop(0)
-
-    # Restore environment variables
-    for key in ENVIRON.keys():
-        if key in backup_environ:
-            os.environ[key] = backup_environ[key]
-        else:
-            del os.environ[key]
+lambda_module = pytest.fixture(scope="module", params=[{
+    "function_dir": "table_update",
+    "module_name": "main",
+    "environ": {
+        "ENVIRONMENT": "test",
+        "EVENT_BUS_NAME": "EVENT_BUS_NAME",
+        "POWERTOOLS_TRACE_DISABLED": "true"
+    }
+}])(lambda_module)
 
 
 @pytest.fixture

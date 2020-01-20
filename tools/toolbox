@@ -40,6 +40,10 @@ class ToolBox:
         return self.service
 
     @property
+    def shared_dir(self):
+        return "shared"
+
+    @property
     def source_dir(self):
         return os.path.join(self.service, "src")
 
@@ -167,7 +171,15 @@ class ToolBox:
         if not os.path.isdir(tests_dir):
             raise ValueError("'{}' does not exist".format(tests_dir))
 
+        # Set environment variables
         os.environ["BUILD_DIR"] = self.build_dir
+
+        # Inject shared modules for unit tests in the PYTHONPATH
+        tests_modules = os.path.join(self.shared_dir, "tests", "unit")
+        if os.environ.get("PYTHONPATH", "") != "":
+            os.environ["PYTHONPATH"] = "{}:{}".format(tests_modules, os.environ["PYTHONPATH"])
+        else:
+            os.environ["PYTHONPATH"] = tests_modules
 
         process = subprocess.run(["pytest", tests_dir])
         process.check_returncode()
