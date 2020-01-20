@@ -137,6 +137,43 @@ class ToolBox:
             "--template-file", template_file])
         process.check_returncode()
 
+    def cmd_lint(self):
+        """
+        'lint' command
+
+        Lint various resources in the service. This currently supports:
+        
+        - CloudFormation templates
+        - Lambda function code
+        """
+
+        # Check CloudFormation template
+        template_file = os.path.join(self.service, "template.yaml")
+        if os.path.isfile(template_file):
+            process = subprocess.run(["cfn-lint", template_file])
+            process.check_returncode()
+
+        # Check Lambda code
+        if not os.path.isdir(self.source_dir):
+            return
+
+        files = []
+        for function_name in os.listdir(self.source_dir):
+            function_dir = os.path.join(self.source_dir, function_name)
+            if not os.path.isdir(function_dir):
+                continue
+
+            for filename in os.listdir(function_dir):
+                if filename.lower().find(".py") == len(filename)-3:
+                    files.append(os.path.join(function_dir, filename))
+
+        process = subprocess.run([
+            "pylint",
+            "--rcfile", os.path.join(self.shared_dir, "lint", "pylintrc")
+        ] + files)
+        process.check_returncode()
+
+
     def cmd_package(self):
         """
         'package' command

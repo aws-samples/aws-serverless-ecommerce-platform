@@ -43,6 +43,12 @@ It will take a CloudFormation template at `build/template.out` in the service's 
 
 _Please note that you need to run the __package__ command beforehand._
 
+### `lint` command
+
+The __lint__ commands run lint checks against the resources in the service.
+
+Currently, it supports CloudFormation template at `template.yaml` and Lambda source code in the `src` folder.
+
 ### `package` command
 
 The __package__ commands packages code and other artifacts, upload them to an S3 bucket in the developer's sandbox AWS account, and create a CloudFormation template that can be deployed by the __deploy__ command.

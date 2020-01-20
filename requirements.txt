@@ -1,5 +1,7 @@
 awscli
 aws-requests-auth
+cfn-lint
+pylint
 pytest
 pytest-cov
 requests
