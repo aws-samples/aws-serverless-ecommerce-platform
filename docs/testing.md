@@ -2,7 +2,14 @@ Testing
 =======
 
 * [Unit tests](#unit-tests)
+  * [Writing tests](#writing-tests)
+    * [`lambda_module` fixture](#lambda_module-fixture)
+  * [Running tests](#running-tests)
 * [Integration tests](#integration-tests)
+  * [Writing tests](#writing-tests-1)
+    * [Listener template](#listener-template)
+    * [`listener` fixture](#listener-fixture)
+  * [Running tests](#running-tests-1)
 * [End-to-end tests](#end-to-end-tests)
 
 ## Unit tests
