@@ -1,0 +1,47 @@
+type: object
+description: Metadata file
+
+additionalProperties: false
+required:
+  - name
+properties:
+  name:
+    description: Service name
+    type: string
+  permissions:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - service
+      properties:
+        service:
+          description: Service name
+          type: string
+        api:
+          type: object
+          additionalProperties: false
+          patternProperties:
+            ^(/[a-zA-Z0-9\-_\.]*)+$:
+              type: array
+              description: API path
+              items:
+                description: Method
+                enum:
+                  - get
+                  - post
+                  - put
+                  - delete
+                  - options
+                  - any
+        events:
+          type: array
+          items:
+            description: Detail-type of the event
+            type: string
+
+  dependencies:
+    type: array
+    items:
+      type: string

@@ -1,0 +1,7 @@
+name: products
+dependencies:
+  - platform
+permissions:
+  - service: orders
+    api:
+      /validate: [post]
