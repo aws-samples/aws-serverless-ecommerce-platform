@@ -151,12 +151,4 @@ Resources:
     Properties:
       TemplateURL: ../../shared/templates/listener.yaml
       Parameters:
-        Source: "ecommerce.products"
-
-  ListenerParameter:
-    Type: AWS::SSM::Parameter
-    Condition: IsNotProd
-    Properties:
-      Name: /ecommerce/products/listener/url
-      Type: String
-      Value: !GetAtt Listener.Outputs.QueueUrl
+        ServiceName: "products"

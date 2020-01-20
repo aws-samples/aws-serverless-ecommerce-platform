@@ -3,19 +3,24 @@ import os
 import uuid
 import boto3
 import pytest
+from fixtures import listener
+
+
+listener = pytest.fixture(scope="module", params=[{
+    "service": "products"
+}])(listener)
 
 
 ssm = boto3.client("ssm")
 
 
-QUEUE_URL = ssm.get_parameter(Name="/ecommerce/products/listener/url")["Parameter"]["Value"]
 TABLE_NAME = ssm.get_parameter(Name="/ecommerce/products/table/name")["Parameter"]["Value"]
 EVENT_SOURCE = "ecommerce.products"
 TIMEOUT = 60 # time in seconds
 
 
 sqs = boto3.client("sqs")
-table = boto3.resource("dynamodb").Table(TABLE_NAME)
+table = boto3.resource("dynamodb").Table(TABLE_NAME) # pylint: disable=no-member
 
 
 @pytest.fixture
@@ -33,7 +38,7 @@ def product():
     }
 
 
-def test_table_update(product):
+def test_table_update(listener, product):
     """
     Test that the TableUpdate function reacts to changes to DynamoDB and sends
     events to EventBridge
@@ -42,16 +47,10 @@ def test_table_update(product):
     table.put_item(Item=product)
 
     # Listen for messages on EventBridge through a listener SQS queue
-    found = False
-    messages = []
-    for i in range(TIMEOUT//20):
-        retval = sqs.receive_message(
-            QueueUrl=QUEUE_URL,
-            WaitTimeSeconds=20
-        )
-        messages.extend(retval.get("Messages", []))
+    messages = listener(30)
 
     # Parse messages
+    found = False
     for message in messages:
         print("MESSAGE RECEIVED:", message)
         body = json.loads(message["Body"])
@@ -65,16 +64,10 @@ def test_table_update(product):
     table.delete_item(Key={"productId": product["productId"]})
 
     # Listen for messages on EventBridge through a listener SQS queue
-    found = False
-    messages = []
-    for i in range(TIMEOUT//20):
-        retval = sqs.receive_message(
-            QueueUrl=QUEUE_URL,
-            WaitTimeSeconds=20
-        )
-        messages.extend(retval.get("Messages", []))
+    messages = listener(30)
 
     # Parse messages
+    found = False
     for message in messages:
         print("MESSAGE RECEIVED:", message)
         body = json.loads(message["Body"])

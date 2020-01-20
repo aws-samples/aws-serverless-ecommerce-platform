@@ -2,9 +2,12 @@ AWSTemplateFormatVersion: "2010-09-09"
 
 
 Parameters:
-  Source:
+  ServiceName:
     Type: String
-    Description: EventBridge source value
+    Description: |
+      Name of the service in lowercase
+
+      This should match the service value used as event source and for SSM parameters.
   EventBusName:
     Type: AWS::SSM::Parameter::Value<String>
     Description: EventBridge Event Bus Name
@@ -37,14 +40,15 @@ Resources:
     Type: AWS::Events::Rule
     Properties:
       EventBusName: !Ref EventBusName
-      EventPattern: !Sub '{"source": ["${Source}"]}'
+      EventPattern: !Sub '{"source": ["ecommerce.${ServiceName}"]}'
       State: ENABLED
       Targets:
         - Id: ListenerQueue
           Arn: !GetAtt Queue.Arn
 
-
-Outputs:
-  QueueUrl:
-    Value: !Ref Queue
-    Description: Queue URL
+  Parameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/ecommerce/${ServiceName}/listener/url"
+      Type: String
+      Value: !Ref Queue

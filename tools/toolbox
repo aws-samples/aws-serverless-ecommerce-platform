@@ -254,6 +254,13 @@ class ToolBox:
         if env["Parameter"]["Value"].lower() == "prod":
             raise ValueError("Prod environment detected")
 
+        # Inject shared modules for unit tests in the PYTHONPATH
+        shared_tests = os.path.join(self.shared_dir, "tests", "integ")
+        if os.environ.get("PYTHONPATH", "") != "":
+            os.environ["PYTHONPATH"] = "{}:{}".format(shared_tests, os.environ["PYTHONPATH"])
+        else:
+            os.environ["PYTHONPATH"] = shared_tests
+
         process = subprocess.run(["pytest", tests_dir])
         process.check_returncode()
 
