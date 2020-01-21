@@ -1,0 +1,45 @@
+name: products tests
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - products/**
+      - shared/**
+      - tools/**
+  push:
+    branches:
+      - master
+    paths:
+      - products/**
+      - shared/**
+      - tools/**
+
+jobs:
+  tests:
+    run-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: setup python-3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+      - name: setup node-12.x
+        uses: actions/setup-node@v1
+        with:
+          node-version: 12
+      - name: install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          make requirements
+          npm install -g speccy
+      - name: linting
+        run: |
+          tools/toolbox products lint
+      - name: build
+        run: |
+          tools/toolbox products build
+      - name: unit-tests
+        run: |
+          tools/toolbox products unit-tests
