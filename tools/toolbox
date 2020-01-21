@@ -151,7 +151,7 @@ class ToolBox:
         self.info("Deploying {} in {}".format(self.service, self.env))
 
         template_file = os.path.join(self.build_dir, "template.out")
-        stack_name = "ecommerce-{}".format(self.service)
+        stack_name = "ecommerce-{}-{}".format(self.env, self.service)
 
         if not os.path.isdir(self.build_dir) or not os.path.isfile(template_file):
             raise ValueError("'{}' or '{}' not found.".format(self.build_dir, template_file))
