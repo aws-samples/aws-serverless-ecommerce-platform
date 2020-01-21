@@ -4,6 +4,7 @@ import argparse
 import os
 import shutil
 import subprocess
+import sys
 from typing import List
 import boto3
 
@@ -15,13 +16,19 @@ def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("service")
     parser.add_argument("commands", nargs="+")
+    parser.add_argument("--color", default="auto", choices=["yes", "no", "auto"])
 
     return parser.parse_args()
 
 
 class ToolBox:
-    def __init__(self, service: str):
+    def __init__(self, service: str, kwargs: str={}):
         self.service = service
+        self.color = kwargs.get("color", "auto")
+
+    @property
+    def is_interactive(self):
+        return os.isatty(sys.stdout.fileno())
 
     @property
     def build_dir(self):
@@ -71,8 +78,11 @@ class ToolBox:
                 raise ValueError("Command '{}' does not exist".format(command))
             cmds.append(cmd)
 
-        for cmd in cmds:
-            cmd()
+        try:
+            for cmd in cmds:
+                cmd()
+        except Exception as exc:
+            print(self.text_red("{}: {}".format(exc.__class__.__name__, str(exc))))
 
     def cmd_build(self):
         """
@@ -192,20 +202,25 @@ class ToolBox:
 
         metadata = self._get_metadata()
 
-        print("Service name: {}".format(metadata["name"]))
+        print("{}: {}".format(self.text_blue("Service name"), metadata["name"]))
         if metadata.get("permissions", []):
-            print("Permissions:")
+            print("{}:".format(self.text_blue("Permissions")))
             for permission in metadata["permissions"]:
-                print(" - Service: {}".format(permission["service"]))
+                print(" - {}: {}".format(self.text_blue("Service"), permission["service"]))
                 for key, value in permission.get("api", {}).items():
-                    print("   {}: {}".format(key, ",".join(value)))
+                    print("   {}: {}".format(self.text_blue(key), ",".join(value)))
                 if permission.get("events", []):
-                    print("   events: {}".format(",".join(permission["events"])))
+                    print("   {}: {}".format(self.text_blue("events"), ",".join(permission["events"])))
 
         if metadata.get("dependencies", []):
-            print("Dependencies:")
+            print("{}:".format(self.text_blue("Dependencies")))
             for dependency in metadata["dependencies"]:
                 print(" - {}".format(dependency))
+
+        if metadata.get("parameters", {}):
+            print("{}:".format(self.text_blue("Parameters")))
+            for key, value in metadata["parameters"].items():
+                print(" - {}: {}".format(self.text_blue(key), value))
 
     def cmd_package(self):
         """
@@ -286,6 +301,30 @@ class ToolBox:
         process = subprocess.run(["pytest", tests_dir])
         process.check_returncode()
 
+    def text_red(self, text: str) -> str:
+        """
+        Return the text in red if this is an interactive session
+        """
+        if self.color == "yes" or (self.is_interactive and self.color == "auto"):
+            return "\033[91m{}\033[0m".format(text)
+        return text
+
+    def text_green(self, text: str) -> str:
+        """
+        Return the text in green if this is an interactive session
+        """
+        if self.color == "yes" or (self.is_interactive and self.color == "auto"):
+            return "\033[92m{}\033[0m".format(text)
+        return text
+
+    def text_blue(self, text: str) -> str:
+        """
+        Return the text in blue if this is an interactive session
+        """
+        if self.color == "yes" or (self.is_interactive and self.color == "auto"):
+            return "\033[94m{}\033[0m".format(text)
+        return text
+
     def _copy_openapi(self):
         """
         Parse OpenAPI specs and returns a merged document
@@ -346,8 +385,7 @@ class ToolBox:
 if __name__ == "__main__":
     args = get_args()
 
-    toolbox = ToolBox(args.service)
-    try:
-        toolbox.run(args.commands)
-    except Exception as exc:
-        print("Exception caught: {}".format(exc))
+    toolbox = ToolBox(args.service, {
+        "color": args.color
+    })
+    toolbox.run(args.commands)
