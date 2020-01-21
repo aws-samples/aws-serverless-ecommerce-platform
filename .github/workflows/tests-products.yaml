@@ -40,6 +40,6 @@ jobs:
       - name: build
         run: |
           tools/toolbox products build
-      - name: unit-tests
+      - name: tests-unit
         run: |
-          tools/toolbox products unit-tests
+          tools/toolbox products tests-unit
