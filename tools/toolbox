@@ -192,7 +192,10 @@ class ToolBox:
         # Lint CloudFormation template
         template_file = os.path.join(self.service, "template.yaml")
         if os.path.isfile(template_file):
-            self.run_process(["cfn-lint", template_file])
+            self.run_process([
+                "cfn-lint", template_file,
+                "--append-rules", os.path.join(self.shared_dir, "lint", "rules")
+            ])
 
         # Lint Lambda function code
         if not os.path.isdir(self.source_dir):
