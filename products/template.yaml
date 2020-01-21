@@ -17,7 +17,7 @@ Parameters:
   EventBusName:
     Type: AWS::SSM::Parameter::Value<String>
     Description: EventBridge Event Bus Name
-    Default: /ecommerce/platform/event-bus/name
+    Default: /ecommerce/dev/platform/event-bus/name
 
 
 Globals:
@@ -40,13 +40,6 @@ Conditions:
 
 
 Resources:
-  EnvironmentParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: /ecommerce/products/environment
-      Type: String
-      Value: !Ref Environment
-
   #########
   # TABLE #
   #########
@@ -66,7 +59,7 @@ Resources:
   TableParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /ecommerce/products/table/name
+      Name: !Sub /ecommerce/${Environment}/products/table/name
       Type: String
       Value: !Ref Table
 
@@ -138,7 +131,7 @@ Resources:
   ApiUrlParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /ecommerce/products/api/url
+      Name: !Sub /ecommerce/${Environment}/products/api/url
       Type: String
       Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com/Prod"
 
@@ -151,4 +144,6 @@ Resources:
     Properties:
       TemplateURL: ../../shared/templates/listener.yaml
       Parameters:
+        Environment: !Ref Environment
+        EventBusName: !Ref EventBusName
         ServiceName: "products"

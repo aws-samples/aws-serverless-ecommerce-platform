@@ -14,7 +14,9 @@ listener = pytest.fixture(scope="module", params=[{
 ssm = boto3.client("ssm")
 
 
-TABLE_NAME = ssm.get_parameter(Name="/ecommerce/products/table/name")["Parameter"]["Value"]
+TABLE_NAME = ssm.get_parameter(
+    Name="/ecommerce/{}/products/table/name".format(os.environ["ECOM_ENVIRONMENT"])
+)["Parameter"]["Value"]
 EVENT_SOURCE = "ecommerce.products"
 TIMEOUT = 60 # time in seconds
 
@@ -47,7 +49,7 @@ def test_table_update(listener, product):
     table.put_item(Item=product)
 
     # Listen for messages on EventBridge through a listener SQS queue
-    messages = listener(30)
+    messages = listener()
 
     # Parse messages
     found = False
@@ -64,7 +66,7 @@ def test_table_update(listener, product):
     table.delete_item(Key={"productId": product["productId"]})
 
     # Listen for messages on EventBridge through a listener SQS queue
-    messages = listener(30)
+    messages = listener()
 
     # Parse messages
     found = False

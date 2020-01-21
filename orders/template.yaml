@@ -11,20 +11,10 @@ Parameters:
     Type: Number
     Default: 30
 
-  UserPoolArn:
-    Type: AWS::SSM::Parameter::Value<String>
-    Description: Cognito User Pool ARN
-    Default: /ecommerce/platform/user-pool/arn
-
   EventBusName:
     Type: AWS::SSM::Parameter::Value<String>
     Description: EventBridge Event Bus Name
-    Default: /ecommerce/platform/event-bus/name
-
-  SchemaRegistryName:
-    Type: AWS::SSM::Parameter::Value<String>
-    Description: EventBridge Schema Registry Name
-    Default: /ecommerce/platform/schema-registry/name
+    Default: /ecommerce/dev/platform/event-bus/name
 
 
 Globals:
@@ -42,13 +32,6 @@ Globals:
         LOG_LEVEL: INFO
 
 Resources:
-  EnvironmentParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: /ecommerce/orders/environment
-      Type: String
-      Value: !Ref Environment
-
   #############
   # FUNCTIONS #
   #############
@@ -134,20 +117,6 @@ Resources:
   ApiUrlParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /ecommerce/orders/api/url
+      Name: !Sub /ecommerce/${Environment}/orders/api/url
       Type: String
       Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com/Prod"
-
-  ###########
-  # SCHEMAS #
-  ###########
-
-  Schemas:
-    Type: AWS::EventSchemas::Schema
-    Properties:
-      RegistryName: !Ref SchemaRegistryName
-      Content:
-        Fn::Transform:
-          Name: "AWS::Include"
-          Parameters:
-            Location: "resources/events.yaml"

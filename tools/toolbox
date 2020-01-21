@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 
+
 import argparse
+import copy
 import os
 import shutil
 import subprocess
 import sys
 from typing import List
-import boto3
 
 
 def get_args() -> argparse.Namespace:
@@ -17,6 +18,8 @@ def get_args() -> argparse.Namespace:
     parser.add_argument("service")
     parser.add_argument("commands", nargs="+")
     parser.add_argument("--color", default="auto", choices=["yes", "no", "auto"])
+    parser.add_argument("--env", "-e", default="dev")
+    parser.add_argument("--quiet", "-q", default=False, type=lambda x: x == "yes")
 
     return parser.parse_args()
 
@@ -25,6 +28,8 @@ class ToolBox:
     def __init__(self, service: str, kwargs: str={}):
         self.service = service
         self.color = kwargs.get("color", "auto")
+        self.env = kwargs.get("env", "dev")
+        self.quiet = kwargs.get("quiet", False)
 
     @property
     def is_interactive(self):
@@ -83,6 +88,7 @@ class ToolBox:
                 cmd()
         except Exception as exc:
             print(self.text_red("{}: {}".format(exc.__class__.__name__, str(exc))))
+            raise exc
 
     def cmd_build(self):
         """
@@ -94,6 +100,8 @@ class ToolBox:
         * Merge OpenAPI document for API Gateway
         * Install packages for Lambda functions
         """
+
+        self.info("Building {} artifacts".format(self.service))
 
         # Copy files to build directory
         os.mkdir(self.build_dir)
@@ -124,28 +132,49 @@ class ToolBox:
         Removes the 'build' folder for the service.
         """
 
-        shutil.rmtree(self.build_dir)
+        self.info("Cleaning {} build folder".format(self.service))
+
+        try:
+            shutil.rmtree(self.build_dir)
+        # Ignore if the folder doesn't exist
+        except FileNotFoundError:
+            pass
 
     def cmd_deploy(self):
         """
         'deploy' command
 
-        Deploys the service to the developer's AWS account. This assumes that
-        this is a development stack.
+        Deploys the service to the developer's AWS account. By default, this
+        assumes that this is a development stack.
         """
 
-        template_file = os.path.join(self.build_dir, "template.out")
+        self.info("Deploying {} in {}".format(self.service, self.env))
 
+        template_file = os.path.join(self.build_dir, "template.out")
         stack_name = "ecommerce-{}".format(self.service)
 
         if not os.path.isdir(self.build_dir) or not os.path.isfile(template_file):
             raise ValueError("'{}' or '{}' not found.".format(self.build_dir, template_file))
 
-        process = subprocess.run(["aws", "cloudformation", "deploy",
+        # Display warning for prod environment
+        if self.env == "prod":
+            self.warning("Prod deployment for {}".format(self.service))
+
+        # Load parameter overrides
+        base_params = {
+            "Environment": self.env
+        }
+        metadata = self._get_metadata()
+        parameters = copy.deepcopy(base_params)
+        for key, value in metadata.get("parameters", {}).items():
+            parameters[key] = value.format(**base_params)
+
+        # Deploy stack
+        self.run_process(["aws", "cloudformation", "deploy",
             "--stack-name", stack_name,
             "--capabilities", "CAPABILITY_IAM",
-            "--template-file", template_file])
-        process.check_returncode()
+            "--parameter-overrides"] + ["{}={}".format(k, v) for k, v in parameters.items()] +
+            ["--template-file", template_file])
 
     def cmd_lint(self):
         """
@@ -155,13 +184,15 @@ class ToolBox:
         
         - CloudFormation templates
         - Lambda function code
+        - OpenAPI document
         """
+
+        self.info("Linting {} code".format(self.service))
 
         # Lint CloudFormation template
         template_file = os.path.join(self.service, "template.yaml")
         if os.path.isfile(template_file):
-            process = subprocess.run(["cfn-lint", template_file])
-            process.check_returncode()
+            self.run_process(["cfn-lint", template_file])
 
         # Lint Lambda function code
         if not os.path.isdir(self.source_dir):
@@ -177,21 +208,19 @@ class ToolBox:
                 if filename.lower().find(".py") == len(filename)-3:
                     files.append(os.path.join(function_dir, filename))
 
-        process = subprocess.run([
+        self.run_process([
             "pylint",
             "--rcfile", os.path.join(self.shared_dir, "lint", "pylintrc")
         ] + files)
-        process.check_returncode()
 
         # Lint OpenAPI specifications
         openapi_file = os.path.join(self.resources_dir, "openapi.yaml")
         if os.path.isfile(openapi_file):
-            process = subprocess.run([
+            self.run_process([
                 "speccy",
                 "--config", os.path.join(self.shared_dir, "lint", "speccy.yaml"),
                 "lint", openapi_file
             ])
-            process.check_returncode()
 
     def cmd_metadata(self):
         """
@@ -199,6 +228,8 @@ class ToolBox:
 
         Display metadata about the service
         """
+
+        self.info("Gathering {} metadata".format(self.service))
 
         metadata = self._get_metadata()
 
@@ -230,13 +261,15 @@ class ToolBox:
         bucket provided by the 'S3_BUCKET' environment variable.
         """
 
+        self.info("Packaging {} artifacts".format(self.service))
+
         s3_bucket = os.environ.get("S3_BUCKET", "{}-src".format(os.environ["USER"]))
 
         workdir = os.getcwd()
         os.chdir(self.build_dir)
-        process = subprocess.run(["aws", "cloudformation", "package", "--s3-bucket", s3_bucket,
+        process = self.run_process(["aws", "cloudformation", "package", "--s3-bucket", s3_bucket,
             "--template-file", "template.yaml",
-            "--output-template-file", "template.out"])
+            "--output-template-file", "template.out"], check=False)
 
         os.chdir(workdir)
         # Make sure that we return to the work directory before triggering a failure
@@ -249,6 +282,8 @@ class ToolBox:
         Run unit tests for Lambda functions defined in the service.
         """
 
+        self.info("Running {} unit tests".format(self.service))
+
         tests_dir = os.path.join(self.tests_dir, "unit")
 
         # If there are no tests, abort
@@ -256,7 +291,7 @@ class ToolBox:
             raise ValueError("'{}' does not exist".format(tests_dir))
 
         # Set environment variables
-        os.environ["BUILD_DIR"] = self.build_dir
+        os.environ["ECOM_BUILD_DIR"] = self.build_dir
 
         # Inject shared modules for unit tests in the PYTHONPATH
         shared_tests = os.path.join(self.shared_dir, "tests", "unit")
@@ -265,10 +300,9 @@ class ToolBox:
         else:
             os.environ["PYTHONPATH"] = shared_tests
 
-        process = subprocess.run(["pytest", tests_dir,
+        self.run_process(["pytest", tests_dir,
             "--cov", self.build_dir,
             "--cov-config", os.path.join(shared_tests, "coveragerc")])
-        process.check_returncode()
 
     def cmd_tests_integ(self):
         """
@@ -277,19 +311,14 @@ class ToolBox:
         Run integration tests for a service.
         """
 
-        ssm = boto3.client("ssm")
+        self.info("Running {} integration tests".format(self.service))
 
         tests_dir = os.path.join(self.tests_dir, "integ")
         if not os.path.isdir(tests_dir):
             raise ValueError("'{}' does not exist".format(tests_dir))
 
-        try:
-            env = ssm.get_parameter(Name="/ecommerce/{}/environment".format(self.service))
-        except:
-            raise ValueError("SSM parameter '/ecommerce/{}/environment' not found".format(self.service))
-
-        if env["Parameter"]["Value"].lower() == "prod":
-            raise ValueError("Prod environment detected")
+        if self.env == "prod":
+            raise ValueError("Cannot run integration tests in prod")
 
         # Inject shared modules for unit tests in the PYTHONPATH
         shared_tests = os.path.join(self.shared_dir, "tests", "integ")
@@ -298,8 +327,10 @@ class ToolBox:
         else:
             os.environ["PYTHONPATH"] = shared_tests
 
-        process = subprocess.run(["pytest", tests_dir])
-        process.check_returncode()
+        # Set the environment name
+        os.environ["ECOM_ENVIRONMENT"] = self.env
+
+        self.run_process(["pytest", tests_dir])
 
     def text_red(self, text: str) -> str:
         """
@@ -317,6 +348,14 @@ class ToolBox:
             return "\033[92m{}\033[0m".format(text)
         return text
 
+    def text_yellow(self, text: str) -> str:
+        """
+        Return the text in green if this is an interactive session
+        """
+        if self.color == "yes" or (self.is_interactive and self.color == "auto"):
+            return "\033[93m{}\033[0m".format(text)
+        return text
+
     def text_blue(self, text: str) -> str:
         """
         Return the text in blue if this is an interactive session
@@ -324,6 +363,46 @@ class ToolBox:
         if self.color == "yes" or (self.is_interactive and self.color == "auto"):
             return "\033[94m{}\033[0m".format(text)
         return text
+
+    def info(self, text: str) -> None:
+        """
+        Print an information message
+        """
+
+        print("[*] {}".format(self.text_blue(text)))
+
+    def warning(self, text: str) -> None:
+        """
+        Print a warning message
+        """
+
+        print("[!] {}".format(self.text_yellow(text)))
+
+    def error(self, text: str) -> None:
+        """
+        Print an error message
+        """
+
+        print("[!] {}".format(self.text_red(text)))
+
+    def run_process(self, cmds: List[str], check: bool=True):
+        """
+        Run a subprocess
+        """
+
+        if self.quiet:
+            process = subprocess.run(cmds, capture_output=True, text=True, stderr=subprocess.STDOUT)
+        else:
+            process = subprocess.run(cmds)
+
+        if check:
+            try:
+                process.check_returncode()
+            except Exception as exc:
+                if self.quiet:
+                    print(process.stdout)
+                raise exc
+        return process
 
     def _copy_openapi(self):
         """
@@ -337,8 +416,7 @@ class ToolBox:
         if not os.path.isfile(openapi_file):
             return
 
-        process = subprocess.run(["speccy", "resolve", openapi_file, "-o", openapi_out_file])
-        process.check_returncode()
+        self.run_process(["speccy", "resolve", openapi_file, "-o", openapi_out_file])
 
     def _get_metadata(self):
         """
@@ -377,15 +455,12 @@ class ToolBox:
 
             # If there is a requirements.txt file, we need to install extra packages.
             if os.path.isfile(os.path.join(path, "requirements.txt")):
-                process = subprocess.run(["/usr/bin/env", "python3", "-m", "pip", "install",
+                self.run_process(["/usr/bin/env", "python3", "-m", "pip", "install",
                     "--requirement", os.path.join(path, "requirements.txt"),
                     "--target", path])
-                process.check_returncode()
 
 if __name__ == "__main__":
     args = get_args()
 
-    toolbox = ToolBox(args.service, {
-        "color": args.color
-    })
+    toolbox = ToolBox(args.service, vars(args))
     toolbox.run(args.commands)

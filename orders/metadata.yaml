@@ -2,3 +2,5 @@ name: orders
 dependencies:
   - platform
   - products
+parameters:
+  EventBusName: /ecommerce/{Environment}/platform/event-bus/name

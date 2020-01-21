@@ -1,3 +1,5 @@
+import os
+import time
 import boto3
 
 
@@ -11,26 +13,31 @@ def listener(request):
     period of time.
     """
 
-    default_timeout = request.param.get("timeout", 30)
-    queue_url = ssm.get_parameter(Name="/ecommerce/{}/listener/url".format(request.param["service"]))
+    default_timeout = request.param.get("timeout", 15)
+    queue_url = ssm.get_parameter(
+        Name="/ecommerce/{}/{}/listener/url".format(
+            os.environ["ECOM_ENVIRONMENT"], request.param["service"]
+        )
+    )["Parameter"]["Value"]
 
     def get_messages(timeout=default_timeout):
+        print("TIMEOUT", timeout)
         messages = []
-        # Wait for a given time period
-        # 20 is the maximum amount of time for a single receive_message() call.
-        # If timeout is less than 20, this loop will be skipped.
-        for _ in range(timeout//20):
+        start_time = time.time()
+        while time.time() < start_time + timeout:
             response = sqs.receive_message(
-                QueueUrl=queue_url["Parameter"]["Value"],
-                WaitTimeSeconds=20
+                QueueUrl=queue_url,
+                MaxNumberOfMessages=10,
+                WaitTimeSeconds=min(20, int(time.time()-start_time+timeout))
             )
-            messages.extend(response.get("Messages", []))
-        # Handle remaining time
-        if timeout % 20 != 0:
-            response = sqs.receive_message(
-                QueueUrl=queue_url["Parameter"]["Value"],
-                WaitTimeSeconds=timeout % 20
-            )
+            if response.get("Messages", []):
+                sqs.delete_message_batch(
+                    QueueUrl=queue_url,
+                    Entries=[
+                        {"Id": m["MessageId"], "ReceiptHandle": m["ReceiptHandle"]}
+                        for m in response["Messages"]
+                    ]
+                )
             messages.extend(response.get("Messages", []))
 
         return messages

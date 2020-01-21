@@ -32,7 +32,7 @@ def lambda_module(request):
         os.environ[key] = value
 
     # Add path for Lambda function
-    sys.path.insert(0, os.path.join(os.environ["BUILD_DIR"], "src", request.param["function_dir"]))
+    sys.path.insert(0, os.path.join(os.environ["ECOM_BUILD_DIR"], "src", request.param["function_dir"]))
 
     # Save the list of previously loaded modules
     prev_modules = list(sys.modules.keys())
