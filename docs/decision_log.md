@@ -38,14 +38,14 @@ Parameters:
   UserPoolArn:
     Type: AWS::SSM::Parameter::Value<String>
     Description: Cognito User Pool ARN
-    Default: /ecommerce/platform/user-pool/arn
+    Default: /ecommerce/dev/platform/user-pool/arn
 
 Resources:
   # Create a new SSM Parameter
   UserPoolArnParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /ecommerce/platform/user-pool/arn
+      Name: !Sub /ecommerce/${Environment}/platform/user-pool/arn
       Type: String
       Value: !GetAtt UserPool.Arn
 ```
@@ -79,8 +79,6 @@ We can also create a shared library of schemas for common object types, such as 
 On the topic of schemas, SAM templates do not provide a built-in way to define the schema accepted or sent by a specific service, which means that services will need to add that manually in their document or build another method to share schemas.
 
 As such, every service that plan on using API Gateway should provide an OpenAPI document describing the paths and schemas related to that API.
-
-## 2019-12-18 SSM Parameter names and separation of environments
 
 ## 2020-01-08 SAM CLI vs custom script
 

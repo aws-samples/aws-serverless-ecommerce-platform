@@ -14,7 +14,7 @@ _TODO_
 
 Each service should have the following structure in its folder:
 
-* __/{service}/metadata.yaml__: File containing information about the service, such as its name, permissions and dependencies.
+* __/{service}/metadata.yaml__: File containing information about the service, such as its name, permissions, dependencies and parameters.
 * __/{service}/resources/openapi.yaml__ (optional): File containing the OpenAPI specification. This is optional if the service does not provide an API.
 * __/{service}/resources/events.yaml__ (optional): File containing the event schemas for EventBridge in OpenAPI format. This is optional if the service does not emit events.
 * __/{service}/src/{function}/__ (optional): Source code for Lambda functions. This is optional if the service does not provide Lambda functions or include the code in the template itself.
@@ -26,11 +26,11 @@ Each service should have the following structure in its folder:
 
 Passing resources such as Amazon API Gateway URLs, SNS topics, etc. across services must be done through SSM Parameters.
 
-SSM Parameter names should follow this convention: `/ecommerce/{serviceName}/{resourceName}/{type}`. For example:
+SSM Parameter names should follow this convention: `/ecommerce/{environment}/{serviceName}/{resourceName}/{type}`. For example:
 
 ```
-/ecommerce/platform/user-pool/arn
-/ecommerce/orders/api/url
+/ecommerce/dev/platform/user-pool/arn
+/ecommerce/prod/orders/api/url
 ```
 
 Here is how to create SSM parameters for your resources in CloudFormation:
@@ -45,7 +45,7 @@ Resources:
   UserPoolArnParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /ecommerce/platform/user-pool/arn
+      Name: !Sub /ecommerce/${Environment}/platform/user-pool/arn
       Type: String
       Value: !GetAtt UserPool.Arn
 ```
@@ -57,7 +57,16 @@ Parameters:
   UserPoolArn:
     Type: AWS::SSM::Parameter::Value<String>
     Description: Cognito User Pool ARN
-    Default: /ecommerce/platform/user-pool/arn
+    # The convention is to default to dev
+    Default: /ecommerce/dev/platform/user-pool/arn
+```
+
+You can then add the parameter in the `metadata.yaml` file for automatic transformation:
+
+```yaml
+parameters:
+  # Note the lack of '$' here
+  UserPoolArn: /ecommerce/{Environment}/platform/user-pool/arn
 ```
 
 ## Python 3
