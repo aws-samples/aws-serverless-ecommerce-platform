@@ -1,7 +1,11 @@
+import datetime
+import decimal
 import json
 import uuid
 import pytest
-from fixtures import lambda_module
+from botocore import stub
+from fixtures import context, lambda_module
+
 
 lambda_module = pytest.fixture(scope="module", params=[{
     "function_dir": "table_update",
@@ -12,6 +16,7 @@ lambda_module = pytest.fixture(scope="module", params=[{
         "POWERTOOLS_TRACE_DISABLED": "true"
     }
 }])(lambda_module)
+context = pytest.fixture(context)
 
 
 @pytest.fixture
@@ -116,6 +121,95 @@ def remove_data():
     return {"record": record, "event": event}
 
 
+@pytest.fixture
+def modify_data():
+    product_old = {
+        "productId": str(uuid.uuid4()),
+        "name": "Old product",
+        "price": 200,
+        "package": {
+            "width": 200,
+            "length": 500,
+            "height": 1000,
+            "weight": 300
+        }
+    }
+
+    product_new = {
+        "productId": product_old["productId"],
+        "name": "New product",
+        "price": 201,
+        "package": {
+            "width": 201,
+            "length": 501,
+            "height": 1001,
+            "weight": 301
+        }
+    }
+
+    record = {
+        "awsRegion": "us-east-1",
+        "dynamodb": {
+            "Keys": {
+                "productId": {"S": product_old["productId"]}
+            },
+            "OldImage": {
+                "productId": {"S": product_old["productId"]},
+                "name": {"S": product_old["name"]},
+                "price": {"N": str(product_old["price"])},
+                "package": {"M": {
+                    "width": {"N": str(product_old["package"]["width"])},
+                    "length": {"N": str(product_old["package"]["length"])},
+                    "height": {"N": str(product_old["package"]["height"])},
+                    "weight": {"N": str(product_old["package"]["weight"])}
+                }}
+            },
+            "NewImage": {
+                "productId": {"S": product_new["productId"]},
+                "name": {"S": product_new["name"]},
+                "price": {"N": str(product_new["price"])},
+                "package": {"M": {
+                    "width": {"N": str(product_new["package"]["width"])},
+                    "length": {"N": str(product_new["package"]["length"])},
+                    "height": {"N": str(product_new["package"]["height"])},
+                    "weight": {"N": str(product_new["package"]["weight"])}
+                }}
+            },
+            "SequenceNumber": "1234567890123456789012345",
+            "SizeBytes": 123,
+            "StreamViewType": "NEW_AND_OLD_IMAGES"
+        },
+        "eventID": str(uuid.uuid4()),
+        "eventName": "MODIFY",
+        "eventSource": "aws:dynamodb",
+        "eventVersion": "1.0"
+    }
+    event = {
+        "Source": "ecommerce.products",
+        "Resources": [product_old["productId"]],
+        "DetailType": "ProductModified",
+        "Detail": json.dumps({
+            "old": product_old,
+            "new": product_new
+        }),
+        "EventBusName": "EVENT_BUS_NAME"
+    }
+
+    return {"record": record, "event": event}
+
+
+def test_encoder(lambda_module):
+    """
+    Test the JSON encoder
+    """
+
+    encoder = lambda_module.Encoder()
+
+    assert isinstance(encoder.default(decimal.Decimal(10.5)), float)
+    assert isinstance(encoder.default(decimal.Decimal(10)), int)
+    assert isinstance(encoder.default(datetime.datetime.now()), str)
+
+
 def test_process_record_insert(lambda_module, insert_data):
     """
     Test process_record() against an INSERT event
@@ -166,3 +260,73 @@ def test_process_record_remove(lambda_module, remove_data):
                 assert value == b[key]
 
     _compare_dict(remove_data["event"], retval)
+
+
+def test_process_record_modify(lambda_module, modify_data):
+    """
+    Test process_record() against a MODIFY event
+    """
+
+    retval = lambda_module.process_record(modify_data["record"])
+
+    def _compare_dict(a: dict, b: dict):
+        for key, value in a.items():
+            assert key in b
+
+            if key not in b:
+                continue
+
+            if key == "Detail" and isinstance(value, str):
+                value = json.loads(value)
+                b[key] = json.loads(b[key])
+
+            if isinstance(value, dict):
+                _compare_dict(value, b[key])
+            else:
+                assert value == b[key]
+
+    _compare_dict(modify_data["event"], retval)
+
+
+def test_send_events(lambda_module, insert_data):
+    """
+    Test send_events()
+    """
+
+    eventbridge = stub.Stubber(lambda_module.eventbridge)
+
+    events = [insert_data["event"]]
+    response = {}
+    expected_params = {"Entries": events}
+
+    eventbridge.add_response("put_events", response, expected_params)
+    eventbridge.activate()
+
+    lambda_module.send_events(events)
+
+    eventbridge.assert_no_pending_responses()
+    eventbridge.deactivate()
+
+
+def test_handler(lambda_module, context, insert_data):
+    """
+    Test the Lambda function handler
+    """
+
+    # Prepare Lambda event and context
+    event = {"Records": [insert_data["record"]]}
+
+    # Stubbing boto3
+    eventbridge = stub.Stubber(lambda_module.eventbridge)
+    # Ignore time
+    insert_data["event"]["Time"] = stub.ANY
+    expected_params = {"Entries": [insert_data["event"]]}
+    eventbridge.add_response("put_events", {}, expected_params)
+    eventbridge.activate()
+
+    # Send request
+    lambda_module.handler(event, context)
+
+    # Check that events were sent
+    eventbridge.assert_no_pending_responses()
+    eventbridge.deactivate()

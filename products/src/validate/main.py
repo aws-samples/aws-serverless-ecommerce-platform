@@ -49,26 +49,6 @@ def message(msg: Union[dict, str], status_code: int = 200) -> dict:
 
 
 @tracer.capture_method
-def validate_products(products: List[dict]) -> Set[Union[List[dict], str]]:
-    """
-    Takes a list of products and validate them
-
-    If all products are valid, this will return an empty list.
-    """
-
-    validated_products = []
-    reasons = []
-
-    for product in products:
-        retval = validate_product(product)
-        if retval is not None:
-            validated_products.append(retval[0])
-            reasons.append(retval[1])
-
-    return validated_products, ". ".join(reasons)
-
-
-@tracer.capture_method
 def compare_product(user_product: dict, ddb_product: Optional[dict]) -> Optional[Set[Union[dict, str]]]:
     """
     Compare the user-provided product with the data provided by DynamoDB
@@ -89,7 +69,6 @@ def compare_product(user_product: dict, ddb_product: Optional[dict]) -> Optional
 
     # All good, return nothing
     return None
-
 
 
 @tracer.capture_method
@@ -117,6 +96,27 @@ def validate_product(product: dict) -> Optional[Set[Union[dict, str]]]:
 
     return compare_product(product, ddb_product)
 
+
+@tracer.capture_method
+def validate_products(products: List[dict]) -> Set[Union[List[dict], str]]:
+    """
+    Takes a list of products and validate them
+
+    If all products are valid, this will return an empty list.
+    """
+
+    validated_products = []
+    reasons = []
+
+    for product in products:
+        retval = validate_product(product)
+        if retval is not None:
+            validated_products.append(retval[0])
+            reasons.append(retval[1])
+
+    return validated_products, ". ".join(reasons)
+
+
 @logger_inject_lambda_context
 @tracer.capture_lambda_handler
 def handler(event, _):
@@ -140,6 +140,6 @@ def handler(event, _):
         return message({
             "message": reason,
             "products": products
-        }, 400)
+        }, 200)
 
     return message("All products are valid")

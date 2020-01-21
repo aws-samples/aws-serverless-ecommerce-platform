@@ -13,9 +13,6 @@ paths:
       description: |
         Validates an array of products.
 
-        This will return a 4XX error if there are discrepancies between products
-        in the request and database.
-
         __Remark__: This is an internal API that requires valid IAM credentials
         and signature.
       operationId: backendValidateProducts
@@ -31,14 +28,12 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "../../shared/resources/schemas.yaml#/Message"
-        "400":
-          description: Invalid products
-          content:
-            application/json:
-              schema:
                 allOf:
-                  - $ref: "../../shared/resources/schemas.yaml#/Products"
+                  - type: object
+                    properties:
+                      # By not using the 'Products' schema, it makes products optional
+                      products:
+                        $ref: "../../shared/resources/schemas.yaml#/Product"
                   - $ref: "../../shared/resources/schemas.yaml#/Message"
         default:
           description: Error

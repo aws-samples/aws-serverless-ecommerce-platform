@@ -166,7 +166,7 @@ def test_backend_validate_incorrect_price(iam_auth, correct_product, incorrect_p
     response = requests.post(ENDPOINT_URL+PATH, auth=iam_auth, json=req_body)
 
     # Assertions
-    assert response.status_code == 400
+    assert response.status_code == 200
 
     res_body = response.json()
     assert "products" in res_body
@@ -183,7 +183,7 @@ def test_backend_validate_incorrect_length(iam_auth, correct_product, incorrect_
     response = requests.post(ENDPOINT_URL+PATH, auth=iam_auth, json=req_body)
 
     # Assertions
-    assert response.status_code == 400
+    assert response.status_code == 200
 
     res_body = response.json()
     assert "products" in res_body
@@ -200,7 +200,7 @@ def test_backend_validate_incorrect_weight(iam_auth, correct_product, incorrect_
     response = requests.post(ENDPOINT_URL+PATH, auth=iam_auth, json=req_body)
 
     # Assertions
-    assert response.status_code == 400
+    assert response.status_code == 200
 
     res_body = response.json()
     assert "products" in res_body
@@ -217,7 +217,7 @@ def test_backend_validate_mixed(iam_auth, correct_product, incorrect_product_pri
     response = requests.post(ENDPOINT_URL+PATH, auth=iam_auth, json=req_body)
 
     # Assertions
-    assert response.status_code == 400
+    assert response.status_code == 200
 
     res_body = response.json()
     assert "products" in res_body

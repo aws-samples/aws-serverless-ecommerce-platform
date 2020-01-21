@@ -1,6 +1,25 @@
+import collections
 import importlib
 import sys
 import os
+
+
+def context():
+    context_tuple = collections.namedtuple("context", [
+        "function_name",
+        "memory_limit_in_mb",
+        "invoked_function_arn",
+        "aws_request_id"
+    ])
+
+    context = context_tuple(
+        "FUNCTION_NAME",
+        1024,
+        "INVOKED_FUNCTION_ARN",
+        "AWS_REQUEST_ID"
+    )
+
+    return context
 
 
 def lambda_module(request):
