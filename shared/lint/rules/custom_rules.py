@@ -4,12 +4,16 @@ Custom rules for cfn-lint
 
 
 import copy
+import logging
 from cfnlint.rules import CloudFormationLintRule, RuleMatch
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 class MandatoryParametersRule(CloudFormationLintRule):
     """
-    Checks for Mandatory CloudFormation Parameters
+    Check for Mandatory CloudFormation Parameters
     """
 
     id = "E9000"
@@ -35,3 +39,33 @@ class MandatoryParametersRule(CloudFormationLintRule):
             RuleMatch(["Parameters"], self._message.format(param))
             for param in mandatory_parameters
         ]
+
+
+class Python38Rule(CloudFormationLintRule):
+    """
+    Check for Python3.8 usage
+    """
+
+    id = "E9001"
+    shortdesc = "Python3.8 Lambda usage"
+    description = "Ensure that Python3.8 is used by all Lambda functions"
+    tags = ["ecommerce", "lambda"]
+
+    _runtime = "python3.8"
+    _message = "Function is using {} runtime instead of {}"
+
+    def match(self, cfn):
+        """
+        Match against Lambda functions not using python3.8
+        """
+
+        matches = []
+
+        for key, value in cfn.get_resources(["AWS::Lambda::Function"]).items():
+            if value.get("Properties").get("Runtime") != self._runtime:
+                matches.append(RuleMatch(
+                    ["Resources", key],
+                    self._message.format(value.get("Properties").get("Runtime"), self._runtime)
+                ))
+
+        return matches
