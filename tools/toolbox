@@ -211,10 +211,14 @@ class ToolBox:
                 if filename.lower().find(".py") == len(filename)-3:
                     files.append(os.path.join(function_dir, filename))
 
-        self.run_process([
+        process = self.run_process([
             "pylint",
             "--rcfile", os.path.join(self.shared_dir, "lint", "pylintrc")
-        ] + files)
+        ] + files, check=False)
+        # Only raise an error for fatal and error messages
+        # https://docs.pylint.org/en/1.6.0/run.html#exit-codes
+        if process.returncode in [1, 2, 32]:
+            process.check_returncode()
 
         # Lint OpenAPI specifications
         openapi_file = os.path.join(self.resources_dir, "openapi.yaml")
