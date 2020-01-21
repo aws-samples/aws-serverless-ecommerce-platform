@@ -5,3 +5,5 @@ permissions:
   - service: orders
     api:
       /validate: [post]
+parameters:
+  EventBusName: /ecommerce/{Environment}/platform/event-bus/name

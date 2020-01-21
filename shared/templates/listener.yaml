@@ -2,16 +2,18 @@ AWSTemplateFormatVersion: "2010-09-09"
 
 
 Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    Description: Environment name
   ServiceName:
     Type: String
     Description: |
       Name of the service in lowercase
-
       This should match the service value used as event source and for SSM parameters.
   EventBusName:
-    Type: AWS::SSM::Parameter::Value<String>
+    Type: String
     Description: EventBridge Event Bus Name
-    Default: /ecommerce/platform/event-bus/name
 
 
 Resources:
@@ -49,6 +51,6 @@ Resources:
   Parameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: !Sub "/ecommerce/${ServiceName}/listener/url"
+      Name: !Sub "/ecommerce/${Environment}/${ServiceName}/listener/url"
       Type: String
       Value: !Ref Queue

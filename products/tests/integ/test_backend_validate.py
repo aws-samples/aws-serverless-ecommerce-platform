@@ -10,8 +10,15 @@ import requests
 ssm = boto3.client("ssm")
 
 
-TABLE_NAME = ssm.get_parameter(Name="/ecommerce/products/table/name")["Parameter"]["Value"]
-ENDPOINT_URL = ssm.get_parameter(Name="/ecommerce/products/api/url")["Parameter"]["Value"]
+print(os.environ["ECOM_ENVIRONMENT"])
+
+
+TABLE_NAME = ssm.get_parameter(
+    Name="/ecommerce/{}/products/table/name".format(os.environ["ECOM_ENVIRONMENT"])
+)["Parameter"]["Value"]
+ENDPOINT_URL = ssm.get_parameter(
+    Name="/ecommerce/{}/products/api/url".format(os.environ["ECOM_ENVIRONMENT"])
+)["Parameter"]["Value"]
 PATH = "/backend/validate"
 
 DIRNAME = os.path.dirname(__file__)
@@ -24,11 +31,6 @@ def setup_module(module):
 
     This will inject test data in the DynamoDB table
     """
-
-    # Checking if this is a test environment
-    env = ssm.get_parameter(Name="/ecommerce/products/environment")["Parameter"]["Value"]
-    if env.lower() == "prod":
-        pytest.exit("Prod environment detected. Aborting.")
 
     with open(DATA_FILENAME) as fp:
         correct_product = json.load(fp)
