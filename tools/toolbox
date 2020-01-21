@@ -307,6 +307,11 @@ class ToolBox:
         else:
             os.environ["PYTHONPATH"] = shared_tests
 
+        # Inject environment variables for boto3
+        os.environ["AWS_ACCESS_KEY_ID"] = ""
+        os.environ["AWS_SECRET_ACCESS_KEY"] = ""
+        os.environ["AWS_DEFAULT_REGION"] = "eu-west-1"
+
         self.run_process(["pytest", tests_dir,
             "--cov", self.build_dir,
             "--cov-config", os.path.join(shared_tests, "coveragerc")])
