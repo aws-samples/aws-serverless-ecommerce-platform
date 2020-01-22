@@ -23,6 +23,13 @@ Resources:
       RepositoryName: ecommerce-platform
       RepositoryDescription: AWS Serverless Ecommerce Platform
 
+  CodeRepositoryParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /ecommerce/pipeline/repository/url
+      Type: String
+      Value: !GetAtt CodeRepository.CloneUrlHttp
+
   #############
   # CODEBUILD #
   #############
@@ -95,7 +102,7 @@ Resources:
         Type: LINUX_CONTAINER
       ServiceRole: !GetAtt BuildProjectRole.Arn
       Source:
-        BuildSpec: pipeline/resources/buildspec.yaml
+        BuildSpec: pipeline/resources/buildspec-build.yaml
         # Need the full history for 'git diff'
         GitCloneDepth: 0
         Location: !GetAtt CodeRepository.CloneUrlHttp

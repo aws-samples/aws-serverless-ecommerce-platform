@@ -204,87 +204,87 @@ Resources:
               RunOrder: 2
             # TODO: Run integration tests
 
-        ###########
-        # STAGING #
-        ###########
+        # ###########
+        # # STAGING #
+        # ###########
 
-        - Name: staging
-          Actions:
-            - Name: create-changeset
-              ActionTypeId:
-                Category: Deploy
-                Provider: CloudFormation
-                Owner: AWS
-                Version: "1"
-              Configuration:
-                ActionMode: CHANGE_SET_REPLACE
-                StackName: !Sub "ecommerce-staging-${ServiceName}"
-                ChangeSetName: !Sub "ecommerce-staging-${ServiceName}"
-                Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
-                # TODO: Automatically generate parameter values as part of build process
-                ParameterOverrides: |
-                  {
-                    "Environment": "tests",
-                    "LogLevel": "DEBUG",
-                    "EventBusName": "/ecommerce/staging/platform/event-bus/name"
-                  }
-                RoleArn: !GetAtt PipelineStagingDeployRole.Arn
-                TemplatePath: "TemplateArtifact::template.yaml"
-              InputArtifacts:
-                - Name: TemplateArtifact
-              RunOrder: 1
-            - Name: execute-changeset
-              ActionTypeId:
-                Category: Deploy
-                Provider: CloudFormation
-                Owner: AWS
-                Version: "1"
-              Configuration:
-                ActionMode: CHANGE_SET_EXECUTE
-                StackName: !Sub "ecommerce-staging-${ServiceName}"
-                ChangeSetName: !Sub "ecommerce-staging-${ServiceName}"
-                RoleArn: !GetAtt PipelineStagingDeployRole.Arn
-              RunOrder: 2
-            # TODO: Run end-to-end tests
+        # - Name: staging
+        #   Actions:
+        #     - Name: create-changeset
+        #       ActionTypeId:
+        #         Category: Deploy
+        #         Provider: CloudFormation
+        #         Owner: AWS
+        #         Version: "1"
+        #       Configuration:
+        #         ActionMode: CHANGE_SET_REPLACE
+        #         StackName: !Sub "ecommerce-staging-${ServiceName}"
+        #         ChangeSetName: !Sub "ecommerce-staging-${ServiceName}"
+        #         Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+        #         # TODO: Automatically generate parameter values as part of build process
+        #         ParameterOverrides: |
+        #           {
+        #             "Environment": "tests",
+        #             "LogLevel": "DEBUG",
+        #             "EventBusName": "/ecommerce/staging/platform/event-bus/name"
+        #           }
+        #         RoleArn: !GetAtt PipelineStagingDeployRole.Arn
+        #         TemplatePath: "TemplateArtifact::template.yaml"
+        #       InputArtifacts:
+        #         - Name: TemplateArtifact
+        #       RunOrder: 1
+        #     - Name: execute-changeset
+        #       ActionTypeId:
+        #         Category: Deploy
+        #         Provider: CloudFormation
+        #         Owner: AWS
+        #         Version: "1"
+        #       Configuration:
+        #         ActionMode: CHANGE_SET_EXECUTE
+        #         StackName: !Sub "ecommerce-staging-${ServiceName}"
+        #         ChangeSetName: !Sub "ecommerce-staging-${ServiceName}"
+        #         RoleArn: !GetAtt PipelineStagingDeployRole.Arn
+        #       RunOrder: 2
+        #     # TODO: Run end-to-end tests
 
-        ########
-        # PROD #
-        ########
+        # ########
+        # # PROD #
+        # ########
 
-        - Name: prod
-          Actions:
-            - Name: create-changeset
-              ActionTypeId:
-                Category: Deploy
-                Provider: CloudFormation
-                Owner: AWS
-                Version: "1"
-              Configuration:
-                ActionMode: CHANGE_SET_REPLACE
-                StackName: !Sub "ecommerce-prod-${ServiceName}"
-                ChangeSetName: !Sub "ecommerce-prod-${ServiceName}"
-                Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
-                # TODO: Automatically generate parameter values as part of build process
-                ParameterOverrides: |
-                  {
-                    "Environment": "tests",
-                    "LogLevel": "DEBUG",
-                    "EventBusName": "/ecommerce/prod/platform/event-bus/name"
-                  }
-                RoleArn: !GetAtt PipelineProdDeployRole.Arn
-                TemplatePath: "TemplateArtifact::template.yaml"
-              InputArtifacts:
-                - Name: TemplateArtifact
-              RunOrder: 1
-            - Name: execute-changeset
-              ActionTypeId:
-                Category: Deploy
-                Provider: CloudFormation
-                Owner: AWS
-                Version: "1"
-              Configuration:
-                ActionMode: CHANGE_SET_EXECUTE
-                StackName: !Sub "ecommerce-prod-${ServiceName}"
-                ChangeSetName: !Sub "ecommerce-prod-${ServiceName}"
-                RoleArn: !GetAtt PipelineProdDeployRole.Arn
-              RunOrder: 2
+        # - Name: prod
+        #   Actions:
+        #     - Name: create-changeset
+        #       ActionTypeId:
+        #         Category: Deploy
+        #         Provider: CloudFormation
+        #         Owner: AWS
+        #         Version: "1"
+        #       Configuration:
+        #         ActionMode: CHANGE_SET_REPLACE
+        #         StackName: !Sub "ecommerce-prod-${ServiceName}"
+        #         ChangeSetName: !Sub "ecommerce-prod-${ServiceName}"
+        #         Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+        #         # TODO: Automatically generate parameter values as part of build process
+        #         ParameterOverrides: |
+        #           {
+        #             "Environment": "tests",
+        #             "LogLevel": "DEBUG",
+        #             "EventBusName": "/ecommerce/prod/platform/event-bus/name"
+        #           }
+        #         RoleArn: !GetAtt PipelineProdDeployRole.Arn
+        #         TemplatePath: "TemplateArtifact::template.yaml"
+        #       InputArtifacts:
+        #         - Name: TemplateArtifact
+        #       RunOrder: 1
+        #     - Name: execute-changeset
+        #       ActionTypeId:
+        #         Category: Deploy
+        #         Provider: CloudFormation
+        #         Owner: AWS
+        #         Version: "1"
+        #       Configuration:
+        #         ActionMode: CHANGE_SET_EXECUTE
+        #         StackName: !Sub "ecommerce-prod-${ServiceName}"
+        #         ChangeSetName: !Sub "ecommerce-prod-${ServiceName}"
+        #         RoleArn: !GetAtt PipelineProdDeployRole.Arn
+        #       RunOrder: 2

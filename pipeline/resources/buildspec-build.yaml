@@ -20,7 +20,7 @@ phases:
       # Tests for all services must work before moving to the next step
       - |
         for SERVICE in $SERVICES; do
-          tools/toolbox $SERVICE clean lint build tests-unit package
+          tools/toolbox $SERVICE ci package
         done
       # Upload template artifacts to 'templates/$SERVICE.yaml'
       # This will trigger the pipelines per service
