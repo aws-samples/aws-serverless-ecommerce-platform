@@ -21,6 +21,8 @@ phases:
         for SERVICE in $SERVICES; do
           tools/toolbox $SERVICE clean lint build tests-unit package
         done
+  post_build:
+    commands:
       # Upload template artifacts to 'templates/$SERVICE.yaml'
       # This will trigger the pipelines per service
       - |

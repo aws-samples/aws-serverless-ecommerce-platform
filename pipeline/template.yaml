@@ -52,7 +52,8 @@ Resources:
                 Action:
                   - ssm:GetParameter
                   - ssm:PutParameter
-                Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${LastCommitParameter}"
+                # SSM parameters starting with '/' have their first '/' stripped in the ARN
+                Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${LastCommitParameter}"
               # Grant access to CloudWatch Logs
               - Effect: Allow
                 Action:
