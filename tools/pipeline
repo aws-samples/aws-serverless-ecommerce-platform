@@ -5,6 +5,7 @@ import argparse
 import os
 import subprocess
 import sys
+import traceback
 from typing import List
 import boto3
 
@@ -66,7 +67,7 @@ def get_changed(commit_id: str="0"):
 
         # If one file from the special folders has changed, all services need
         # to be rebuilt.
-        if basename in SPECIAL_FOLDERS:
+        if basename in REBUILD_FOLDERS:
             return services
 
         if basename in services:
