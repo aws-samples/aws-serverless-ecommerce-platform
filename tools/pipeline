@@ -19,7 +19,7 @@ REBUILD_FOLDERS = [
 ]
 
 IGNORE_FOLDERS = [
-    "platform"
+    "pipeline"
 ]
 
 
