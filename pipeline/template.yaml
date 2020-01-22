@@ -85,4 +85,4 @@ Resources:
         GitCloneDepth: 0
         Location: !GetAtt CodeRepository.CloneUrlHttp
         Type: CODECOMMIT
-      SourceVersion: master
+      SourceVersion: refs/heads/master
