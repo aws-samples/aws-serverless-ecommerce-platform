@@ -61,6 +61,40 @@ Resources:
       Type: String
       Value: "0"
 
+  BuildTriggerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: BuildTriggerRolePolicy
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action: codebuild:StartBuild
+                Resource: !GetAtt BuildProject.Arn
+
+  BuildTrigger:
+    Type: AWS::Events::Rule
+    Properties:
+      EventPattern:
+        source: ["aws.codecommit"]
+        detail-type: ["CodeCommit Repository State Change"]
+        resources: [!GetAtt CodeRepository.Arn]
+        detail:
+          event: [referenceCreated, referenceUpdated]
+          referenceName: [master]
+          referenceType: [branch]
+      State: ENABLED
+      Targets:
+        - Id: TriggerBuild
+          Arn: !GetAtt BuildProject.Arn
+          RoleArn: !GetAtt BuildTriggerRole.Arn
+
   BuildProject:
     Type: AWS::CodeBuild::Project
     Properties:
