@@ -28,7 +28,7 @@ def get_args():
 
     parser_upload = subparsers.add_parser("upload")
     parser_upload.add_argument("service")
-    parser_changed.set_defaults(command="upload")
+    parser_upload.set_defaults(command="upload")
 
     return parser.parse_args()
 
@@ -80,7 +80,7 @@ def upload_template(service: str):
     Upload templates to S3
     """
 
-    template_file = os.path.join(service, "template.out")
+    template_file = os.path.join(service, "build", "template.out")
     if not os.path.isfile(template_file):
         raise ValueError("File '{}' does not exist".format(template_file))
 
