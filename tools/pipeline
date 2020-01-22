@@ -4,6 +4,7 @@
 import argparse
 import os
 import subprocess
+import sys
 from typing import List
 import boto3
 
@@ -93,9 +94,13 @@ def upload_template(service: str):
 if __name__ == "__main__":
     args = get_args()
 
-    if args.command == "changed":
-        for service in get_changed(args.commit_id):
-            print(service)
+    try:
+        if args.command == "changed":
+            for service in get_changed(args.commit_id):
+                print(service)
 
-    if args.command == "upload":
-        upload_template(args.service)
+        if args.command == "upload":
+            upload_template(args.service)
+    except Exception as exc:
+        traceback.print_exc()
+        sys.exit(1)

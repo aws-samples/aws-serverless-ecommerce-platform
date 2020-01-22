@@ -7,6 +7,7 @@ import os
 import shutil
 import subprocess
 import sys
+import traceback
 from typing import List
 
 
@@ -88,7 +89,8 @@ class ToolBox:
                 cmd()
         except Exception as exc:
             print(self.text_red("{}: {}".format(exc.__class__.__name__, str(exc))))
-            raise exc
+            traceback.print_exc()
+            sys.exit(1)
 
     def cmd_build(self):
         """
