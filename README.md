@@ -19,7 +19,7 @@ The __Serverless Ecommerce Platform__ is a sample implementation of a serverless
 | Name       | Description                               |
 |------------|-------------------------------------------|
 | [Docs](docs/) | Documentation application for all services. |
-| Pipeline   | CI/CD pipeline for deploying the resources in production. |
+| [Pipeline](pipeline/) | CI/CD pipeline for deploying the resources in production. |
 | [Shared](shared/) | Shared resources accessible for all services, such as common CloudFormation templates and OpenAPI schemas. |
 | [Tools](tools/) | Tools used to build services.             |
 
