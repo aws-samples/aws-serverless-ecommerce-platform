@@ -345,7 +345,7 @@ class ToolBox:
         Run unit tests for Lambda functions defined in the service.
         """
 
-        if self.metadata.get("flags").get("skip-tests", False):
+        if self.metadata.get("flags", {}).get("skip-tests", False):
             self.warning("Skipping {} unit tests".format(self.service))
             return
 
@@ -383,7 +383,7 @@ class ToolBox:
         Run integration tests for a service.
         """
 
-        if self.metadata.get("flags").get("skip-tests", False):
+        if self.metadata.get("flags", {}).get("skip-tests", False):
             self.warning("Skipping {} integration tests".format(self.service))
             return
 
