@@ -101,6 +101,42 @@ class ToolBox:
             traceback.print_exc()
             sys.exit(1)
 
+    def cmd_ci(self):
+        """
+        'ci' command
+
+        This is a convenience command that runs the following commands:
+
+        - metadata
+        - lint
+        - clean
+        - build
+        - tests-unit
+        """
+
+        self.run(["metadata", "lint", "clean", "build", "tests-unit"])
+
+    def cmd_all(self):
+        """
+        'all' command
+
+        This is a convenience command that runs the following commands:
+
+        - metadata
+        - lint
+        - clean
+        - build
+        - tests-unit
+        - package
+        - deploy
+        - tests-integ
+        """
+
+        self.run([
+            "metadata", "lint", "clean", "build", "tests-unit",
+            "package", "deploy", "tests-integ"
+        ])
+
     def cmd_build(self):
         """
         'build' command
