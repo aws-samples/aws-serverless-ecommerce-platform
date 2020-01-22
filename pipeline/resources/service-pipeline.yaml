@@ -1,0 +1,128 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: 'AWS::Serverless-2016-10-31'
+
+
+Parameters:
+  ArtifactBucket:
+    Type: String
+    Description: S3 Bucket containing the artifacts
+  ArtifactPrefix:
+    Type: String
+    Description: S3 Bucket Prefix for artifacts
+  ServiceName:
+    Type: String
+    Description: Service name used for deployment
+  # # TODO: Multi-account support
+  # TestAccountId:
+  #   Type: String
+  #   Description: Account ID for the test environment
+  # StagingAccountId:
+  #   Type: String
+  #   Description: Account ID for the staging environment
+  # ProdAccountId:
+  #   Type: String
+  #   Description: Account ID for the prod environment
+
+
+Resources:
+  ############
+  # PIPELINE #
+  ############
+
+  PipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codepipelline.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: !Sub "${AWS::StackName}-PipelinePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            # Grant permission to pull the template
+            Statement:
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}/${ArtifactPrefix}${ServiceName}.yaml"
+
+  PipelineTestDeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codepipelline.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: !Sub "${AWS::StackName}-PipelineTestDeployPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              # TODO: scope this down to allowed resources
+              - Effect: Allow
+                Action: "*"
+                Resource: "*"
+
+  Pipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      ArtifactStore:
+        Type: S3
+        Location: !Ref ArtifactBucket
+      RoleArn: !GetAtt PipelineRole.Arn
+      Stages:
+        - Name: source
+          Actions:
+            - Name: s3
+              ActionTypeId:
+                Category: Source
+                Provider: "Amazon S3"
+                Owner: AWS
+                Version: "1"
+              Configuration:
+                S3Bucket: !Ref ArtifactBucket
+                S3ObjectKey: !Sub "${ArtifactPrefix}${ServiceName}.zip"
+              OutputArtifacts:
+                - Name: TemplateArtifact
+              RunOrder: 1
+        - Name: tests-integ
+          Actions:
+            - Name: create changeset
+              ActionTypeId:
+                Category: Deploy
+                Provider: "AWS CloudFormation"
+                Owner: AWS
+                Version: "1"
+              Configuration:
+                ActionMode: CHANGE_SET_REPLACE
+                StackName: !Sub "ecommerce-tests-${ServiceName}"
+                ChangeSetName: !Sub "ecommerce-tests-${ServiceName}"
+                RoleArn: !GetAtt PipelineTestDeployRole.Arn
+                TemplatePath: "TemplateArtifact::template.yaml"
+              RunOrder: 1
+            - Name: execute changeset
+              ActionTypeId:
+                Category: Deploy
+                Provider: "AWS CloudFormation"
+                Owner: AWS
+                Version: "1"
+              Configuration:
+                ActionMode: CHANGE_SET_EXECUTE
+                StackName: !Sub "ecommerce-tests-${ServiceName}"
+                Capabilities:
+                  - CAPABILITY_IAM
+                  - CAPABILITY_AUTO_EXPAND
+                ChangeSetName: !Sub "ecommerce-tests-${ServiceName}"
+                ParameterOverrides: |
+                  {
+                    "Environment": "tests",
+                    "LogLevel": "DEBUG",
+                    "EventBusName": "/ecommerce/tests/platform/event-bus/name"
+                  }
+              RunOrder: 2

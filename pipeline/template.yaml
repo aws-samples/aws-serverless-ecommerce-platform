@@ -141,3 +141,16 @@ Resources:
         - Id: TriggerBuild
           Arn: !GetAtt BuildProject.Arn
           RoleArn: !GetAtt BuildTriggerRole.Arn
+
+  #####################
+  # SERVICE PIPELINES #
+  #####################
+
+  ProductsPipeline:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: resources/service-pipeline.yaml
+      Parameters:
+        ArtifactBucket: !Ref ArtifactBucket
+        ArtifactPrefix: "templates/"
+        ServiceName: products
