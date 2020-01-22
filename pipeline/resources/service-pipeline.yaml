@@ -1,0 +1,435 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: 'AWS::Serverless-2016-10-31'
+
+
+Parameters:
+  ArtifactBucket:
+    Type: String
+    Description: S3 Bucket containing the artifacts
+  ArtifactPrefix:
+    Type: String
+    Description: S3 Bucket Prefix for artifacts
+  ServiceName:
+    Type: String
+    Description: Service name used for deployment
+  # # TODO: Multi-account support
+  # TestAccountId:
+  #   Type: String
+  #   Description: Account ID for the test environment
+  # StagingAccountId:
+  #   Type: String
+  #   Description: Account ID for the staging environment
+  # ProdAccountId:
+  #   Type: String
+  #   Description: Account ID for the prod environment
+  CodeRepositoryName:
+    Type: String
+    Description: Name of the Repository
+  CodeRepositoryArn:
+    Type: String
+    Description: Code Repository ARN
+
+
+Resources:
+  ############
+  # PIPELINE #
+  ############
+
+  PipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codepipeline.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: !Sub "${AWS::StackName}-PipelinePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              # Grant access to the artifact bucket
+              - Effect: Allow
+                Action:
+                  - s3:GetBucketVersioning
+                Resource: !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}"
+              - Effect: Allow
+                Action:
+                  - s3:GetObject*
+                  - s3:PutObject
+                  - s3:PutObjectVersion
+                Resource: !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}/*"
+              # Block write actions to the templates
+              - Effect: Deny
+                NotAction: 
+                  - s3:GetObject*
+                Resource: !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}/${ArtifactPrefix}*"
+              # Grant permission to access the repository
+              - Effect: Allow
+                Action:
+                  - codecommit:GetBranch
+                  - codecommit:GetCommit
+                  - codecommit:UploadArchive
+                  - codecommit:GetUploadArchiveStatus
+                  - codecommit:CancelUploadArchive
+                Resource: !Ref CodeRepositoryArn
+              # Grant permission to assume deployment roles
+              - Effect: Allow
+                Action:
+                  - iam:PassRole
+                Resource:
+                  - !GetAtt PipelineTestsDeployRole.Arn
+                  # - !GetAtt PipelineStagingDeployRole.Arn
+                  # - !GetAtt PipelineProdDeployRole.Arn
+              # Allow describing CloudFormation stacks
+              - Effect: Allow
+                Action:
+                  - cloudformation:CreateChangeSet
+                  - cloudformation:DeleteChangeSet
+                  - cloudformation:DescribeStacks
+                  - cloudformation:DescribeChangeSet
+                  - cloudformation:ExecuteChangeSet
+                Resource: !Sub "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/ecommerce-*"
+              # Allow starting a tests build
+              - Effect: Allow
+                Action:
+                  - codebuild:BatchGetBuilds
+                  - codebuild:StartBuild
+                Resource: !GetAtt TestsProject.Arn
+
+  Pipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      ArtifactStore:
+        Type: S3
+        Location: !Ref ArtifactBucket
+      RoleArn: !GetAtt PipelineRole.Arn
+      Stages:
+
+        ##########
+        # SOURCE #
+        ##########
+
+        - Name: source
+          Actions:
+            - Name: source-s3
+              ActionTypeId:
+                Category: Source
+                Provider: S3
+                Owner: AWS
+                Version: "1"
+              Configuration:
+                S3Bucket: !Ref ArtifactBucket
+                S3ObjectKey: !Sub "${ArtifactPrefix}${ServiceName}.zip"
+              OutputArtifacts:
+                - Name: TemplateArtifact
+              RunOrder: 1
+            - Name: source-repository
+              ActionTypeId:
+                Category: Source
+                Provider: CodeCommit
+                Owner: AWS
+                Version: "1"
+              Configuration:
+                RepositoryName: !Ref CodeRepositoryName
+                BranchName: master
+                PollForSourceChanges: false
+              OutputArtifacts:
+                - Name: CodeArtifact
+              RunOrder: 2
+
+        #########
+        # TESTS #
+        #########
+
+        - Name: tests
+          Actions:
+            - Name: create-changeset
+              ActionTypeId:
+                Category: Deploy
+                Provider: CloudFormation
+                Owner: AWS
+                Version: "1"
+              Configuration:
+                ActionMode: CHANGE_SET_REPLACE
+                StackName: !Sub "ecommerce-tests-${ServiceName}"
+                ChangeSetName: !Sub "ecommerce-tests-${ServiceName}"
+                Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+                # TODO: Automatically generate parameter values as part of build process
+                ParameterOverrides: |
+                  {
+                    "Environment": "tests",
+                    "LogLevel": "DEBUG",
+                    "EventBusName": "/ecommerce/tests/platform/event-bus/name"
+                  }
+                RoleArn: !GetAtt PipelineTestsDeployRole.Arn
+                TemplatePath: "TemplateArtifact::template.yaml"
+              InputArtifacts:
+                - Name: TemplateArtifact
+              RunOrder: 1
+            - Name: execute-changeset
+              ActionTypeId:
+                Category: Deploy
+                Provider: CloudFormation
+                Owner: AWS
+                Version: "1"
+              Configuration:
+                ActionMode: CHANGE_SET_EXECUTE
+                StackName: !Sub "ecommerce-tests-${ServiceName}"
+                ChangeSetName: !Sub "ecommerce-tests-${ServiceName}"
+                RoleArn: !GetAtt PipelineTestsDeployRole.Arn
+              RunOrder: 2
+            - Name: tests-integration
+              ActionTypeId:
+                Category: Test
+                Provider: CodeBuild
+                Owner: AWS
+                Version: "1"
+              Configuration:
+                ProjectName: !Ref TestsProject
+              InputArtifacts:
+                - Name: CodeArtifact
+              RunOrder: 3
+
+        # ###########
+        # # STAGING #
+        # ###########
+
+        # - Name: staging
+        #   Actions:
+        #     - Name: create-changeset
+        #       ActionTypeId:
+        #         Category: Deploy
+        #         Provider: CloudFormation
+        #         Owner: AWS
+        #         Version: "1"
+        #       Configuration:
+        #         ActionMode: CHANGE_SET_REPLACE
+        #         StackName: !Sub "ecommerce-staging-${ServiceName}"
+        #         ChangeSetName: !Sub "ecommerce-staging-${ServiceName}"
+        #         Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+        #         # TODO: Automatically generate parameter values as part of build process
+        #         ParameterOverrides: |
+        #           {
+        #             "Environment": "tests",
+        #             "LogLevel": "DEBUG",
+        #             "EventBusName": "/ecommerce/staging/platform/event-bus/name"
+        #           }
+        #         RoleArn: !GetAtt PipelineStagingDeployRole.Arn
+        #         TemplatePath: "TemplateArtifact::template.yaml"
+        #       InputArtifacts:
+        #         - Name: TemplateArtifact
+        #       RunOrder: 1
+        #     - Name: execute-changeset
+        #       ActionTypeId:
+        #         Category: Deploy
+        #         Provider: CloudFormation
+        #         Owner: AWS
+        #         Version: "1"
+        #       Configuration:
+        #         ActionMode: CHANGE_SET_EXECUTE
+        #         StackName: !Sub "ecommerce-staging-${ServiceName}"
+        #         ChangeSetName: !Sub "ecommerce-staging-${ServiceName}"
+        #         RoleArn: !GetAtt PipelineStagingDeployRole.Arn
+        #       RunOrder: 2
+        #     # TODO: Run end-to-end tests
+
+        # ########
+        # # PROD #
+        # ########
+
+        # - Name: prod
+        #   Actions:
+        #     - Name: create-changeset
+        #       ActionTypeId:
+        #         Category: Deploy
+        #         Provider: CloudFormation
+        #         Owner: AWS
+        #         Version: "1"
+        #       Configuration:
+        #         ActionMode: CHANGE_SET_REPLACE
+        #         StackName: !Sub "ecommerce-prod-${ServiceName}"
+        #         ChangeSetName: !Sub "ecommerce-prod-${ServiceName}"
+        #         Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+        #         # TODO: Automatically generate parameter values as part of build process
+        #         ParameterOverrides: |
+        #           {
+        #             "Environment": "tests",
+        #             "LogLevel": "DEBUG",
+        #             "EventBusName": "/ecommerce/prod/platform/event-bus/name"
+        #           }
+        #         RoleArn: !GetAtt PipelineProdDeployRole.Arn
+        #         TemplatePath: "TemplateArtifact::template.yaml"
+        #       InputArtifacts:
+        #         - Name: TemplateArtifact
+        #       RunOrder: 1
+        #     - Name: execute-changeset
+        #       ActionTypeId:
+        #         Category: Deploy
+        #         Provider: CloudFormation
+        #         Owner: AWS
+        #         Version: "1"
+        #       Configuration:
+        #         ActionMode: CHANGE_SET_EXECUTE
+        #         StackName: !Sub "ecommerce-prod-${ServiceName}"
+        #         ChangeSetName: !Sub "ecommerce-prod-${ServiceName}"
+        #         RoleArn: !GetAtt PipelineProdDeployRole.Arn
+        #       RunOrder: 2
+
+  #########
+  # TESTS #
+  #########
+
+  PipelineTestsDeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudformation.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: !Sub "${AWS::StackName}-PipelineTestsDeployPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              # TODO: scope this down to allowed resources
+              - Effect: Allow
+                Action: "*"
+                Resource: "*"
+
+  TestsProjectRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: TestsProjectPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              # Grant access to CloudWatch Logs
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*"
+              # Grant permission to read from the artifact bucket
+              - Effect: Allow
+                Action:
+                  - s3:GetObject*
+                Resource: !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}/*"
+              # Grant access to SSM parameters in tests
+              - Effect: Allow
+                Action: ssm:GetParameter
+                Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ecommerce/tests/*"
+              # Grant permission to invoke API Gateway
+              - Effect: Allow
+                Action:
+                  - execute-api:Invoke
+                Resource: "*"
+              # Grant permission to read/write to DynamoDB
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:PutItem
+                  - dynamodb:Scan
+                  - dynamodb:Query
+                  - dynamodb:UpdateItem
+                  - dynamodb:BatchWriteItem
+                  - dynamodb:BatchGetItem
+                  - dynamodb:DescribeTable
+                  - dynamodb:ConditionCheckItem
+                Resource: "*"
+              # Grant permission to read SQS
+              - Effect: Allow
+                Action:
+                  - sqs:ChangeMessageVisibility
+                  - sqs:ChangeMessageVisibilityBatch
+                  - sqs:DeleteMessage
+                  - sqs:DeleteMessageBatch
+                  - sqs:GetQueueAttributes
+                  - sqs:ReceiveMessage
+                Resource: "*"
+
+  TestsProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        EnvironmentVariables:
+          - Name: SERVICE_NAME
+            Value: !Ref ServiceName
+          - Name: ENVIRONMENT
+            Value: tests
+        Image: aws/codebuild/standard:3.0
+        Type: LINUX_CONTAINER
+      ServiceRole: !GetAtt TestsProjectRole.Arn
+      Source:
+        BuildSpec: pipeline/resources/buildspec-tests.yaml
+        Type: CODEPIPELINE
+
+  TestsLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/codebuild/${TestsProject}"
+
+  # ###########
+  # # STAGING #
+  # ###########
+
+  # PipelineStagingDeployRole:
+  #   Type: AWS::IAM::Role
+  #   Properties:
+  #     AssumeRolePolicyDocument:
+  #       Version: "2012-10-17"
+  #       Statement:
+  #         - Effect: Allow
+  #           Principal:
+  #             Service: cloudformation.amazonaws.com
+  #           Action: sts:AssumeRole
+  #     Policies:
+  #       - PolicyName: !Sub "${AWS::StackName}-PipelineStagingDeployPolicy"
+  #         PolicyDocument:
+  #           Version: "2012-10-17"
+  #           Statement:
+  #             # TODO: scope this down to allowed resources
+  #             - Effect: Allow
+  #               Action: "*"
+  #               Resource: "*"
+
+  # ########
+  # # PROD #
+  # ########
+
+  # PipelineProdDeployRole:
+  #   Type: AWS::IAM::Role
+  #   Properties:
+  #     AssumeRolePolicyDocument:
+  #       Version: "2012-10-17"
+  #       Statement:
+  #         - Effect: Allow
+  #           Principal:
+  #             Service: cloudformation.amazonaws.com
+  #           Action: sts:AssumeRole
+  #     Policies:
+  #       - PolicyName: !Sub "${AWS::StackName}-PipelineProdDeployPolicy"
+  #         PolicyDocument:
+  #           Version: "2012-10-17"
+  #           Statement:
+  #             # TODO: scope this down to allowed resources
+  #             - Effect: Allow
+  #               Action: "*"
+  #               Resource: "*"

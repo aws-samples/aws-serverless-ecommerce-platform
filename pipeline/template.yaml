@@ -1,0 +1,163 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: 'AWS::Serverless-2016-10-31'
+
+
+Resources:
+  #############
+  # ARTIFACTS #
+  #############
+
+  ArtifactBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+
+  ##############
+  # REPOSITORY #
+  ##############
+
+  CodeRepository:
+    Type: AWS::CodeCommit::Repository
+    Properties:
+      RepositoryName: ecommerce-platform
+      RepositoryDescription: AWS Serverless Ecommerce Platform
+
+  CodeRepositoryParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /ecommerce/pipeline/repository/url
+      Type: String
+      Value: !GetAtt CodeRepository.CloneUrlHttp
+
+  #############
+  # CODEBUILD #
+  #############
+
+  BuildProjectRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: BuildProjectPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              # Clone the repository
+              - Effect: Allow
+                Action: codecommit:GitPull
+                Resource: !GetAtt CodeRepository.Arn
+              # Save artifacts to S3
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub "${ArtifactBucket.Arn}/*"
+              # Grant access to the SSM parameter containing the last commit evaluated
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                  - ssm:PutParameter
+                # SSM parameters starting with '/' have their first '/' stripped in the ARN
+                Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${LastCommitParameter}"
+              # Grant access to CloudWatch Logs
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*"
+
+  LastCommitParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /ecommerce/pipeline/repository/last-commit
+      Type: String
+      Value: "0"
+
+  BuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        # No artifacts as the buildspec controls where the files are uploaded
+        Type: NO_ARTIFACTS
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        EnvironmentVariables:
+          # We don't use 'PARAMETER_STORE' type here as we need to update the
+          # value.
+          - Name: COMMIT_PARAMETER
+            Value: !Ref LastCommitParameter
+          - Name: S3_BUCKET
+            Value: !Ref ArtifactBucket
+        Image: aws/codebuild/standard:3.0
+        Type: LINUX_CONTAINER
+      ServiceRole: !GetAtt BuildProjectRole.Arn
+      Source:
+        BuildSpec: pipeline/resources/buildspec-build.yaml
+        # Need the full history for 'git diff'
+        GitCloneDepth: 0
+        Location: !GetAtt CodeRepository.CloneUrlHttp
+        Type: CODECOMMIT
+      SourceVersion: refs/heads/master
+
+  BuildLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/codebuild/${BuildProject}"
+
+  #################
+  # BUILD TRIGGER #
+  #################
+
+  BuildTriggerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: BuildTriggerRolePolicy
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action: codebuild:StartBuild
+                Resource: !GetAtt BuildProject.Arn
+
+  BuildTrigger:
+    Type: AWS::Events::Rule
+    Properties:
+      EventPattern:
+        source: ["aws.codecommit"]
+        detail-type: ["CodeCommit Repository State Change"]
+        resources: [!GetAtt CodeRepository.Arn]
+        detail:
+          event: [referenceCreated, referenceUpdated]
+          referenceName: [master]
+          referenceType: [branch]
+      State: ENABLED
+      Targets:
+        - Id: TriggerBuild
+          Arn: !GetAtt BuildProject.Arn
+          RoleArn: !GetAtt BuildTriggerRole.Arn
+
+  #####################
+  # SERVICE PIPELINES #
+  #####################
+
+  ProductsPipeline:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: resources/service-pipeline.yaml
+      Parameters:
+        ArtifactBucket: !Ref ArtifactBucket
+        ArtifactPrefix: "templates/"
+        ServiceName: products
+        CodeRepositoryName: !GetAtt CodeRepository.Name
+        CodeRepositoryArn: !GetAtt CodeRepository.Arn

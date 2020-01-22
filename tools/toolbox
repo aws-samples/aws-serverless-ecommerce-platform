@@ -7,6 +7,7 @@ import os
 import shutil
 import subprocess
 import sys
+import traceback
 from typing import List
 
 
@@ -28,12 +29,21 @@ class ToolBox:
     def __init__(self, service: str, kwargs: str={}):
         self.service = service
         self.color = kwargs.get("color", "auto")
-        self.env = kwargs.get("env", "dev")
+        self._env = kwargs.get("env", "dev")
         self.quiet = kwargs.get("quiet", False)
+
+        self.metadata = self._get_metadata()
 
     @property
     def is_interactive(self):
         return os.isatty(sys.stdout.fileno())
+
+    @property
+    def env(self):
+        if self.metadata.get("flags", {}).get("environment", True):
+            return self._env
+        else:
+            return ""
 
     @property
     def build_dir(self):
@@ -88,7 +98,44 @@ class ToolBox:
                 cmd()
         except Exception as exc:
             print(self.text_red("{}: {}".format(exc.__class__.__name__, str(exc))))
-            raise exc
+            traceback.print_exc()
+            sys.exit(1)
+
+    def cmd_ci(self):
+        """
+        'ci' command
+
+        This is a convenience command that runs the following commands:
+
+        - metadata
+        - lint
+        - clean
+        - build
+        - tests-unit
+        """
+
+        self.run(["metadata", "lint", "clean", "build", "tests-unit"])
+
+    def cmd_all(self):
+        """
+        'all' command
+
+        This is a convenience command that runs the following commands:
+
+        - metadata
+        - lint
+        - clean
+        - build
+        - tests-unit
+        - package
+        - deploy
+        - tests-integ
+        """
+
+        self.run([
+            "metadata", "lint", "clean", "build", "tests-unit",
+            "package", "deploy", "tests-integ"
+        ])
 
     def cmd_build(self):
         """
@@ -148,31 +195,36 @@ class ToolBox:
         assumes that this is a development stack.
         """
 
-        self.info("Deploying {} in {}".format(self.service, self.env))
+        if self.env:
+            self.info("Deploying {} in {}".format(self.service, self.env))
+        else:
+            self.info("Deploying {}".format(self.service))
 
         template_file = os.path.join(self.build_dir, "template.out")
-        stack_name = "ecommerce-{}-{}".format(self.env, self.service)
+        if self.env:
+            stack_name = "ecommerce-{}-{}".format(self.env, self.service)
+        else:
+            stack_name = "ecommerce-{}".format(self.service)
 
         if not os.path.isdir(self.build_dir) or not os.path.isfile(template_file):
             raise ValueError("'{}' or '{}' not found.".format(self.build_dir, template_file))
 
         # Display warning for prod environment
-        if self.env == "prod":
+        if self.env in ["prod", ""]:
             self.warning("Prod deployment for {}".format(self.service))
 
         # Load parameter overrides
         base_params = {
             "Environment": self.env
         }
-        metadata = self._get_metadata()
         parameters = copy.deepcopy(base_params)
-        for key, value in metadata.get("parameters", {}).items():
+        for key, value in self.metadata.get("parameters", {}).items():
             parameters[key] = value.format(**base_params)
 
         # Deploy stack
         self.run_process(["aws", "cloudformation", "deploy",
             "--stack-name", stack_name,
-            "--capabilities", "CAPABILITY_IAM",
+            "--capabilities", "CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND",
             "--parameter-overrides"] + ["{}={}".format(k, v) for k, v in parameters.items()] +
             ["--template-file", template_file])
 
@@ -192,10 +244,14 @@ class ToolBox:
         # Lint CloudFormation template
         template_file = os.path.join(self.service, "template.yaml")
         if os.path.isfile(template_file):
-            self.run_process([
+            template_lint_cmd = [
                 "cfn-lint", template_file,
                 "--append-rules", os.path.join(self.shared_dir, "lint", "rules")
-            ])
+            ]
+            # Skip checking parameters if the environment doesn't exist
+            if not self.env:
+                template_lint_cmd.extend(["--ignore-checks", "E9000"])
+            self.run_process(template_lint_cmd)
 
         # Lint Lambda function code
         if not os.path.isdir(self.source_dir):
@@ -238,26 +294,24 @@ class ToolBox:
 
         self.info("Gathering {} metadata".format(self.service))
 
-        metadata = self._get_metadata()
-
-        print("{}: {}".format(self.text_blue("Service name"), metadata["name"]))
-        if metadata.get("permissions", []):
+        print("{}: {}".format(self.text_blue("Service name"), self.metadata["name"]))
+        if self.metadata.get("permissions", []):
             print("{}:".format(self.text_blue("Permissions")))
-            for permission in metadata["permissions"]:
+            for permission in self.metadata["permissions"]:
                 print(" - {}: {}".format(self.text_blue("Service"), permission["service"]))
                 for key, value in permission.get("api", {}).items():
                     print("   {}: {}".format(self.text_blue(key), ",".join(value)))
                 if permission.get("events", []):
                     print("   {}: {}".format(self.text_blue("events"), ",".join(permission["events"])))
 
-        if metadata.get("dependencies", []):
+        if self.metadata.get("dependencies", []):
             print("{}:".format(self.text_blue("Dependencies")))
-            for dependency in metadata["dependencies"]:
+            for dependency in self.metadata["dependencies"]:
                 print(" - {}".format(dependency))
 
-        if metadata.get("parameters", {}):
+        if self.metadata.get("parameters", {}):
             print("{}:".format(self.text_blue("Parameters")))
-            for key, value in metadata["parameters"].items():
+            for key, value in self.metadata["parameters"].items():
                 print(" - {}: {}".format(self.text_blue(key), value))
 
     def cmd_package(self):
@@ -270,11 +324,13 @@ class ToolBox:
 
         self.info("Packaging {} artifacts".format(self.service))
 
-        s3_bucket = os.environ.get("S3_BUCKET", "{}-src".format(os.environ["USER"]))
+        s3_bucket = os.environ.get("S3_BUCKET", "{}-src".format(os.environ.get("USER", "")))
 
         workdir = os.getcwd()
         os.chdir(self.build_dir)
-        process = self.run_process(["aws", "cloudformation", "package", "--s3-bucket", s3_bucket,
+        process = self.run_process(["aws", "cloudformation", "package",
+            "--s3-bucket", s3_bucket,
+            "--s3-prefix", "artifacts/",
             "--template-file", "template.yaml",
             "--output-template-file", "template.out"], check=False)
 
@@ -288,6 +344,10 @@ class ToolBox:
 
         Run unit tests for Lambda functions defined in the service.
         """
+
+        if self.metadata.get("flags", {}).get("skip-tests", False):
+            self.warning("Skipping {} unit tests".format(self.service))
+            return
 
         self.info("Running {} unit tests".format(self.service))
 
@@ -322,6 +382,10 @@ class ToolBox:
 
         Run integration tests for a service.
         """
+
+        if self.metadata.get("flags", {}).get("skip-tests", False):
+            self.warning("Skipping {} integration tests".format(self.service))
+            return
 
         self.info("Running {} integration tests".format(self.service))
 
@@ -403,7 +467,7 @@ class ToolBox:
         """
 
         if self.quiet:
-            process = subprocess.run(cmds, capture_output=True, text=True, stderr=subprocess.STDOUT)
+            process = subprocess.run(cmds, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         else:
             process = subprocess.run(cmds)
 

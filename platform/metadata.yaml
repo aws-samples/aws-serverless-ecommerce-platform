@@ -1,1 +1,3 @@
 name: platform
+flags:
+  skip-tests: true

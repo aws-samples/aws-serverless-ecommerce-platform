@@ -1,0 +1,4 @@
+name: pipeline
+flags:
+  environment: false
+  skip-tests: true

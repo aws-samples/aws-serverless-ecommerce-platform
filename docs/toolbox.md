@@ -23,7 +23,15 @@ tools/toolbox products build package deploy tests-integ
 
 ## Supported commands
 
-The following commands are supported: `build`, `clean`, `deploy`, `package`, `tests-func` and `tests-integ`.
+The following commands are supported: `ci`, `all`, `build`, `clean`, `deploy`, `lint`, `metadata`, `package`, `tests-func` and `tests-integ`.
+
+### `ci` command
+
+The __ci__ command runs `metadata`, `lint`, `clean`, `build` and `tests-unit`.
+
+### `all` command
+
+The __all__ command runs `metadata`, `lint`, `clean`, `build`, `tests-unit`, `package`, `deploy`, `tests-integ`.
 
 ### `build` command
 
@@ -37,7 +45,7 @@ The __clean__ command deletes the `build/` folder of a service.
 
 ### `deploy` command
 
-The __deploy__ commands deploys the service into the developer's sandbox AWS account.
+The __deploy__ command deploys the service into the developer's sandbox AWS account.
 
 It will take a CloudFormation template at `build/template.out` in the service's directory and deploys it to AWS using the [aws cloudformation deploy](https://docs.aws.amazon.com/cli/latest/reference/cloudformation/deploy/index.html) command.
 
@@ -45,9 +53,13 @@ _Please note that you need to run the __package__ command beforehand._
 
 ### `lint` command
 
-The __lint__ commands run lint checks against the resources in the service.
+The __lint__ command runs lint checks against the resources in the service.
 
 Currently, it supports CloudFormation template at `template.yaml` and Lambda source code in the `src` folder.
+
+### `metadata` command
+
+The __metadata__ command displays metadata information about the service.
 
 ### `package` command
 
@@ -59,7 +71,7 @@ _Please note that you need to run the __build__ command beforehand._
 
 ### `tests-integ` command
 
-The __tests-integ__ commands run integration tests on a service deployed to AWS.
+The __tests-integ__ command runs integration tests on a service deployed to AWS.
 
 This command checks for an SSM Parameter named `/ecommerce/{service}/environment` and checks that its value is not _"prod"_.
 
@@ -69,7 +81,7 @@ _Please note that you need to run the __deploy__ command beforehand._
 
 ### `tests-unit` command
 
-The __tests-unit__ commands run unit tests against the source of Lambda functions on the local machine.
+The __tests-unit__ command runs unit tests against the source of Lambda functions on the local machine.
 
 Unit tests are found in the `tests/unit/` folder of a service. See [conventions](conventions.md).
 
