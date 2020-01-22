@@ -1,3 +1,4 @@
 name: pipeline
-meta:
+flags:
     environment: false
+    skip-tests: true

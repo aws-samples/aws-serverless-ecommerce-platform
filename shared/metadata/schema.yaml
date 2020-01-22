@@ -52,10 +52,14 @@ properties:
     additionalProperties:
       type: [string, integer]
 
-  meta:
+  flags:
     type: object
     properties:
       environment:
         type: boolean
         description: Whether or not this resource supports environments
         default: true
+      skip-tests:
+        type: boolean
+        description: If true, always return a success instead of running tests
+        default: false

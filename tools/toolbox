@@ -40,7 +40,7 @@ class ToolBox:
 
     @property
     def env(self):
-        if self.metadata.get("meta", {}).get("environment", True):
+        if self.metadata.get("flags", {}).get("environment", True):
             return self._env
         else:
             return ""
@@ -305,6 +305,10 @@ class ToolBox:
         Run unit tests for Lambda functions defined in the service.
         """
 
+        if self.metadata.get("flags").get("skip-tests", False):
+            self.warning("Skipping {} unit tests".format(self.service))
+            return
+
         self.info("Running {} unit tests".format(self.service))
 
         tests_dir = os.path.join(self.tests_dir, "unit")
@@ -338,6 +342,10 @@ class ToolBox:
 
         Run integration tests for a service.
         """
+
+        if self.metadata.get("flags").get("skip-tests", False):
+            self.warning("Skipping {} integration tests".format(self.service))
+            return
 
         self.info("Running {} integration tests".format(self.service))
 
