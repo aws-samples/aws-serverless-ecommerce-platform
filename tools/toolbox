@@ -272,7 +272,7 @@ class ToolBox:
 
         self.info("Packaging {} artifacts".format(self.service))
 
-        s3_bucket = os.environ.get("S3_BUCKET", "{}-src".format(os.environ["USER"]))
+        s3_bucket = os.environ.get("S3_BUCKET", "{}-src".format(os.environ.get("USER", "")))
 
         workdir = os.getcwd()
         os.chdir(self.build_dir)
