@@ -328,6 +328,10 @@ Resources:
                 Action:
                   - s3:GetObject*
                 Resource: !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}/*"
+              # Grant access to SSM parameters in tests
+              - Effect: Allow
+                Action: ssm:GetParameter
+                Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ecommerce/tests/*"
               # Grant permission to invoke API Gateway
               - Effect: Allow
                 Action:
