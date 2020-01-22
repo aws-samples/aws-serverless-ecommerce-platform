@@ -1,0 +1,125 @@
+#!/usr/bin/env python3.8
+
+
+import argparse
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+import traceback
+from typing import List
+import zipfile
+import boto3
+
+
+# If any file in these folders are changed, rebuild all services
+REBUILD_FOLDERS = [
+    "shared"
+]
+
+IGNORE_FOLDERS = [
+    "pipeline"
+]
+
+
+def get_args():
+    """
+    Parse command line arguments
+    """
+
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers()
+
+    parser_changed = subparsers.add_parser("changed")
+    parser_changed.add_argument("commit_id")
+    parser_changed.set_defaults(command="changed")
+
+    parser_upload = subparsers.add_parser("upload")
+    parser_upload.add_argument("service")
+    parser_upload.set_defaults(command="upload")
+
+    return parser.parse_args()
+
+
+def get_services():
+    """
+    Gather the list of services
+    """
+
+    return [
+        name for name in os.listdir(os.getcwd())
+        if os.path.isfile(os.path.join(os.getcwd(), name, "metadata.yaml"))
+        and name not in IGNORE_FOLDERS
+    ]
+
+
+def get_changed(commit_id: str="0"):
+    """
+    Gather the services that have changed
+    """
+
+    services = get_services()
+
+    # '0' is a special value, usually for first runs, that trigger a complete
+    # (re)build.
+    if commit_id == "0":
+        return services
+
+    process = subprocess.run(["git", "diff", commit_id, "--name-only"], capture_output=True, text=True)
+    process.check_returncode()
+
+    changed = []
+    for filename in process.stdout.split("\n"):
+        basename = filename.split("/", 1)[0]
+
+        # If one file from the special folders has changed, all services need
+        # to be rebuilt.
+        if basename in REBUILD_FOLDERS:
+            return services
+
+        if basename in services:
+            changed.append(basename)
+
+    # Only return each service once
+    return list(set(changed))
+
+
+def upload_template(service: str):
+    """
+    Upload templates to S3
+    """
+
+    template_file = os.path.join(service, "build", "template.out")
+    if not os.path.isfile(template_file):
+        raise ValueError("File '{}' does not exist".format(template_file))
+
+    # Create zip archive
+    tmpdir = tempfile.mkdtemp()
+    try:
+        archive = os.path.join(tmpdir, "{}.zip".format(service))
+
+        with zipfile.ZipFile(archive, mode="w") as zip:
+            zip.write(template_file, arcname="template.yaml")
+
+        s3 = boto3.resource("s3")
+        bucket = s3.Bucket(os.environ.get("S3_BUCKET", "{}-src".format(os.environ.get("USER", ""))))
+
+        bucket.upload_file(archive, "templates/{}.zip".format(service))
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+if __name__ == "__main__":
+    args = get_args()
+
+    try:
+        if args.command == "changed":
+            for service in get_changed(args.commit_id):
+                print(service)
+
+        if args.command == "upload":
+            upload_template(args.service)
+    except Exception as exc:
+        traceback.print_exc()
+        sys.exit(1)

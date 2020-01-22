@@ -14,7 +14,7 @@ Resources:
   EventBus:
     Type: AWS::Events::EventBus
     Properties:
-      Name: ecommerce
+      Name: !Sub "ecommerce-${Environment}"
 
   EventBusNameParameter:
     Type: AWS::SSM::Parameter
