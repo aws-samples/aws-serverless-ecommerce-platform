@@ -29,12 +29,21 @@ class ToolBox:
     def __init__(self, service: str, kwargs: str={}):
         self.service = service
         self.color = kwargs.get("color", "auto")
-        self.env = kwargs.get("env", "dev")
+        self._env = kwargs.get("env", "dev")
         self.quiet = kwargs.get("quiet", False)
+
+        self.metadata = self._get_metadata()
 
     @property
     def is_interactive(self):
         return os.isatty(sys.stdout.fileno())
+
+    @property
+    def env(self):
+        if self.metadata.get("meta", {}).get("environment", True):
+            return self._env
+        else:
+            return ""
 
     @property
     def build_dir(self):
@@ -150,31 +159,36 @@ class ToolBox:
         assumes that this is a development stack.
         """
 
-        self.info("Deploying {} in {}".format(self.service, self.env))
+        if self.env:
+            self.info("Deploying {} in {}".format(self.service, self.env))
+        else:
+            self.info("Deploying {}".format(self.service))
 
         template_file = os.path.join(self.build_dir, "template.out")
-        stack_name = "ecommerce-{}-{}".format(self.env, self.service)
+        if self.env:
+            stack_name = "ecommerce-{}-{}".format(self.env, self.service)
+        else:
+            stack_name = "ecommerce-{}".format(self.service)
 
         if not os.path.isdir(self.build_dir) or not os.path.isfile(template_file):
             raise ValueError("'{}' or '{}' not found.".format(self.build_dir, template_file))
 
         # Display warning for prod environment
-        if self.env == "prod":
+        if self.env in ["prod", ""]:
             self.warning("Prod deployment for {}".format(self.service))
 
         # Load parameter overrides
         base_params = {
             "Environment": self.env
         }
-        metadata = self._get_metadata()
         parameters = copy.deepcopy(base_params)
-        for key, value in metadata.get("parameters", {}).items():
+        for key, value in self.metadata.get("parameters", {}).items():
             parameters[key] = value.format(**base_params)
 
         # Deploy stack
         self.run_process(["aws", "cloudformation", "deploy",
             "--stack-name", stack_name,
-            "--capabilities", "CAPABILITY_IAM",
+            "--capabilities", "CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND",
             "--parameter-overrides"] + ["{}={}".format(k, v) for k, v in parameters.items()] +
             ["--template-file", template_file])
 
@@ -240,26 +254,24 @@ class ToolBox:
 
         self.info("Gathering {} metadata".format(self.service))
 
-        metadata = self._get_metadata()
-
         print("{}: {}".format(self.text_blue("Service name"), metadata["name"]))
-        if metadata.get("permissions", []):
+        if self.metadata.get("permissions", []):
             print("{}:".format(self.text_blue("Permissions")))
-            for permission in metadata["permissions"]:
+            for permission in self.metadata["permissions"]:
                 print(" - {}: {}".format(self.text_blue("Service"), permission["service"]))
                 for key, value in permission.get("api", {}).items():
                     print("   {}: {}".format(self.text_blue(key), ",".join(value)))
                 if permission.get("events", []):
                     print("   {}: {}".format(self.text_blue("events"), ",".join(permission["events"])))
 
-        if metadata.get("dependencies", []):
+        if self.metadata.get("dependencies", []):
             print("{}:".format(self.text_blue("Dependencies")))
-            for dependency in metadata["dependencies"]:
+            for dependency in self.metadata["dependencies"]:
                 print(" - {}".format(dependency))
 
-        if metadata.get("parameters", {}):
+        if self.metadata.get("parameters", {}):
             print("{}:".format(self.text_blue("Parameters")))
-            for key, value in metadata["parameters"].items():
+            for key, value in self.metadata["parameters"].items():
                 print(" - {}: {}".format(self.text_blue(key), value))
 
     def cmd_package(self):

@@ -37,17 +37,24 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              Service: codepipelline.amazonaws.com
+              Service: codepipeline.amazonaws.com
             Action: sts:AssumeRole
       Policies:
         - PolicyName: !Sub "${AWS::StackName}-PipelinePolicy"
           PolicyDocument:
             Version: "2012-10-17"
-            # Grant permission to pull the template
+            # Grant access to the artifact bucket
             Statement:
               - Effect: Allow
-                Action: s3:GetObject
-                Resource: !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}/${ArtifactPrefix}${ServiceName}.yaml"
+                Action:
+                  - s3:GetObject*
+                  - s3:PutObject
+                Resource: !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}/*"
+              # Block write actions to the templates
+              - Effect: Deny
+                NotAction: 
+                  - s3:GetObject*
+                Resource: !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}/${ArtifactPrefix}*"
 
   PipelineTestDeployRole:
     Type: AWS::IAM::Role
@@ -57,7 +64,7 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              Service: codepipelline.amazonaws.com
+              Service: codepipeline.amazonaws.com
             Action: sts:AssumeRole
       Policies:
         - PolicyName: !Sub "${AWS::StackName}-PipelineTestDeployPolicy"
@@ -79,10 +86,10 @@ Resources:
       Stages:
         - Name: source
           Actions:
-            - Name: s3
+            - Name: source-s3
               ActionTypeId:
                 Category: Source
-                Provider: "Amazon S3"
+                Provider: S3
                 Owner: AWS
                 Version: "1"
               Configuration:
@@ -93,10 +100,10 @@ Resources:
               RunOrder: 1
         - Name: tests-integ
           Actions:
-            - Name: create changeset
+            - Name: create-changeset
               ActionTypeId:
                 Category: Deploy
-                Provider: "AWS CloudFormation"
+                Provider: CloudFormation
                 Owner: AWS
                 Version: "1"
               Configuration:
@@ -106,19 +113,18 @@ Resources:
                 RoleArn: !GetAtt PipelineTestDeployRole.Arn
                 TemplatePath: "TemplateArtifact::template.yaml"
               RunOrder: 1
-            - Name: execute changeset
+            - Name: execute-changeset
               ActionTypeId:
                 Category: Deploy
-                Provider: "AWS CloudFormation"
+                Provider: CloudFormation
                 Owner: AWS
                 Version: "1"
               Configuration:
                 ActionMode: CHANGE_SET_EXECUTE
                 StackName: !Sub "ecommerce-tests-${ServiceName}"
-                Capabilities:
-                  - CAPABILITY_IAM
-                  - CAPABILITY_AUTO_EXPAND
+                Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 ChangeSetName: !Sub "ecommerce-tests-${ServiceName}"
+                # TODO: Automatically generate parameter values as part of build process
                 ParameterOverrides: |
                   {
                     "Environment": "tests",

@@ -8,6 +8,7 @@ properties:
   name:
     description: Service name
     type: string
+
   permissions:
     type: array
     items:
@@ -50,3 +51,11 @@ properties:
     type: object
     additionalProperties:
       type: [string, integer]
+
+  meta:
+    type: object
+    properties:
+      environment:
+        type: boolean
+        description: Whether or not this resource supports environments
+        default: true
