@@ -30,4 +30,4 @@ phases:
           tools/pipeline upload $SERVICE
         done
       # Update the parameter
-      - aws ssm put-parameter --name $COMMIT_PARAMETER --type String --value $CODEBUILD_RESOLVED_SOURCE_VERSION
+      - aws ssm put-parameter --name $COMMIT_PARAMETER --type String --value $CODEBUILD_RESOLVED_SOURCE_VERSION --overwrite
