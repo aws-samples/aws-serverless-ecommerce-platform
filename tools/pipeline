@@ -3,10 +3,13 @@
 
 import argparse
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 import traceback
 from typing import List
+import zipfile
 import boto3
 
 
@@ -86,10 +89,20 @@ def upload_template(service: str):
     if not os.path.isfile(template_file):
         raise ValueError("File '{}' does not exist".format(template_file))
 
-    s3 = boto3.resource("s3")
-    bucket = s3.Bucket(os.environ["S3_BUCKET"])
+    # Create zip archive
+    tmpdir = tempfile.mkdtemp()
+    try:
+        archive = os.path.join(tmpdir, "{}.zip".format(service))
 
-    bucket.upload_file(template_file, "templates/{}.yaml".format(service))
+        with zipfile.ZipFile(archive, mode="w") as zip:
+            zip.write(template_file, arcname="template.yaml")
+
+        s3 = boto3.resource("s3")
+        bucket = s3.Bucket(os.environ.get("S3_BUCKET", "{}-src".format(os.environ.get("USER", ""))))
+
+        bucket.upload_file(archive, "templates/{}.zip".format(service))
+    finally:
+        shutil.rmtree(tmpdir)
 
 
 if __name__ == "__main__":
