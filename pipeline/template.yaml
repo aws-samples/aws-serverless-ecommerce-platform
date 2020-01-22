@@ -53,6 +53,17 @@ Resources:
                   - ssm:GetParameter
                   - ssm:PutParameter
                 Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${LastCommitParameter}"
+              # Grant access to CloudWatch Logs
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*"
+              # Grant permission to pull the repository
+              - Effect: Allow
+                Action:
+                  - codecommit:GitPull
+                Resource: !GetAtt CodeRepository.Arn
 
   LastCommitParameter:
     Type: AWS::SSM::Parameter
@@ -60,6 +71,41 @@ Resources:
       Name: /ecommerce/pipeline/repository/last-commit
       Type: String
       Value: "0"
+
+  BuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        # No artifacts as the buildspec controls where the files are uploaded
+        Type: NO_ARTIFACTS
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        EnvironmentVariables:
+          # We don't use 'PARAMETER_STORE' type here as we need to update the
+          # value.
+          - Name: COMMIT_PARAMETER
+            Value: !Ref LastCommitParameter
+          - Name: S3_BUCKET
+            Value: !Ref ArtifactBucket
+        Image: aws/codebuild/standard:3.0
+        Type: LINUX_CONTAINER
+      ServiceRole: !GetAtt BuildProjectRole.Arn
+      Source:
+        BuildSpec: pipeline/resources/buildspec.yaml
+        # Need the full history for 'git diff'
+        GitCloneDepth: 0
+        Location: !GetAtt CodeRepository.CloneUrlHttp
+        Type: CODECOMMIT
+      SourceVersion: refs/heads/master
+
+  BuildLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/codebuild/${BuildProject}"
+
+  #################
+  # BUILD TRIGGER #
+  #################
 
   BuildTriggerRole:
     Type: AWS::IAM::Role
@@ -94,29 +140,3 @@ Resources:
         - Id: TriggerBuild
           Arn: !GetAtt BuildProject.Arn
           RoleArn: !GetAtt BuildTriggerRole.Arn
-
-  BuildProject:
-    Type: AWS::CodeBuild::Project
-    Properties:
-      Artifacts:
-        # No artifacts as the buildspec controls where the files are uploaded
-        Type: NO_ARTIFACTS
-      Environment:
-        ComputeType: BUILD_GENERAL1_SMALL
-        EnvironmentVariables:
-          # We don't use 'PARAMETER_STORE' type here as we need to update the
-          # value.
-          - Name: COMMIT_PARAMETER
-            Value: !Ref LastCommitParameter
-          - Name: S3_BUCKET
-            Value: !Ref ArtifactBucket
-        Image: aws/codebuild/standard:3.0
-        Type: LINUX_CONTAINER
-      ServiceRole: !GetAtt BuildProjectRole.Arn
-      Source:
-        BuildSpec: pipeline/resources/buildspec.yaml
-        # Need the full history for 'git diff'
-        GitCloneDepth: 0
-        Location: !GetAtt CodeRepository.CloneUrlHttp
-        Type: CODECOMMIT
-      SourceVersion: refs/heads/master
