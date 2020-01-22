@@ -14,4 +14,4 @@ phases:
       - npm install -g speccy
   build:
     commands:
-      - tools/toolbox $SERVICE_NAME tests-integ
+      - tools/toolbox $SERVICE_NAME tests-integ --env $ENVIRONMENT

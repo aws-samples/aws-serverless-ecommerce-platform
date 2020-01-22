@@ -70,11 +70,6 @@ Resources:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                 Resource: !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*"
-              # Grant permission to pull the repository
-              - Effect: Allow
-                Action:
-                  - codecommit:GitPull
-                Resource: !GetAtt CodeRepository.Arn
 
   LastCommitParameter:
     Type: AWS::SSM::Parameter
@@ -164,3 +159,5 @@ Resources:
         ArtifactBucket: !Ref ArtifactBucket
         ArtifactPrefix: "templates/"
         ServiceName: products
+        CodeRepositoryName: !GetAtt CodeRepository.Name
+        CodeRepositoryArn: !GetAtt CodeRepository.Arn

@@ -22,6 +22,12 @@ Parameters:
   # ProdAccountId:
   #   Type: String
   #   Description: Account ID for the prod environment
+  CodeRepositoryName:
+    Type: String
+    Description: Name of the Repository
+  CodeRepositoryArn:
+    Type: String
+    Description: Code Repository ARN
 
 
 Resources:
@@ -60,14 +66,23 @@ Resources:
                 NotAction: 
                   - s3:GetObject*
                 Resource: !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}/${ArtifactPrefix}*"
+              # Grant permission to access the repository
+              - Effect: Allow
+                Action:
+                  - codecommit:GetBranch
+                  - codecommit:GetCommit
+                  - codecommit:UploadArchive
+                  - codecommit:GetUploadArchiveStatus
+                  - codecommit:CancelUploadArchive
+                Resource: !Ref CodeRepositoryArn
               # Grant permission to assume deployment roles
               - Effect: Allow
                 Action:
                   - iam:PassRole
                 Resource:
                   - !GetAtt PipelineTestsDeployRole.Arn
-                  - !GetAtt PipelineStagingDeployRole.Arn
-                  - !GetAtt PipelineProdDeployRole.Arn
+                  # - !GetAtt PipelineStagingDeployRole.Arn
+                  # - !GetAtt PipelineProdDeployRole.Arn
               # Allow describing CloudFormation stacks
               - Effect: Allow
                 Action:
@@ -77,66 +92,12 @@ Resources:
                   - cloudformation:DescribeChangeSet
                   - cloudformation:ExecuteChangeSet
                 Resource: !Sub "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/ecommerce-*"
-
-  PipelineTestsDeployRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: cloudformation.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: !Sub "${AWS::StackName}-PipelineTestsDeployPolicy"
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              # TODO: scope this down to allowed resources
+              # Allow starting a tests build
               - Effect: Allow
-                Action: "*"
-                Resource: "*"
-
-  PipelineStagingDeployRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: cloudformation.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: !Sub "${AWS::StackName}-PipelineStagingDeployPolicy"
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              # TODO: scope this down to allowed resources
-              - Effect: Allow
-                Action: "*"
-                Resource: "*"
-
-  PipelineProdDeployRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: cloudformation.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: !Sub "${AWS::StackName}-PipelineProdDeployPolicy"
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              # TODO: scope this down to allowed resources
-              - Effect: Allow
-                Action: "*"
-                Resource: "*"
+                Action:
+                  - codebuild:BatchGetBuilds
+                  - codebuild:StartBuild
+                Resource: !GetAtt TestsProject.Arn
 
   Pipeline:
     Type: AWS::CodePipeline::Pipeline
@@ -146,6 +107,11 @@ Resources:
         Location: !Ref ArtifactBucket
       RoleArn: !GetAtt PipelineRole.Arn
       Stages:
+
+        ##########
+        # SOURCE #
+        ##########
+
         - Name: source
           Actions:
             - Name: source-s3
@@ -160,6 +126,19 @@ Resources:
               OutputArtifacts:
                 - Name: TemplateArtifact
               RunOrder: 1
+            - Name: source-repository
+              ActionTypeId:
+                Category: Source
+                Provider: CodeCommit
+                Owner: AWS
+                Version: "1"
+              Configuration:
+                RepositoryName: !Ref CodeRepositoryName
+                BranchName: master
+                PollForSourceChanges: false
+              OutputArtifacts:
+                - Name: CodeArtifact
+              RunOrder: 2
 
         #########
         # TESTS #
@@ -202,7 +181,17 @@ Resources:
                 ChangeSetName: !Sub "ecommerce-tests-${ServiceName}"
                 RoleArn: !GetAtt PipelineTestsDeployRole.Arn
               RunOrder: 2
-            # TODO: Run integration tests
+            - Name: tests-integration
+              ActionTypeId:
+                Category: Test
+                Provider: CodeBuild
+                Owner: AWS
+                Version: "1"
+              Configuration:
+                ProjectName: !Ref TestsProject
+              InputArtifacts:
+                - Name: CodeArtifact
+              RunOrder: 3
 
         # ###########
         # # STAGING #
@@ -288,3 +277,155 @@ Resources:
         #         ChangeSetName: !Sub "ecommerce-prod-${ServiceName}"
         #         RoleArn: !GetAtt PipelineProdDeployRole.Arn
         #       RunOrder: 2
+
+  #########
+  # TESTS #
+  #########
+
+  PipelineTestsDeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudformation.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: !Sub "${AWS::StackName}-PipelineTestsDeployPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              # TODO: scope this down to allowed resources
+              - Effect: Allow
+                Action: "*"
+                Resource: "*"
+
+  TestsProjectRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: TestsProjectPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              # Grant access to CloudWatch Logs
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*"
+              # Grant permission to read from the artifact bucket
+              - Effect: Allow
+                Action:
+                  - s3:GetObject*
+                Resource: !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}/*"
+              # Grant permission to invoke API Gateway
+              - Effect: Allow
+                Action:
+                  - execute-api:Invoke
+                Resource: "*"
+              # Grant permission to read/write to DynamoDB
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:PutItem
+                  - dynamodb:Scan
+                  - dynamodb:Query
+                  - dynamodb:UpdateItem
+                  - dynamodb:BatchWriteItem
+                  - dynamodb:BatchGetItem
+                  - dynamodb:DescribeTable
+                  - dynamodb:ConditionCheckItem
+                Resource: "*"
+              # Grant permission to read SQS
+              - Effect: Allow
+                Action:
+                  - sqs:ChangeMessageVisibility
+                  - sqs:ChangeMessageVisibilityBatch
+                  - sqs:DeleteMessage
+                  - sqs:DeleteMessageBatch
+                  - sqs:GetQueueAttributes
+                  - sqs:ReceiveMessage
+                Resource: "*"
+
+  TestsProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        EnvironmentVariables:
+          - Name: SERVICE_NAME
+            Value: !Ref ServiceName
+          - Name: ENVIRONMENT
+            Value: tests
+        Image: aws/codebuild/standard:3.0
+        Type: LINUX_CONTAINER
+      ServiceRole: !GetAtt TestsProjectRole.Arn
+      Source:
+        BuildSpec: pipeline/resources/buildspec-tests.yaml
+        Type: CODEPIPELINE
+
+  TestsLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/codebuild/${TestsProject}"
+
+  # ###########
+  # # STAGING #
+  # ###########
+
+  # PipelineStagingDeployRole:
+  #   Type: AWS::IAM::Role
+  #   Properties:
+  #     AssumeRolePolicyDocument:
+  #       Version: "2012-10-17"
+  #       Statement:
+  #         - Effect: Allow
+  #           Principal:
+  #             Service: cloudformation.amazonaws.com
+  #           Action: sts:AssumeRole
+  #     Policies:
+  #       - PolicyName: !Sub "${AWS::StackName}-PipelineStagingDeployPolicy"
+  #         PolicyDocument:
+  #           Version: "2012-10-17"
+  #           Statement:
+  #             # TODO: scope this down to allowed resources
+  #             - Effect: Allow
+  #               Action: "*"
+  #               Resource: "*"
+
+  # ########
+  # # PROD #
+  # ########
+
+  # PipelineProdDeployRole:
+  #   Type: AWS::IAM::Role
+  #   Properties:
+  #     AssumeRolePolicyDocument:
+  #       Version: "2012-10-17"
+  #       Statement:
+  #         - Effect: Allow
+  #           Principal:
+  #             Service: cloudformation.amazonaws.com
+  #           Action: sts:AssumeRole
+  #     Policies:
+  #       - PolicyName: !Sub "${AWS::StackName}-PipelineProdDeployPolicy"
+  #         PolicyDocument:
+  #           Version: "2012-10-17"
+  #           Statement:
+  #             # TODO: scope this down to allowed resources
+  #             - Effect: Allow
+  #               Action: "*"
+  #               Resource: "*"
