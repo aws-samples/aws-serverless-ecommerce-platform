@@ -43,18 +43,39 @@ Resources:
         - PolicyName: !Sub "${AWS::StackName}-PipelinePolicy"
           PolicyDocument:
             Version: "2012-10-17"
-            # Grant access to the artifact bucket
             Statement:
+              # Grant access to the artifact bucket
+              - Effect: Allow
+                Action:
+                  - s3:GetBucketVersioning
+                Resource: !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}"
               - Effect: Allow
                 Action:
                   - s3:GetObject*
                   - s3:PutObject
+                  - s3:PutObjectVersion
                 Resource: !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}/*"
               # Block write actions to the templates
               - Effect: Deny
                 NotAction: 
                   - s3:GetObject*
                 Resource: !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}/${ArtifactPrefix}*"
+              # Grant permission to assume deployment roles
+              - Effect: Allow
+                Action:
+                  - iam:PassRole
+                  - sts:AssumeRole
+                Resource: !GetAtt PipelineTestDeployRole.Arn
+              # Allow describing CloudFormation stacks
+              - Effect: Allow
+                Action:
+                  - cloudformation:CreateChangeSet
+                  - cloudformation:DeleteChangeSet
+                  - cloudformation:DescribeStacks
+                  - cloudformation:DescribeChangeSet
+                  - cloudformation:ExecuteChangeSet
+                Resource: !Sub "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/ecommerce-*"
+              
 
   PipelineTestDeployRole:
     Type: AWS::IAM::Role
@@ -64,7 +85,8 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              Service: codepipeline.amazonaws.com
+              # AWS: !Ref AWS::AccountId
+              Service: cloudformation.amazonaws.com
             Action: sts:AssumeRole
       Policies:
         - PolicyName: !Sub "${AWS::StackName}-PipelineTestDeployPolicy"
@@ -98,7 +120,7 @@ Resources:
               OutputArtifacts:
                 - Name: TemplateArtifact
               RunOrder: 1
-        - Name: tests-integ
+        - Name: tests
           Actions:
             - Name: create-changeset
               ActionTypeId:
@@ -110,8 +132,18 @@ Resources:
                 ActionMode: CHANGE_SET_REPLACE
                 StackName: !Sub "ecommerce-tests-${ServiceName}"
                 ChangeSetName: !Sub "ecommerce-tests-${ServiceName}"
+                Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+                # TODO: Automatically generate parameter values as part of build process
+                ParameterOverrides: |
+                  {
+                    "Environment": "tests",
+                    "LogLevel": "DEBUG",
+                    "EventBusName": "/ecommerce/tests/platform/event-bus/name"
+                  }
                 RoleArn: !GetAtt PipelineTestDeployRole.Arn
                 TemplatePath: "TemplateArtifact::template.yaml"
+              InputArtifacts:
+                - Name: TemplateArtifact
               RunOrder: 1
             - Name: execute-changeset
               ActionTypeId:
@@ -122,13 +154,6 @@ Resources:
               Configuration:
                 ActionMode: CHANGE_SET_EXECUTE
                 StackName: !Sub "ecommerce-tests-${ServiceName}"
-                Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 ChangeSetName: !Sub "ecommerce-tests-${ServiceName}"
-                # TODO: Automatically generate parameter values as part of build process
-                ParameterOverrides: |
-                  {
-                    "Environment": "tests",
-                    "LogLevel": "DEBUG",
-                    "EventBusName": "/ecommerce/tests/platform/event-bus/name"
-                  }
+                RoleArn: !GetAtt PipelineTestDeployRole.Arn
               RunOrder: 2

@@ -1,4 +1,4 @@
 name: pipeline
 flags:
-    environment: false
-    skip-tests: true
+  environment: false
+  skip-tests: true
