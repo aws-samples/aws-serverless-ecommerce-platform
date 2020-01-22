@@ -274,7 +274,9 @@ class ToolBox:
 
         workdir = os.getcwd()
         os.chdir(self.build_dir)
-        process = self.run_process(["aws", "cloudformation", "package", "--s3-bucket", s3_bucket,
+        process = self.run_process(["aws", "cloudformation", "package",
+            "--s3-bucket", s3_bucket,
+            "--s3-prefix", "artifacts/",
             "--template-file", "template.yaml",
             "--output-template-file", "template.out"], check=False)
 

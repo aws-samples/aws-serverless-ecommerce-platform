@@ -1,0 +1,31 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 12
+      python: 3.8
+  pre_build:
+    commands:
+      - apt-get update -y
+      - apt-get install -y jq
+      - /usr/bin/env python3.8 -m pip install --upgrade pip
+      - make requirements
+      - npm install -g speccy
+  build:
+    commands:
+      - COMMIT_ID=$(aws ssm get-parameter --name $COMMIT_PARAMETER | jq -r '.Parameter.Value')
+      - export SERVICES=$(tools/pipeline changed $COMMIT_ID)
+      # Tests for all services must work before moving to the next step
+      - |
+        for SERVICE in $SERVICES; do
+          tools/toolbox $SERVICE clean lint build tests-unit package
+        done
+      # Upload template artifacts to 'templates/$SERVICE.yaml'
+      # This will trigger the pipelines per service
+      - |
+        for SERVICE in $SERVICES; do
+          tools/pipeline upload $SERVICE
+        done
+      # Update the parameter
+      - aws ssm put-parameter --name $COMMIT_PARAMETER --type String --value $CODEBUILD_RESOLVED_SOURCE_VERSION
