@@ -254,7 +254,7 @@ class ToolBox:
 
         self.info("Gathering {} metadata".format(self.service))
 
-        print("{}: {}".format(self.text_blue("Service name"), metadata["name"]))
+        print("{}: {}".format(self.text_blue("Service name"), self.metadata["name"]))
         if self.metadata.get("permissions", []):
             print("{}:".format(self.text_blue("Permissions")))
             for permission in self.metadata["permissions"]:
