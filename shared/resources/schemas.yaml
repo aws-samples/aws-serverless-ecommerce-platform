@@ -82,10 +82,12 @@ Order:
       type: string
       format: uuid
       description: Unique identifier for the order.
+      example: d5e32d1d-552f-497e-babd-f7946ca35c78
     userId:
       type: string
       format: uuid
       description: End-user related to the order.
+      example: 81e209dd-8b66-413c-bbcb-5456eb4fe655
     createdDate:
       type: string
       format: date-time
@@ -112,7 +114,7 @@ Order:
       type: string
       description: Payment token to process payment for the order.
     total:
-      type: string
+      type: integer
       description: Total cost for the order.
 
 Package:
