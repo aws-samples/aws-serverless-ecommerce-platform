@@ -1,3 +1,5 @@
 name: users
 dependencies:
   - platform
+flags:
+  skip-tests: true

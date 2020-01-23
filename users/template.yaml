@@ -10,10 +10,10 @@ Parameters:
   LogLevel:
     Type: String
     Default: INFO
-  RetentionInDays:
-    Type: Number
-    Default: 30
-    Description: CloudWatch Logs retention period for Lambda functions
+  # RetentionInDays:
+  #   Type: Number
+  #   Default: 30
+  #   Description: CloudWatch Logs retention period for Lambda functions
   EventBusName:
     Type: AWS::SSM::Parameter::Value<String>
     Description: EventBridge Event Bus Name
