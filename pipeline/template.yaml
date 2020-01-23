@@ -161,3 +161,14 @@ Resources:
         ServiceName: products
         CodeRepositoryName: !GetAtt CodeRepository.Name
         CodeRepositoryArn: !GetAtt CodeRepository.Arn
+
+  UsersPipeline:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: resources/service-pipeline.yaml
+      Parameters:
+        ArtifactBucket: !Ref ArtifactBucket
+        ArtifactPrefix: "templates/"
+        ServiceName: users
+        CodeRepositoryName: !GetAtt CodeRepository.Name
+        CodeRepositoryArn: !GetAtt CodeRepository.Arn
