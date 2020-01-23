@@ -30,7 +30,7 @@ See the [docs](docs/) folder for the documentation.
 
 ## Contributing
 
-See the [contributing](CONTRIBUTING.md) and [setup](docs/setup.md) documents to learn how to contribute to this project.
+See the [contributing](CONTRIBUTING.md) and [getting started](docs/getting_started.md) documents to learn how to contribute to this project.
 
 ## License
 
