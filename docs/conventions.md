@@ -8,19 +8,60 @@ Conventions
 
 ## API standards
 
-_TODO_
+API have configuration requirements based on their usage and prefix.
+
+### Service-to-service communication
+
+All API paths for service-to-service communication should be prefixed by `/backend`. For example: `/backend/validate`. Authorization between services should be performed using IAM credentials.
+
+To add the authorizer, you can add [x-amazon-apigateway-auth](https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-swagger-extensions-auth.html) in the [operation](https://swagger.io/docs/specification/paths-and-operations/) section of the OpenAPI document. For example:
+
+```yaml
+paths:
+  /backend/validate:
+    post:
+      x-amazon-apigateway-auth:
+        type: AWS_IAM
+```
+
+On the client side, you can use the [aws-requests-auth](https://github.com/DavidMuller/aws-requests-auth) python library to generate a valid signature for the [requests](https://requests.readthedocs.io/en/master/) module. For example:
+
+```python
+from urllib.parse import urlparse
+from aws_requests_auth.boto_utils import BotoAWSRequestsAuth
+import requests
+
+
+# Gather the domain name and AWS region
+url = urlparse(endpoint_url)
+region = boto3.session.Session().region_name
+# Create the signature helper
+auth = BotoAWSRequestsAuth(aws_host=url.netloc,
+                           aws_region=region,
+                           aws_service='execute-api')
+# Send a GET request
+response = requests.get(endpoint_url, auth=iam_auth)
+```
+
+### Admin-only paths
+
+Admin-only paths should be prefixed by `/admin`. For example: `PUT /admin/{productId}`.
+
+### Public and authenticated requests
+
+All other requests should not use any specific prefix. For example: `GET /{productId}`.
 
 ## Service folder structure
 
 Each service should have the following structure in its folder:
 
-* __/{service}/metadata.yaml__: File containing information about the service, such as its name, permissions, dependencies and parameters.
-* __/{service}/resources/openapi.yaml__ (optional): File containing the OpenAPI specification. This is optional if the service does not provide an API.
-* __/{service}/resources/events.yaml__ (optional): File containing the event schemas for EventBridge in OpenAPI format. This is optional if the service does not emit events.
-* __/{service}/src/{function}/__ (optional): Source code for Lambda functions. This is optional if the service does not provide Lambda functions or include the code in the template itself.
-* __/{service}/template.yaml__: CloudFormation template for the service.
-* __/{service}/tests/integ/__ (optional): Contains integration tests that are run on a deployed infrastructure.
-* __/{service}/tests/unit/{function}/__ (optional): Contains unit tests that are run locally.
+* `/{service}/metadata.yaml`: File containing information about the service, such as its name, permissions, dependencies and parameters.
+* `/{service}/resources/openapi.yaml` (optional): File containing the OpenAPI specification. This is optional if the service does not provide an API.
+* `/{service}/resources/events.yaml` (optional): File containing the event schemas for EventBridge in OpenAPI format. This is optional if the service does not emit events.
+* `/{service}/src/{function}/` (optional): Source code for Lambda functions. This is optional if the service does not provide Lambda functions or include the code in the template itself.
+* `/{service}/template.yaml`: CloudFormation template for the service.
+* `/{service}/tests/integ/` (optional): Contains integration tests that are run on a deployed infrastructure.
+* `/{service}/tests/unit/{function}/` (optional): Contains unit tests that are run locally.
 
 ## Passing resources across services
 
@@ -29,7 +70,7 @@ Passing resources such as Amazon API Gateway URLs, SNS topics, etc. across servi
 SSM Parameter names should follow this convention: `/ecommerce/{environment}/{serviceName}/{resourceName}/{type}`. For example:
 
 ```
-/ecommerce/dev/platform/user-pool/arn
+/ecommerce/dev/users/user-pool/arn
 /ecommerce/prod/orders/api/url
 ```
 
@@ -45,7 +86,7 @@ Resources:
   UserPoolArnParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: !Sub /ecommerce/${Environment}/platform/user-pool/arn
+      Name: !Sub /ecommerce/${Environment}/users/user-pool/arn
       Type: String
       Value: !GetAtt UserPool.Arn
 ```
@@ -58,7 +99,7 @@ Parameters:
     Type: AWS::SSM::Parameter::Value<String>
     Description: Cognito User Pool ARN
     # The convention is to default to dev
-    Default: /ecommerce/dev/platform/user-pool/arn
+    Default: /ecommerce/dev/users/user-pool/arn
 ```
 
 You can then add the parameter in the `metadata.yaml` file for automatic transformation:
@@ -66,7 +107,7 @@ You can then add the parameter in the `metadata.yaml` file for automatic transfo
 ```yaml
 parameters:
   # Note the lack of '$' here
-  UserPoolArn: /ecommerce/{Environment}/platform/user-pool/arn
+  UserPoolArn: /ecommerce/{Environment}/users/user-pool/arn
 ```
 
 ## Python 3
