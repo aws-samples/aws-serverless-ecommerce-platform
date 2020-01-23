@@ -19,14 +19,3 @@ components:
           properties:
             detail:
               $ref: "../../shared/resources/schemas.yaml#/User"
-
-    UserDeleted:
-      x-amazon-events-source: ecommerce.users
-      x-amazon-events-detail-type: UserDeleted
-      description: Event emitted when a user is deleted.
-      allOf:
-        - $ref: "../../shared/resources/schemas.yaml#/EventBridgeHeader"
-        - type: object
-          properties:
-            detail:
-              $ref: "../../shared/resources/schemas.yaml#/User"

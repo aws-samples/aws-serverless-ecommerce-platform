@@ -1,6 +1,8 @@
 Users management
 ================
 
+![Users architecture diagram](images/users.png)
+
 ## API
 
 This service does not define any API.
