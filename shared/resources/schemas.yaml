@@ -216,6 +216,7 @@ User:
       type: string
       format: email
       description: User email address, used to log in the user
+      example: john.doe@example.com
     createdDate:
       type: string
       format: date-time
