@@ -36,6 +36,6 @@ jobs:
         run: |
           echo "SERVICES:" */metadata.yaml
           for metafile in */metadata.yaml; do
-            echo "Running tests on $(dirname metafile)"
-            tools/toolbox $(dirname metafile) ci
+            echo "Running tests on $(dirname $metafile)"
+            tools/toolbox $(dirname $metafile) ci
           done
