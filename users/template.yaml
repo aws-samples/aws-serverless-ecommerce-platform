@@ -45,7 +45,6 @@ Resources:
   UserPool:
     Type: AWS::Cognito::UserPool
     Properties:
-      AliasAttributes: [email]
       AutoVerifiedAttributes: [email]
       UsernameAttributes: [email]
 
