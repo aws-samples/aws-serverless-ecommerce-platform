@@ -10,10 +10,10 @@ Parameters:
   LogLevel:
     Type: String
     Default: INFO
-  # RetentionInDays:
-  #   Type: Number
-  #   Default: 30
-  #   Description: CloudWatch Logs retention period for Lambda functions
+  RetentionInDays:
+    Type: Number
+    Default: 30
+    Description: CloudWatch Logs retention period for Lambda functions
   EventBusName:
     Type: AWS::SSM::Parameter::Value<String>
     Description: EventBridge Event Bus Name
@@ -61,6 +61,27 @@ Resources:
       Name: !Sub /ecommerce/${Environment}/users/user-pool/arn
       Type: String
       Value: !GetAtt UserPool.Arn
+
+  #############
+  # FUNCTIONS #
+  #############
+  SignUpFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/sign_up/
+      Handler: main.handler
+      Events:
+        CognitoSignUp:
+          Type: Cognito
+          Properties:
+            UserPool: !Ref UserPool
+            Trigger: PostConfirmation
+
+  SignUpLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${SignUpFunction}"
+      RetentionInDays: !Ref RetentionInDays
 
   ############
   # LISTENER #
