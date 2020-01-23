@@ -4,8 +4,8 @@ import json
 import uuid
 import pytest
 from botocore import stub
-from fixtures import context, lambda_module
-from helpers import compare_event
+from fixtures import context, lambda_module # pylint: disable=import-error,no-name-in-module
+from helpers import compare_event # pylint: disable=import-error,no-name-in-module
 
 
 lambda_module = pytest.fixture(scope="module", params=[{
@@ -136,8 +136,14 @@ def test_handler_admin_event(lambda_module, context, postconfirm_data):
 
     postconfirm_data["input"]["triggerSource"] = "PreSignUp_AdminCreateUser"
 
+    output = copy.deepcopy(postconfirm_data["output"])
+    output["Time"] = stub.ANY
+
     # Prepare stub
     eventbridge = stub.Stubber(lambda_module.eventbridge)
+    response = {}
+    expected_params = {"Entries": [output]}
+    eventbridge.add_response("put_events", response, expected_params)
     eventbridge.activate()
 
     # Execute function
