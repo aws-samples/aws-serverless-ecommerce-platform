@@ -217,6 +217,8 @@ class ToolBox:
         base_params = {
             "Environment": self.env
         }
+        if self.env in ["dev", "tests"]:
+            base_params["LogLevel"] = "DEBUG"
         parameters = copy.deepcopy(base_params)
         for key, value in self.metadata.get("parameters", {}).items():
             parameters[key] = value.format(**base_params)
@@ -368,13 +370,26 @@ class ToolBox:
             os.environ["PYTHONPATH"] = shared_tests
 
         # Inject environment variables for boto3
-        os.environ["AWS_ACCESS_KEY_ID"] = ""
-        os.environ["AWS_SECRET_ACCESS_KEY"] = ""
+        environ_keys = ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_DEFAULT_REGION"]
+        orig_environ = {}
+        for key in environ_keys:
+            if key in os.environ:
+                orig_environ[key] = os.environ[key]
+
+        os.environ["AWS_ACCESS_KEY_ID"] = "AWS_ACCESS_KEY_ID"
+        os.environ["AWS_SECRET_ACCESS_KEY"] = "AWS_SECRET_ACCESS_KEY"
         os.environ["AWS_DEFAULT_REGION"] = "eu-west-1"
 
         self.run_process(["pytest", tests_dir,
             "--cov", self.build_dir,
             "--cov-config", os.path.join(shared_tests, "coveragerc")])
+
+        # Restore environment variables
+        for key in environ_keys:
+            if key in orig_environ:
+                os.environ[key] = orig_environ[key]
+            else:
+                del os.environ[key]
 
     def cmd_tests_integ(self):
         """

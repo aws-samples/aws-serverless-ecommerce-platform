@@ -1,25 +1,31 @@
-import collections
 import importlib
-import sys
 import os
+import sys
 
 
 def context():
-    context_tuple = collections.namedtuple("context", [
-        "function_name",
-        "memory_limit_in_mb",
-        "invoked_function_arn",
-        "aws_request_id"
-    ])
+    """
+    Return a fake Lambda context object
 
-    context = context_tuple(
-        "FUNCTION_NAME",
-        1024,
-        "INVOKED_FUNCTION_ARN",
-        "AWS_REQUEST_ID"
-    )
+    To use this within a test module, do:
 
-    return context
+        from fixtures import context
+        context = pytest.fixture(context)
+    """
+
+    class FakeContext:
+        function_name = "FUNCTION_NAME"
+        memory_limit_in_mb = 1024
+        invoked_function_arn = "INVOKED_FUNCTION_ARN"
+        aws_request_id = "AWS_REQUEST_ID"
+        log_group_name = "LOG_GROUP_NAME"
+        log_stream_name = "LOG_STREAM_NAME"
+
+        def get_remaining_time_in_millis(self):
+            # 5 minutes
+            return 300000
+
+    return FakeContext()
 
 
 def lambda_module(request):

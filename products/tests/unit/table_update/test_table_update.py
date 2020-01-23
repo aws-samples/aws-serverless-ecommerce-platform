@@ -5,6 +5,7 @@ import uuid
 import pytest
 from botocore import stub
 from fixtures import context, lambda_module
+from helpers import compare_event
 
 
 lambda_module = pytest.fixture(scope="module", params=[{
@@ -217,23 +218,7 @@ def test_process_record_insert(lambda_module, insert_data):
 
     retval = lambda_module.process_record(insert_data["record"])
 
-    def _compare_dict(a: dict, b: dict):
-        for key, value in a.items():
-            assert key in b
-
-            if key not in b:
-                continue
-
-            if key == "Detail" and isinstance(value, str):
-                value = json.loads(value)
-                b[key] = json.loads(b[key])
-
-            if isinstance(value, dict):
-                _compare_dict(value, b[key])
-            else:
-                assert value == b[key]
-
-    _compare_dict(insert_data["event"], retval)
+    compare_event(insert_data["event"], retval)
 
 
 def test_process_record_remove(lambda_module, remove_data):
@@ -243,23 +228,7 @@ def test_process_record_remove(lambda_module, remove_data):
 
     retval = lambda_module.process_record(remove_data["record"])
 
-    def _compare_dict(a: dict, b: dict):
-        for key, value in a.items():
-            assert key in b
-
-            if key not in b:
-                continue
-
-            if key == "Detail" and isinstance(value, str):
-                value = json.loads(value)
-                b[key] = json.loads(b[key])
-
-            if isinstance(value, dict):
-                _compare_dict(value, b[key])
-            else:
-                assert value == b[key]
-
-    _compare_dict(remove_data["event"], retval)
+    compare_event(remove_data["event"], retval)
 
 
 def test_process_record_modify(lambda_module, modify_data):
@@ -269,23 +238,7 @@ def test_process_record_modify(lambda_module, modify_data):
 
     retval = lambda_module.process_record(modify_data["record"])
 
-    def _compare_dict(a: dict, b: dict):
-        for key, value in a.items():
-            assert key in b
-
-            if key not in b:
-                continue
-
-            if key == "Detail" and isinstance(value, str):
-                value = json.loads(value)
-                b[key] = json.loads(b[key])
-
-            if isinstance(value, dict):
-                _compare_dict(value, b[key])
-            else:
-                assert value == b[key]
-
-    _compare_dict(modify_data["event"], retval)
+    compare_event(modify_data["event"], retval)
 
 
 def test_send_events(lambda_module, insert_data):

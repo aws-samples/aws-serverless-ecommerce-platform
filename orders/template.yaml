@@ -6,11 +6,14 @@ Parameters:
   Environment:
     Type: String
     Default: dev
-
-  RetentionInDays:
-    Type: Number
-    Default: 30
-
+    Description: Environment name
+  LogLevel:
+    Type: String
+    Default: INFO
+  # RetentionInDays:
+  #   Type: Number
+  #   Default: 30
+  #   Description: CloudWatch Logs retention period for Lambda functions
   EventBusName:
     Type: AWS::SSM::Parameter::Value<String>
     Description: EventBridge Event Bus Name
@@ -26,78 +29,77 @@ Globals:
       Variables:
         ENVIRONMENT: !Ref Environment
         EVENT_BUS_NAME: !Ref EventBusName
-        TABLE_NAME: !Ref Table
-        POWERTOOLS_SERVICE_NAME: products
+        POWERTOOLS_SERVICE_NAME: orders
         POWERTOOLS_TRACE_DISABLED: "false"
-        LOG_LEVEL: INFO
+        LOG_LEVEL: !Ref LogLevel
 
 Resources:
   #############
   # FUNCTIONS #
   #############
 
-  GetOrdersFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: #TODO
-      CodeUri: #TODO
-      Events:
-        UserApi:
-          Type: Api
-          Properties:
-            Path: /
-            Method: GET
-            RestApiId: !Ref Api
+  # GetOrdersFunction:
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     Handler: #TODO
+  #     CodeUri: #TODO
+  #     Events:
+  #       UserApi:
+  #         Type: Api
+  #         Properties:
+  #           Path: /
+  #           Method: GET
+  #           RestApiId: !Ref Api
 
-  GetOrdersLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub "/aws/lambda/${GetOrdersFunction.Arn}"
-      RetentionInDays: !Ref RetentionInDays
+  # GetOrdersLogGroup:
+  #   Type: AWS::Logs::LogGroup
+  #   Properties:
+  #     LogGroupName: !Sub "/aws/lambda/${GetOrdersFunction.Arn}"
+  #     RetentionInDays: !Ref RetentionInDays
 
-  GetOrderFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: #TODO
-      CodeUri: #TODO
-      Events:
-        UserApi:
-          Type: Api
-          Properties:
-            Path: /{orderId}
-            Method: GET
-            RestApiId: !Ref Api
-        BackendApi:
-          Type: Api
-          Properties:
-            Path: /backend/{orderId}
-            Method: GET
-            RestApiId: !Ref Api
+  # GetOrderFunction:
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     Handler: #TODO
+  #     CodeUri: #TODO
+  #     Events:
+  #       UserApi:
+  #         Type: Api
+  #         Properties:
+  #           Path: /{orderId}
+  #           Method: GET
+  #           RestApiId: !Ref Api
+  #       BackendApi:
+  #         Type: Api
+  #         Properties:
+  #           Path: /backend/{orderId}
+  #           Method: GET
+  #           RestApiId: !Ref Api
 
-  GetOrderLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub "/aws/lambda/${GetOrderFunction.Arn}"
-      RetentionInDays: !Ref RetentionInDays
+  # GetOrderLogGroup:
+  #   Type: AWS::Logs::LogGroup
+  #   Properties:
+  #     LogGroupName: !Sub "/aws/lambda/${GetOrderFunction.Arn}"
+  #     RetentionInDays: !Ref RetentionInDays
 
-  PostOrderFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: #TODO
-      CodeUri: #TODO
-      Events:
-        UserApi:
-          Type: Api
-          Properties:
-            Path: /
-            Method: POST
-            RestApiId: !Ref Api
+  # PostOrderFunction:
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     Handler: #TODO
+  #     CodeUri: #TODO
+  #     Events:
+  #       UserApi:
+  #         Type: Api
+  #         Properties:
+  #           Path: /
+  #           Method: POST
+  #           RestApiId: !Ref Api
 
-  PostOrderLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub "/aws/lambda/${PostOrderFunction.Arn}"
-      RetentionInDays: !Ref RetentionInDays
+  # PostOrderLogGroup:
+  #   Type: AWS::Logs::LogGroup
+  #   Properties:
+  #     LogGroupName: !Sub "/aws/lambda/${PostOrderFunction.Arn}"
+  #     RetentionInDays: !Ref RetentionInDays
 
   ###############
   # API GATEWAY #

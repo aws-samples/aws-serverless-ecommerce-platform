@@ -15,18 +15,17 @@ phases:
   build:
     commands:
       - COMMIT_ID=$(aws ssm get-parameter --name $COMMIT_PARAMETER | jq -r '.Parameter.Value')
-      - export SERVICES=$(tools/pipeline changed $COMMIT_ID)
-      - "echo SERVICES: $SERVICES"
+      - "echo SERVICES: $(tools/pipeline changed $COMMIT_ID)"
       # Tests for all services must work before moving to the next step
       - |
-        for SERVICE in $SERVICES; do
-          tools/toolbox $SERVICE ci package
+        for SERVICE in $(tools/pipeline changed $COMMIT_ID); do
+          tools/toolbox $SERVICE ci package || exit 1
         done
       # Upload template artifacts to 'templates/$SERVICE.yaml'
       # This will trigger the pipelines per service
       - |
-        for SERVICE in $SERVICES; do
-          tools/pipeline upload $SERVICE
+        for SERVICE in $(tools/pipeline changed $COMMIT_ID); do
+          tools/pipeline upload $SERVICE || exit 1
         done
       # Update the parameter
       - aws ssm put-parameter --name $COMMIT_PARAMETER --type String --value $CODEBUILD_RESOLVED_SOURCE_VERSION --overwrite

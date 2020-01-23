@@ -7,7 +7,7 @@ The __Serverless Ecommerce Platform__ is a sample implementation of a serverless
 
 |  Services  | Description                               |
 |------------|-------------------------------------------|
-| Users      | Provides user management, authentication and authorization. |
+| [Users](users/) | Provides user management, authentication and authorization. |
 | [Products](products/) | Source of truth for products information. |
 | [Orders](orders/) | Manages order creation and status.        |
 | Warehouse  | Manages inventory and packaging orders.   |
@@ -30,7 +30,7 @@ See the [docs](docs/) folder for the documentation.
 
 ## Contributing
 
-See the [contributing](CONTRIBUTING.md) and [setup](docs/setup.md) documents to learn how to contribute to this project.
+See the [contributing](CONTRIBUTING.md) and [getting started](docs/getting_started.md) documents to learn how to contribute to this project.
 
 ## License
 
