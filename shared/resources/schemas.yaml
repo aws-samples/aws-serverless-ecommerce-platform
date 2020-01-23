@@ -92,10 +92,12 @@ Order:
       type: string
       format: date-time
       description: When the order was created.
+      example: "2020-01-23T10:53:49.131052"
     modifiedDate:
       type: string
       format: date-time
       description: When the order was last modified.
+      example: "2020-01-23T10:53:49.131052"
     status:
       type: string
       description: Status of the order.
@@ -162,10 +164,12 @@ Product:
       type: string
       format: date-time
       description: Product creation date.
+      example: "2020-01-23T10:53:49.131052"
     modifiedDate:
       type: string
       format: date-time
       description: Product last modification date.
+      example: "2020-01-23T10:53:49.131052"
     name:
       type: string
       description: User-facing product name.
@@ -221,7 +225,9 @@ User:
       type: string
       format: date-time
       description: Product creation date.
+      example: "2020-01-23T10:53:49.131052"
     modifiedDate:
       type: string
       format: date-time
       description: Product last modification date.
+      example: "2020-01-23T10:53:49.131052"
