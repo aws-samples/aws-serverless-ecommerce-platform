@@ -19,13 +19,13 @@ phases:
       # Tests for all services must work before moving to the next step
       - |
         for SERVICE in $(tools/pipeline changed $COMMIT_ID); do
-          tools/toolbox $SERVICE ci package
+          tools/toolbox $SERVICE ci package || exit 1
         done
       # Upload template artifacts to 'templates/$SERVICE.yaml'
       # This will trigger the pipelines per service
       - |
         for SERVICE in $(tools/pipeline changed $COMMIT_ID); do
-          tools/pipeline upload $SERVICE
+          tools/pipeline upload $SERVICE || exit 1
         done
       # Update the parameter
       - aws ssm put-parameter --name $COMMIT_PARAMETER --type String --value $CODEBUILD_RESOLVED_SOURCE_VERSION --overwrite
