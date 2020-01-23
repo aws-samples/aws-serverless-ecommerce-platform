@@ -5,16 +5,14 @@ on:
     branches:
       - master
     paths:
-      - products/**
-      - shared/**
-      - tools/**
+      - "*/**"
+      - "!docs/**"
   push:
     branches:
       - master
     paths:
-      - products/**
-      - shared/**
-      - tools/**
+      - "*/**"
+      - "!docs/**"
 
 jobs:
   tests:
@@ -34,12 +32,8 @@ jobs:
           python -m pip install --upgrade pip
           make requirements
           npm install -g speccy
-      - name: linting
+      - name: lint and unit tests
         run: |
-          tools/toolbox products lint
-      - name: build
-        run: |
-          tools/toolbox products build
-      - name: tests-unit
-        run: |
-          tools/toolbox products tests-unit
+          for metafile in */metadata.yaml; do
+            tools/toolbox $(dirname metafile) ci
+          done
