@@ -361,6 +361,11 @@ Resources:
                   - sqs:GetQueueAttributes
                   - sqs:ReceiveMessage
                 Resource: "*"
+              # Grant permission to perform admin operations on Cognito User Pools
+              - Effect: Allow
+                Action:
+                  - cognito:Admin*
+                Resource: "*"
 
   TestsProject:
     Type: AWS::CodeBuild::Project
