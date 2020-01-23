@@ -1,5 +1,5 @@
-Users management
-================
+Users service
+=============
 
 ![Users architecture diagram](images/users.png)
 
