@@ -15,11 +15,10 @@ phases:
   build:
     commands:
       - COMMIT_ID=$(aws ssm get-parameter --name $COMMIT_PARAMETER | jq -r '.Parameter.Value')
-      - export SERVICES=$(tools/pipeline changed $COMMIT_ID)
-      - "echo SERVICES: $SERVICES"
+      - "echo SERVICES: $(tools/pipeline changed $COMMIT_ID)"
       # Tests for all services must work before moving to the next step
       - |
-        for SERVICE in $SERVICES; do
+        for SERVICE in $(tools/pipeline changed $COMMIT_ID); do
           tools/toolbox $SERVICE ci package
         done
       # Upload template artifacts to 'templates/$SERVICE.yaml'
