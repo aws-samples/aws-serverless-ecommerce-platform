@@ -364,7 +364,7 @@ Resources:
               # Grant permission to perform admin operations on Cognito User Pools
               - Effect: Allow
                 Action:
-                  - cognito:Admin*
+                  - cognito-idp:Admin*
                 Resource: "*"
 
   TestsProject:
