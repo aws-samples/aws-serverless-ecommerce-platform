@@ -155,6 +155,7 @@ Product:
       type: string
       format: uuid
       description: Unique identifier in UUID format for the product.
+      example: f380305b-99fe-45ba-b1ab-ba6349d141a2
     createdDate:
       type: string
       format: date-time
@@ -197,3 +198,27 @@ Products:
       type: array
       items:
         $ref: "#/Product"
+
+User:
+  type: object
+  description: Representation of a single user.
+  required:
+    - userId
+  properties:
+    userId:
+      type: string
+      format: uuid
+      description: Unique identifier in UUID format for the user.
+      example: b2d0c356-f92b-4629-a87f-786331c2842f
+    email:
+      type: string
+      format: email
+      description: User email address, used to log in the user
+    createdDate:
+      type: string
+      format: date-time
+      description: Product creation date.
+    modifiedDate:
+      type: string
+      format: date-time
+      description: Product last modification date.

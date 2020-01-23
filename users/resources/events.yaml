@@ -1,0 +1,48 @@
+openapi: "3.0.2"
+info:
+  title: Users events
+  version: 1.0.0
+  license:
+    name: MIT-0
+
+paths: {}
+
+components:
+  schemas:
+    UserCreated:
+      x-amazon-events-source: ecommerce.users
+      x-amazon-events-detail-type: UserCreated
+      description: Event emitted when a new user is created.
+      allOf:
+        - $ref: "../../shared/resources/schemas.yaml#/EventBridgeHeader"
+        - type: object
+          properties:
+            detail:
+              $ref: "../../shared/resources/schemas.yaml#/User"
+
+    UserModified:
+      x-amazon-events-source: ecommerce.users
+      x-amazon-events-detail-type: UserModified
+      description: Event emitted when a user is modified.
+      allOf:
+        - $ref: "../../shared/resources/schemas.yaml#/EventBridgeHeader"
+        - type: object
+          properties:
+            detail:
+              type: object
+              properties:
+                old:
+                  $ref: "../../shared/resources/schemas.yaml#/User"
+                new:
+                  $ref: "../../shared/resources/schemas.yaml#/User"
+
+    UserDeleted:
+      x-amazon-events-source: ecommerce.users
+      x-amazon-events-detail-type: UserDeleted
+      description: Event emitted when a user is deleted.
+      allOf:
+        - $ref: "../../shared/resources/schemas.yaml#/EventBridgeHeader"
+        - type: object
+          properties:
+            detail:
+              $ref: "../../shared/resources/schemas.yaml#/User"
