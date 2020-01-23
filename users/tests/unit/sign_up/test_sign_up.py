@@ -24,7 +24,7 @@ context = pytest.fixture(context)
 def postconfirm_data():
     input_ = {
         "version": 1,
-        "triggerSource": "PostConfirmation_ConfirmSignUp",
+        "triggerSource": "PreSignUp_SignUp",
         "region": "eu-west-1",
         "userPoolId": "eu-west-1_ABCDEFGHI",
         "userName": str(uuid.uuid4()),
@@ -49,7 +49,8 @@ def postconfirm_data():
         "Detail": json.dumps({
             "userId": input_["userName"],
             "email": input_["request"]["userAttributes"]["email"]
-        })
+        }),
+        "EventBusName": "EVENT_BUS_NAME"
     }
 
     return {
@@ -101,6 +102,42 @@ def test_handler(lambda_module, context, postconfirm_data):
     response = {}
     expected_params = {"Entries": [output]}
     eventbridge.add_response("put_events", response, expected_params)
+    eventbridge.activate()
+
+    # Execute function
+    lambda_module.handler(postconfirm_data["input"], context)
+
+    # End
+    eventbridge.assert_no_pending_responses()
+    eventbridge.deactivate()
+
+def test_handler_wrong_event(lambda_module, context, postconfirm_data):
+    """
+    Test handler()
+    """
+
+    postconfirm_data["input"]["triggerSource"] += "_WRONG_EVENT"
+
+    # Prepare stub
+    eventbridge = stub.Stubber(lambda_module.eventbridge)
+    eventbridge.activate()
+
+    # Execute function
+    lambda_module.handler(postconfirm_data["input"], context)
+
+    # End
+    eventbridge.assert_no_pending_responses()
+    eventbridge.deactivate()
+
+def test_handler_admin_event(lambda_module, context, postconfirm_data):
+    """
+    Test handler()
+    """
+
+    postconfirm_data["input"]["triggerSource"] = "PreSignUp_AdminCreateUser"
+
+    # Prepare stub
+    eventbridge = stub.Stubber(lambda_module.eventbridge)
     eventbridge.activate()
 
     # Execute function

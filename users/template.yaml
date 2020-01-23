@@ -75,7 +75,14 @@ Resources:
           Type: Cognito
           Properties:
             UserPool: !Ref UserPool
-            Trigger: PostConfirmation
+            Trigger: PreSignUp
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: "*"
 
   SignUpLogGroup:
     Type: AWS::Logs::LogGroup

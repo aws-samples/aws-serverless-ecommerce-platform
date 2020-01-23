@@ -34,7 +34,8 @@ def process_request(input_: dict) -> dict:
         "Detail": json.dumps({
             "userId": input_["userName"],
             "email": input_["request"]["userAttributes"]["email"]
-        })
+        }),
+        "EventBusName": EVENT_BUS_NAME
     }
 
     return output
@@ -58,10 +59,25 @@ def handler(event, _):
 
     # Input event:
     # https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-identity-pools-working-with-aws-lambda-triggers.html#cognito-user-pools-lambda-trigger-event-parameter-shared
+    logger.debug({
+        "message": "Input event",
+        "event": event
+    })
+
+    # Never confirm users
+    event["response"] = {
+        "autoConfirmUser": False,
+        "autoVerifyPhone": False,
+        "autoVerifyEmail": False
+    }
 
     # Only care about the ConfirmSignUp action
     # At the moment, the only other PostConfirmation event is 'PostConfirmation_ConfirmForgotPassword'
-    if event["triggerSource"] != "PostConfirmation_ConfirmSignUp":
+    if event["triggerSource"] not in ["PreSignUp_SignUp", "PreSignUp_AdminCreateUser"]:
+        logger.warning({
+            "message": "invalid triggerSource",
+            "triggerSource": event["triggerSource"]
+        })
         return event
 
     # Prepare the event

@@ -11,6 +11,13 @@ def listener(request):
     """
     Listens to messages in the Listener queue for a given service for a fixed
     period of time.
+
+    To use in your integration tests:
+
+        from fixtures import listener
+        listener = pytest.fixture(scope="module", params=[{
+            "service": "products"
+        }])(listener)
     """
 
     default_timeout = request.param.get("timeout", 15)

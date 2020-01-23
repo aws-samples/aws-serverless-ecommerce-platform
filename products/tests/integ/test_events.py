@@ -17,8 +17,6 @@ ssm = boto3.client("ssm")
 TABLE_NAME = ssm.get_parameter(
     Name="/ecommerce/{}/products/table/name".format(os.environ["ECOM_ENVIRONMENT"])
 )["Parameter"]["Value"]
-EVENT_SOURCE = "ecommerce.products"
-TIMEOUT = 60 # time in seconds
 
 
 sqs = boto3.client("sqs")

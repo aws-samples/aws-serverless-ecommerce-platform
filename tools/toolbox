@@ -217,6 +217,8 @@ class ToolBox:
         base_params = {
             "Environment": self.env
         }
+        if self.env in ["dev", "tests"]:
+            base_params["LogLevel"] = "DEBUG"
         parameters = copy.deepcopy(base_params)
         for key, value in self.metadata.get("parameters", {}).items():
             parameters[key] = value.format(**base_params)
