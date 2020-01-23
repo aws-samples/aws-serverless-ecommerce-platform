@@ -24,7 +24,7 @@ phases:
       # Upload template artifacts to 'templates/$SERVICE.yaml'
       # This will trigger the pipelines per service
       - |
-        for SERVICE in $SERVICES; do
+        for SERVICE in $(tools/pipeline changed $COMMIT_ID); do
           tools/pipeline upload $SERVICE
         done
       # Update the parameter
