@@ -12,6 +12,12 @@ paths:
       description: |
         Retrieve orders belonging to the user.
       operationId: getOrders
+      parameters:
+        - in: query
+          name: nextToken
+          description: Continuation token
+          schema:
+            type: string
       responses:
         200:
           description: Array of orders
@@ -24,6 +30,8 @@ paths:
                     type: array
                     items:
                       $ref: "../../shared/resources/schemas.yaml#/Order"
+                  nextToken:
+                    type: string
         default:
           description: Something went wrong
           content:
