@@ -109,29 +109,37 @@ Resources:
       LogGroupName: !Sub "/aws/lambda/${GetOrdersFunction}"
       RetentionInDays: !Ref RetentionInDays
 
-  # GetOrderFunction:
-  #   Type: AWS::Serverless::Function
-  #   Properties:
-  #     CodeUri: #TODO
-  #     Events:
-  #       UserApi:
-  #         Type: Api
-  #         Properties:
-  #           Path: /{orderId}
-  #           Method: GET
-  #           RestApiId: !Ref Api
-  #       BackendApi:
-  #         Type: Api
-  #         Properties:
-  #           Path: /backend/{orderId}
-  #           Method: GET
-  #           RestApiId: !Ref Api
+  GetOrderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/get_order/
+      Events:
+        UserApi:
+          Type: Api
+          Properties:
+            Path: /{orderId}
+            Method: GET
+            RestApiId: !Ref Api
+        BackendApi:
+          Type: Api
+          Properties:
+            Path: /backend/{orderId}
+            Method: GET
+            RestApiId: !Ref Api
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action: dynamodb:GetItem
+              Resource:
+                - !GetAtt Table.Arn
+      
 
-  # GetOrderLogGroup:
-  #   Type: AWS::Logs::LogGroup
-  #   Properties:
-  #     LogGroupName: !Sub "/aws/lambda/${GetOrderFunction}"
-  #     RetentionInDays: !Ref RetentionInDays
+  GetOrderLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${GetOrderFunction}"
+      RetentionInDays: !Ref RetentionInDays
 
   # PostOrderFunction:
   #   Type: AWS::Serverless::Function

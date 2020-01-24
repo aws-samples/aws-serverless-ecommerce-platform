@@ -6,7 +6,7 @@ import uuid
 import boto3
 import pytest
 import requests
-from helpers import compare_dict
+from helpers import compare_dict # pylint: disable=no-name-in-module
 
 
 ssm = boto3.client("ssm")
@@ -19,7 +19,6 @@ TABLE_NAME = ssm.get_parameter(
 ENDPOINT_URL = ssm.get_parameter(
     Name="/ecommerce/{}/orders/api/url".format(ECOM_ENVIRONMENT)
 )["Parameter"]["Value"]
-PATH = "/"
 USER_POOL_ID = ssm.get_parameter(
     Name="/ecommerce/{}/users/user-pool/id".format(ECOM_ENVIRONMENT)
 )["Parameter"]["Value"]
@@ -44,7 +43,7 @@ def password(scope="module"):
 
 
 @pytest.fixture
-def email():
+def email(scope="module"):
     """
     Generate a unique email address for the user
     """
@@ -53,7 +52,7 @@ def email():
 
 
 @pytest.fixture
-def client_id():
+def client_id(scope="module"):
     """
     Return a user pool client
     """
@@ -111,7 +110,7 @@ def user_id(email, password, scope="module"):
 
 
 @pytest.fixture
-def jwt_token(user_id, client_id, email, password):
+def jwt_token(user_id, client_id, email, password, scope="module"):
     """
     Returns a JWT token for API Gateway
     """
@@ -183,11 +182,20 @@ def test_get_root(jwt_token, order):
     Test GET /
     """
 
-    print("TOKEN: {}".format(jwt_token))
-
-    res = requests.get(ENDPOINT_URL+PATH, headers={"Authorization": jwt_token})
+    res = requests.get(ENDPOINT_URL+"/", headers={"Authorization": jwt_token})
     assert res.status_code == 200
     body = res.json()
     assert "orders" in body
     assert len(body["orders"]) == 1
     compare_dict(order, body["orders"][0])
+
+
+def test_get_order(jwt_token, order):
+    """
+    Test GET /{orderId}
+    """
+
+    res = requests.get(ENDPOINT_URL+"/"+order["orderId"], headers={"Authorization": jwt_token})
+    assert res.status_code == 200
+    body = res.json()
+    compare_dict(order, body)
