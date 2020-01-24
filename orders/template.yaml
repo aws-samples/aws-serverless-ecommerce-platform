@@ -57,15 +57,13 @@ Resources:
       KeySchema:
         - AttributeName: orderId
           KeyType: HASH
-        - AttributeName: createdDate
-          AttributeType: S
       GlobalSecondaryIndexes:
         - IndexName: user
           KeySchema:
             - AttributeName: userId
               KeyType: HASH
             - AttributeName: createdDate
-              AttributeType: S
+              KeyType: RANGE
           Projection:
             ProjectionType: ALL
       StreamSpecification:
@@ -101,7 +99,7 @@ Resources:
   GetOrdersLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "/aws/lambda/${GetOrdersFunction.Arn}"
+      LogGroupName: !Sub "/aws/lambda/${GetOrdersFunction}"
       RetentionInDays: !Ref RetentionInDays
 
   # GetOrderFunction:
@@ -126,7 +124,7 @@ Resources:
   # GetOrderLogGroup:
   #   Type: AWS::Logs::LogGroup
   #   Properties:
-  #     LogGroupName: !Sub "/aws/lambda/${GetOrderFunction.Arn}"
+  #     LogGroupName: !Sub "/aws/lambda/${GetOrderFunction}"
   #     RetentionInDays: !Ref RetentionInDays
 
   # PostOrderFunction:
@@ -145,7 +143,7 @@ Resources:
   # PostOrderLogGroup:
   #   Type: AWS::Logs::LogGroup
   #   Properties:
-  #     LogGroupName: !Sub "/aws/lambda/${PostOrderFunction.Arn}"
+  #     LogGroupName: !Sub "/aws/lambda/${PostOrderFunction}"
   #     RetentionInDays: !Ref RetentionInDays
 
   ###############

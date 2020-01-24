@@ -56,7 +56,7 @@ def message(msg: Union[dict, str], status_code: int = 200) -> dict:
 
 
 @tracer.capture_method
-def get_orders(user_id: str, next_token: Optional[str]) -> Set[List[dict], Optional[str]]:
+def get_orders(user_id: str, next_token: Optional[str]) -> Set[Union[List[dict], Optional[str]]]:
     """
     Returns orders from DynamoDB
     """
@@ -84,7 +84,7 @@ def get_orders(user_id: str, next_token: Optional[str]) -> Set[List[dict], Optio
     })
 
     # Send request to DynamoDB
-    response = dynamodb.query(**kwargs) # pylint: disable=no-member
+    response = table.query(**kwargs) # pylint: disable=no-member
     orders = response.get("Items", [])
 
     # Log retrieved informations
@@ -104,10 +104,7 @@ def get_orders(user_id: str, next_token: Optional[str]) -> Set[List[dict], Optio
     # From: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dynamodb.html#DynamoDB.Table.query
     # If LastEvaluatedKey is empty, then the "last page" of results has been
     # processed and there is no more data to be retrieved.
-    if not response.get("LastEvaluatedKey", None):
-        return (orders, None)
-    else:
-        return (orders, response["LastEvaluatedKey"]["createdDate"])
+    return (orders, response.get("LastEvaluatedKey", {}).get("createdDate", None))
 
 
 @logger_inject_lambda_context
@@ -129,7 +126,7 @@ def handler(event, _):
 
     # Gather the next token, if any
     next_token = event["queryStringParameters"].get("nextToken", None)
-    
+
     # Retrieve orders from DynamoDB
     orders, new_next_token = get_orders(user_id, next_token)
 

@@ -193,6 +193,11 @@ Product:
       type: integer
       description: Price for the product.
       minimum: 0
+    quantity:
+      type: integer
+      description: Number of products
+      minimum: 1
+      default: 1
 
 Products:
   type: object

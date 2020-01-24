@@ -248,7 +248,8 @@ class ToolBox:
         if os.path.isfile(template_file):
             template_lint_cmd = [
                 "cfn-lint", template_file,
-                "--append-rules", os.path.join(self.shared_dir, "lint", "rules")
+                "--append-rules", os.path.join(self.shared_dir, "lint", "rules"),
+                "--ignore-checks", "W2001"
             ]
             # Skip checking parameters if the environment doesn't exist
             if not self.env:

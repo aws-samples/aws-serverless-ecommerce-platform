@@ -5,6 +5,7 @@ info:
   description: Orders service API definition
   license:
     name: MIT-0
+    url: https://github.com/aws/mit-0
 
 paths:
   /:
