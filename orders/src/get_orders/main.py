@@ -114,18 +114,25 @@ def handler(event, _):
     Lambda function handler for GetOrders
     """
 
+    logger.debug({"message": "Event received", "event": event})
+
     # Retrieve the userId
     try:
         user_id = event["requestContext"]["authorizer"]["claims"]["sub"]
-        logger.debug({"message": "Received get orders for user", "userId": user_id})
+        logger.info({"message": "Received get orders for user", "userId": user_id})
         tracer.put_annotation("userId", user_id)
     # API Gateway should ensure that the claims are present, but checking here
     # protects against configuration errors.
     except KeyError:
+        logger.warning({"message": "User ID not found in event"})
         return message("Forbidden", 403)
 
     # Gather the next token, if any
-    next_token = event["queryStringParameters"].get("nextToken", None)
+    # event["queryStringParameters"] == None if there is no query string
+    try:
+        next_token = event["queryStringParameters"]["nextToken"]
+    except TypeError:
+        next_token = None
 
     # Retrieve orders from DynamoDB
     orders, new_next_token = get_orders(user_id, next_token)

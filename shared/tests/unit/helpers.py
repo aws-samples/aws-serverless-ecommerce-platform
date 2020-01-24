@@ -16,9 +16,10 @@ def compare_dict(a: dict, b: dict):
             continue
 
         if isinstance(value, dict):
-            compare_event(value, b[key])
+            compare_dict(value, b[key])
         else:
             assert value == b[key]
+
 
 def compare_event(a: dict, b: dict):
     """
