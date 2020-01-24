@@ -125,6 +125,7 @@ Resources:
           Name: "AWS::Include"
           Parameters:
             Location: "resources/openapi.yaml"
+      EndpointConfiguration: REGIONAL
       StageName: Prod
       TracingEnabled: true
 
