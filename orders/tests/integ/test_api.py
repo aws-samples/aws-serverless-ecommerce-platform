@@ -6,6 +6,8 @@ import uuid
 import boto3
 import pytest
 import requests
+from urllib.parse import urlparse
+from aws_requests_auth.boto_utils import BotoAWSRequestsAuth
 from helpers import compare_dict # pylint: disable=no-name-in-module
 
 
@@ -177,6 +179,20 @@ def order(user_id, scope="module"):
     )
 
 
+@pytest.fixture
+def iam_auth():
+    """
+    Helper function to return auth for IAM
+    """
+
+    url = urlparse(ENDPOINT_URL)
+    region = boto3.session.Session().region_name
+
+    return BotoAWSRequestsAuth(aws_host=url.netloc,
+                               aws_region=region,
+                               aws_service='execute-api')
+
+
 def test_get_root(jwt_token, order):
     """
     Test GET /
@@ -190,6 +206,18 @@ def test_get_root(jwt_token, order):
     compare_dict(order, body["orders"][0])
 
 
+def test_get_root_no_auth(order):
+    """
+    Test GET / without auth
+    """
+
+    res = requests.get(ENDPOINT_URL+"/")
+    assert res.status_code == 401
+    body = res.json()
+    assert "message" in body
+    assert isinstance(body["message"], str)
+
+
 def test_get_order(jwt_token, order):
     """
     Test GET /{orderId}
@@ -199,3 +227,62 @@ def test_get_order(jwt_token, order):
     assert res.status_code == 200
     body = res.json()
     compare_dict(order, body)
+
+
+def test_get_order_no_auth(order):
+    """
+    Test GET /{orderId} without auth token
+    """
+
+    res = requests.get(ENDPOINT_URL+"/"+order["orderId"])
+    assert res.status_code == 401
+    body = res.json()
+    assert "message" in body
+    assert isinstance(body["message"], str)
+
+
+def test_get_order_wrong_id(jwt_token, order):
+    """
+    Test GET /{orderId} with a non-existent orderId
+    """
+
+    res = requests.get(ENDPOINT_URL+"/"+order["orderId"]+"a", headers={"Authorization": jwt_token})
+    assert res.status_code == 404
+    body = res.json()
+    assert "message" in body
+    assert isinstance(body["message"], str)
+
+
+def test_get_backend_order(iam_auth, order):
+    """
+    Test GET /backend/{orderId}
+    """
+
+    res = requests.get(ENDPOINT_URL+"/backend/"+order["orderId"], auth=iam_auth)
+    assert res.status_code == 200
+    body = res.json()
+    compare_dict(order, body)
+
+
+def test_get_backend_order_no_auth(iam_auth, order):
+    """
+    Test GET /backend/{orderId} without auth
+    """
+
+    res = requests.get(ENDPOINT_URL+"/backend/"+order["orderId"])
+    assert res.status_code == 403
+    body = res.json()
+    assert "message" in body
+    assert isinstance(body["message"], str)
+
+
+def test_get_backend_order_wrong_id(iam_auth, order):
+    """
+    Test GET /backend/{orderId} with a non-existent orderId
+    """
+
+    res = requests.get(ENDPOINT_URL+"/backend/"+order["orderId"]+"a", auth=iam_auth)
+    assert res.status_code == 404
+    body = res.json()
+    assert "message" in body
+    assert isinstance(body["message"], str)

@@ -81,7 +81,7 @@ def get_order(order_id: str) -> Optional[dict]:
 @tracer.capture_lambda_handler
 def handler(event, _):
     """
-    Lambda function handler for GetOrders
+    Lambda function handler for GetOrder
     """
 
     logger.debug({"message": "Event received", "event": event})
@@ -89,18 +89,28 @@ def handler(event, _):
     # Retrieve the userId
     try:
         user_id = event["requestContext"]["authorizer"]["claims"]["sub"]
-        logger.info({"message": "Received get orders for user", "userId": user_id})
+        iam_user = False
+        logger.info({"message": "Received get order from user", "userId": user_id})
         tracer.put_annotation("userId", user_id)
+        tracer.put_annotation("iamUser", False)
     # API Gateway should ensure that the claims are present, but checking here
     # protects against configuration errors.
     except KeyError:
-        logger.warning({"message": "User ID not found in event"})
-        return message("Forbidden", 403)
+        # Check if there is an IAM user ARN
+        try:
+            user_id = event["requestContext"]["identity"]["userArn"]
+            iam_user = True
+            logger.info({"message": "Received get order from IAM user", "userArn": user_id})
+            tracer.put_annotation("userArn", user_id)
+            tracer.put_annotation("iamUser", True)
+        except KeyError:
+            logger.warning({"message": "User ID not found in event"})
+            return message("Unauthorized", 401)
 
     # Retrieve the orderId
     try:
         order_id = event["pathParameters"]["orderId"]
-    except KeyError:
+    except (KeyError,TypeError):
         logger.warning({"message": "Order ID not found in event"})
         return message("Missing orderId", 400)
 
@@ -110,7 +120,7 @@ def handler(event, _):
     # Check that the order can be sent to the user
     # This includes both when the item is not found and when the user IDs do
     # not match.
-    if order is None or user_id != order["userId"]:
+    if order is None or (iam_user == False and user_id != order["userId"]):
         return message("Order not found", 404)
 
     # Send the response

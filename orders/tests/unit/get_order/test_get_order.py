@@ -210,6 +210,50 @@ def test_handler(lambda_module, user_id, apigateway_event, order, context):
     compare_dict(order, body)
 
 
+def test_handler_iam(lambda_module, apigateway_event, order, context):
+    """
+    Test handler() with IAM credentials
+    """
+
+    apigateway_event = copy.deepcopy(apigateway_event)
+    del apigateway_event["requestContext"]["authorizer"]
+    apigateway_event["requestContext"]["identity"] = {
+        "accountId": "123456789012",
+        "caller": "CALLER",
+        "sourceIp": "127.0.0.1",
+        "accessKey": "ACCESS_KEY",
+        "userArn": "arn:aws:iam::123456789012:user/alice",
+        "userAgent": "PostmanRuntime/7.1.1",
+        "user": "CALLER"
+    }
+
+    # Stub boto3
+    table = stub.Stubber(lambda_module.table.meta.client)
+    response = {
+        "Item": {k: TypeSerializer().serialize(v) for k, v in order.items()},
+        # We do not use ConsumedCapacity
+        "ConsumedCapacity": {}
+    }
+    expected_params = {
+        "TableName": lambda_module.TABLE_NAME,
+        "Key": {"orderId": order["orderId"]}
+    }
+    table.add_response("get_item", response, expected_params)
+    table.activate()
+
+    # Send request
+    response = lambda_module.handler(apigateway_event, context)
+
+    # Remove stub
+    table.assert_no_pending_responses()
+    table.deactivate()
+
+    assert response["statusCode"] == 200
+    assert "body" in response
+    body = json.loads(response["body"])
+    compare_dict(order, body)
+
+
 def test_handler_not_found(lambda_module, user_id, apigateway_event, order, context):
     """
     Test handler() with an unknown order ID
@@ -289,7 +333,25 @@ def test_handler_forbidden(lambda_module, apigateway_event, context):
     # Send request
     response = lambda_module.handler(apigateway_event, context)
 
-    assert response["statusCode"] == 403
+    assert response["statusCode"] == 401
+    assert "body" in response
+    body = json.loads(response["body"])
+    assert "message" in body
+    assert isinstance(body["message"], str)
+
+
+def test_handler_missing_order(lambda_module, apigateway_event, context):
+    """
+    Test handler() without orderId
+    """
+
+    apigateway_event = copy.deepcopy(apigateway_event)
+    apigateway_event["pathParameters"] = None
+
+    # Send request
+    response = lambda_module.handler(apigateway_event, context)
+
+    assert response["statusCode"] == 400
     assert "body" in response
     body = json.loads(response["body"])
     assert "message" in body

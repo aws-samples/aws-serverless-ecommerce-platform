@@ -128,44 +128,44 @@ paths:
         uri:
           Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetOrderFunction.Arn}/invocations"
 
-  # /backend/{orderId}:
-  #   get:
-  #     description: |
-  #       Retrieve a single order.
+  /backend/{orderId}:
+    get:
+      description: |
+        Retrieve a single order.
 
-  #       This is a backend operation that requires IAM credentials.
-  #     operationId: backendGetOrder
-  #     parameters:
-  #       - name: orderId
-  #         in: path
-  #         description: Order ID in UUID format
-  #         required: true
-  #         schema:
-  #           type: string
-  #           format: uuid
-  #     responses:
-  #       200:
-  #         description: Order item
-  #         content:
-  #           application/json:
-  #             schema:
-  #               type: object
-  #               properties:
-  #                 order:
-  #                   $ref: "../../shared/resources/schemas.yaml#/Order"
-  #       default:
-  #         description: Something went wrong
-  #         content:
-  #           application/json:
-  #             schema:
-  #               $ref: "../../shared/resources/schemas.yaml#/Message"
-  #     x-amazon-apigateway-auth:
-  #       type: AWS_IAM
-  #     x-amazon-apigateway-integration:
-  #       httpMethod: "POST"
-  #       type: aws_proxy
-  #       uri:
-  #         Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetOrderFunction.Arn}/invocations"
+        This is a backend operation that requires IAM credentials.
+      operationId: backendGetOrder
+      parameters:
+        - name: orderId
+          in: path
+          description: Order ID in UUID format
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: Order item
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  order:
+                    $ref: "../../shared/resources/schemas.yaml#/Order"
+        default:
+          description: Something went wrong
+          content:
+            application/json:
+              schema:
+                $ref: "../../shared/resources/schemas.yaml#/Message"
+      security:
+        - AWS_IAM: []
+      x-amazon-apigateway-integration:
+        httpMethod: "POST"
+        type: aws_proxy
+        uri:
+          Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetOrderFunction.Arn}/invocations"
 
 
 components:
@@ -187,6 +187,11 @@ components:
           type: integer
           minimum: 0
   securitySchemes:
+    AWS_IAM:
+      type: apiKey
+      name: Authorization
+      in: header
+      x-amazon-apigateway-authtype: awsSigv4
     UserPool:
       type: apiKey
       name: Authorization
