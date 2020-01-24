@@ -2,7 +2,7 @@ name: orders
 dependencies:
   - platform
   - products
+  - users
 parameters:
   EventBusName: /ecommerce/{Environment}/platform/event-bus/name
-flags:
-  skip-tests: true
+  UserPoolId: /ecommerce/{Environment}/users/user-pool/id

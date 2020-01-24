@@ -5,6 +5,7 @@ info:
   description: Orders service API definition
   license:
     name: MIT-0
+    url: https://github.com/aws/mit-0
 
 paths:
   /:
@@ -12,6 +13,12 @@ paths:
       description: |
         Retrieve orders belonging to the user.
       operationId: getOrders
+      parameters:
+        - in: query
+          name: nextToken
+          description: Continuation token
+          schema:
+            type: string
       responses:
         200:
           description: Array of orders
@@ -24,6 +31,8 @@ paths:
                     type: array
                     items:
                       $ref: "../../shared/resources/schemas.yaml#/Order"
+                  nextToken:
+                    type: string
         default:
           description: Something went wrong
           content:
@@ -37,50 +46,50 @@ paths:
         type: aws_proxy
         uri:
           Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetOrdersFunction.Arn}/invocations"
-    post:
-      description: |
-        Create a new order.
+  #   post:
+  #     description: |
+  #       Create a new order.
 
-        This will try to create a new order or return a 4XX error message
-        containing the correct information.
+  #       This will try to create a new order or return a 4XX error message
+  #       containing the correct information.
 
-        This operation is a control point to transform unvalidated customer input
-        into an order that can be trusted by other services.
-      operationId: createOrder
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/OrderRequest"
-      responses:
-        200:
-          description: Newly created order
-          content:
-            application/json:
-              schema:
-                $ref: "../../shared/resources/schemas.yaml#/Order"
-        4XX:
-          description: User error
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: "../../shared/resources/schemas.yaml#/Message"
-                  - $ref: "#/components/schemas/OrderRequest"
-        default:
-          description: Something went wrong
-          content:
-            application/json:
-              schema:
-                $ref: "../../shared/resources/schemas.yaml#/Message"
-      security:
-        - UserPool: []
-      x-amazon-apigateway-integration:
-        httpMethod: "POST"
-        type: aws_proxy
-        uri:
-          Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CreateOrderFunction.Arn}/invocations"
+  #       This operation is a control point to transform unvalidated customer input
+  #       into an order that can be trusted by other services.
+  #     operationId: createOrder
+  #     requestBody:
+  #       required: true
+  #       content:
+  #         application/json:
+  #           schema:
+  #             $ref: "#/components/schemas/OrderRequest"
+  #     responses:
+  #       200:
+  #         description: Newly created order
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "../../shared/resources/schemas.yaml#/Order"
+  #       4XX:
+  #         description: User error
+  #         content:
+  #           application/json:
+  #             schema:
+  #               allOf:
+  #                 - $ref: "../../shared/resources/schemas.yaml#/Message"
+  #                 - $ref: "#/components/schemas/OrderRequest"
+  #       default:
+  #         description: Something went wrong
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "../../shared/resources/schemas.yaml#/Message"
+  #     security:
+  #       - UserPool: []
+  #     x-amazon-apigateway-integration:
+  #       httpMethod: "POST"
+  #       type: aws_proxy
+  #       uri:
+  #         Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CreateOrderFunction.Arn}/invocations"
 
   /{orderId}:
     get:
@@ -150,8 +159,8 @@ paths:
             application/json:
               schema:
                 $ref: "../../shared/resources/schemas.yaml#/Message"
-      x-amazon-apigateway-auth:
-        type: AWS_IAM
+      security:
+        - AWS_IAM: []
       x-amazon-apigateway-integration:
         httpMethod: "POST"
         type: aws_proxy
@@ -178,6 +187,11 @@ components:
           type: integer
           minimum: 0
   securitySchemes:
+    AWS_IAM:
+      type: apiKey
+      name: Authorization
+      in: header
+      x-amazon-apigateway-authtype: awsSigv4
     UserPool:
       type: apiKey
       name: Authorization

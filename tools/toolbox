@@ -248,7 +248,8 @@ class ToolBox:
         if os.path.isfile(template_file):
             template_lint_cmd = [
                 "cfn-lint", template_file,
-                "--append-rules", os.path.join(self.shared_dir, "lint", "rules")
+                "--append-rules", os.path.join(self.shared_dir, "lint", "rules"),
+                "--ignore-checks", "W2001"
             ]
             # Skip checking parameters if the environment doesn't exist
             if not self.env:
@@ -551,6 +552,9 @@ class ToolBox:
                     "--target", path])
 
 if __name__ == "__main__":
+    # Prevent writing __pycache__ folders
+    os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
+
     args = get_args()
 
     toolbox = ToolBox(args.service, vars(args))

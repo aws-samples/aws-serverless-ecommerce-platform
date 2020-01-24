@@ -10,82 +10,140 @@ Parameters:
   LogLevel:
     Type: String
     Default: INFO
-  # RetentionInDays:
-  #   Type: Number
-  #   Default: 30
-  #   Description: CloudWatch Logs retention period for Lambda functions
+  RetentionInDays:
+    Type: Number
+    Default: 30
+    Description: CloudWatch Logs retention period for Lambda functions
   EventBusName:
     Type: AWS::SSM::Parameter::Value<String>
     Description: EventBridge Event Bus Name
     Default: /ecommerce/dev/platform/event-bus/name
+  UserPoolArn:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Cognito User Pool ARN
+    Default: /ecommerce/dev/users/user-pool/arn
 
 
 Globals:
   Function:
     Runtime: python3.8
+    Handler: main.handler
     Timeout: 30
     Tracing: Active
     Environment:
       Variables:
         ENVIRONMENT: !Ref Environment
         EVENT_BUS_NAME: !Ref EventBusName
+        TABLE_NAME: !Ref Table
         POWERTOOLS_SERVICE_NAME: orders
         POWERTOOLS_TRACE_DISABLED: "false"
         LOG_LEVEL: !Ref LogLevel
 
 Resources:
+  #########
+  # TABLE #
+  #########
+  Table:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: orderId
+          AttributeType: S
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: createdDate
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: orderId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: user
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+            - AttributeName: createdDate
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+
+  TableParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /ecommerce/${Environment}/orders/table/name
+      Type: String
+      Value: !Ref Table
+
   #############
   # FUNCTIONS #
   #############
 
-  # GetOrdersFunction:
-  #   Type: AWS::Serverless::Function
-  #   Properties:
-  #     Handler: #TODO
-  #     CodeUri: #TODO
-  #     Events:
-  #       UserApi:
-  #         Type: Api
-  #         Properties:
-  #           Path: /
-  #           Method: GET
-  #           RestApiId: !Ref Api
+  GetOrdersFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/get_orders/
+      Environment:
+        Variables:
+          USER_INDEX_NAME: user
+          ORDERS_LIMIT: "20"
+      Events:
+        UserApi:
+          Type: Api
+          Properties:
+            Path: /
+            Method: GET
+            RestApiId: !Ref Api
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action: dynamodb:Query
+              Resource:
+                - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Table}/index/user"
 
-  # GetOrdersLogGroup:
-  #   Type: AWS::Logs::LogGroup
-  #   Properties:
-  #     LogGroupName: !Sub "/aws/lambda/${GetOrdersFunction.Arn}"
-  #     RetentionInDays: !Ref RetentionInDays
+  GetOrdersLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${GetOrdersFunction}"
+      RetentionInDays: !Ref RetentionInDays
 
-  # GetOrderFunction:
-  #   Type: AWS::Serverless::Function
-  #   Properties:
-  #     Handler: #TODO
-  #     CodeUri: #TODO
-  #     Events:
-  #       UserApi:
-  #         Type: Api
-  #         Properties:
-  #           Path: /{orderId}
-  #           Method: GET
-  #           RestApiId: !Ref Api
-  #       BackendApi:
-  #         Type: Api
-  #         Properties:
-  #           Path: /backend/{orderId}
-  #           Method: GET
-  #           RestApiId: !Ref Api
+  GetOrderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/get_order/
+      Events:
+        UserApi:
+          Type: Api
+          Properties:
+            Path: /{orderId}
+            Method: GET
+            RestApiId: !Ref Api
+        BackendApi:
+          Type: Api
+          Properties:
+            Path: /backend/{orderId}
+            Method: GET
+            RestApiId: !Ref Api
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action: dynamodb:GetItem
+              Resource:
+                - !GetAtt Table.Arn
+      
 
-  # GetOrderLogGroup:
-  #   Type: AWS::Logs::LogGroup
-  #   Properties:
-  #     LogGroupName: !Sub "/aws/lambda/${GetOrderFunction.Arn}"
-  #     RetentionInDays: !Ref RetentionInDays
+  GetOrderLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${GetOrderFunction}"
+      RetentionInDays: !Ref RetentionInDays
 
   # PostOrderFunction:
   #   Type: AWS::Serverless::Function
   #   Properties:
-  #     Handler: #TODO
   #     CodeUri: #TODO
   #     Events:
   #       UserApi:
@@ -98,7 +156,7 @@ Resources:
   # PostOrderLogGroup:
   #   Type: AWS::Logs::LogGroup
   #   Properties:
-  #     LogGroupName: !Sub "/aws/lambda/${PostOrderFunction.Arn}"
+  #     LogGroupName: !Sub "/aws/lambda/${PostOrderFunction}"
   #     RetentionInDays: !Ref RetentionInDays
 
   ###############
@@ -113,7 +171,8 @@ Resources:
           Name: "AWS::Include"
           Parameters:
             Location: "resources/openapi.yaml"
-      StageName: Prod
+      EndpointConfiguration: REGIONAL
+      StageName: prod
       TracingEnabled: true
 
   ApiUrlParameter:
@@ -121,4 +180,4 @@ Resources:
     Properties:
       Name: !Sub /ecommerce/${Environment}/orders/api/url
       Type: String
-      Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+      Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com/prod"

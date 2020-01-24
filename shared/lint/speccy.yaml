@@ -5,3 +5,4 @@ lint:
     - info-contact
     - operation-tags
     - openapi-tags
+    - path-keys-no-trailing-slash
