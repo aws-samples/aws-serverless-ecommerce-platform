@@ -50,7 +50,7 @@ properties:
   parameters:
     type: object
     additionalProperties:
-      type: [string, integer]
+      type: string
 
   flags:
     type: object
