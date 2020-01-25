@@ -10,7 +10,7 @@ additionalProperties:
       description: |
         CloudFormation Parameters and their values for a specific environment.
       additionalProperties:
-        type: [string, integer]
+        type: string
     tags:
       type: object
       description: |

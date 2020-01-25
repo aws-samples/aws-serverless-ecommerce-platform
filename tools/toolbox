@@ -426,7 +426,7 @@ class ToolBox:
         if not os.path.isdir(tests_dir):
             raise ValueError("'{}' does not exist".format(tests_dir))
 
-        if not self.environment.get("flags", {}).get("can-test"):
+        if not self.environment.get("flags", {}).get("can-test", True):
             raise ValueError("Cannot run tests in {environment}".format(**self.environment))
 
         # Inject shared modules for unit tests in the PYTHONPATH

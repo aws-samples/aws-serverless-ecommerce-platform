@@ -1,22 +1,22 @@
 dev:
   parameters:
     LogLevel: DEBUG
-    RetentionInDays: 7
+    RetentionInDays: "7"
 
 tests:
   parameters:
     LogLevel: DEBUG
-    RetentionInDays: 30
+    RetentionInDays: "30"
 
 staging:
   parameters:
     LogLevel: DEBUG
-    RetentionInDays: 30
+    RetentionInDays: "30"
 
 prod:
   parameters:
     LogLevel: INFO
-    RetentionInDays: 30
+    RetentionInDays: "30"
   flags:
-    can-integ: false
+    can-test: false
     is-prod: true
