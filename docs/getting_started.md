@@ -19,3 +19,7 @@ Deploying the infrastructure with a CI/CD pipeline on AWS will create a new repo
 Once this is done, you can run `make bootstrap` which will deploy a platform stack in the various environments, the CI/CD pipeline and seed the CodeCommit repository with the latest commit from this repository. This will trigger the pipeline, which will build the other services.
 
 When you want to push modifications to AWS, you can run `git push aws HEAD:master`, which will push the latest commit from the current branch to the master branch in the CodeCommit repository.
+
+## Creating or modifying a service
+
+To read how you can create a new service or modify an existing one, please read the [service structure documentation](service.md).
