@@ -11,6 +11,12 @@ additionalProperties:
         CloudFormation Parameters and their values for a specific environment.
       additionalProperties:
         type: [string, integer]
+    tags:
+      type: object
+      description: |
+        Tags for CloudFormation Template Configuration file
+      additionalProperties:
+        type: string
     flags:
       type: object
       properties:

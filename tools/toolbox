@@ -3,12 +3,15 @@
 
 import argparse
 import copy
+import json
 import os
 import shutil
 import subprocess
 import sys
 import traceback
 from typing import List
+import jsonschema
+import yaml
 
 
 def get_args() -> argparse.Namespace:
@@ -36,7 +39,7 @@ class ToolBox:
         self.quiet = kwargs.get("quiet", False)
 
         self.metadata = self._get_metadata()
-        self.environment = self._get_environment(kwargs.get("environment", "dev"), self.metadata)
+        self.environment = self._get_environment(kwargs.get("environment", "dev"))
 
     @property
     def is_interactive(self):
@@ -45,6 +48,10 @@ class ToolBox:
     @property
     def build_dir(self):
         return os.path.join(self.service, "build")
+
+    @property
+    def artifacts_build_dir(self):
+        return os.path.join(self.service, "build", "artifacts")
 
     @property
     def resources_dir(self):
@@ -104,14 +111,27 @@ class ToolBox:
 
         This is a convenience command that runs the following commands:
 
-        - metadata
+        - display
         - lint
         - clean
         - build
         - tests-unit
         """
 
-        self.run(["metadata", "lint", "clean", "build", "tests-unit"])
+        self.run(["display", "lint", "clean", "build", "tests-unit"])
+
+    def cmd_display(self):
+        """
+        'display' command
+
+        This is a convenience command that runs the following commands:
+
+        - display-metadata
+        - display-parameters
+        - display-tags
+        """
+
+        self.run(["display-metadata", "display-parameters", "display-tags"])
 
     def cmd_all(self):
         """
@@ -119,7 +139,7 @@ class ToolBox:
 
         This is a convenience command that runs the following commands:
 
-        - metadata
+        - display
         - lint
         - clean
         - build
@@ -130,7 +150,7 @@ class ToolBox:
         """
 
         self.run([
-            "metadata", "lint", "clean", "build", "tests-unit",
+            "display", "lint", "clean", "build", "tests-unit",
             "package", "deploy", "tests-integ"
         ])
 
@@ -168,6 +188,9 @@ class ToolBox:
 
         # Install Python3 packages
         self._install_packages()
+
+        # Create artifacts
+        self._build_artifacts()
 
     def cmd_clean(self):
         """
@@ -210,24 +233,17 @@ class ToolBox:
         if self.environment.get("flags", {}).get("is-prod", False):
             self.warning("Prod deployment for {}".format(self.service))
 
-        # Load parameter overrides
-        base_params = {
-            "Environment": self.environment["environment"]
-        }
-        # Load from environments.yaml
-        for key, value in self.environment.get("parameters", {}).items():
-            base_params[key] = value.format(**base_params)
-
-        # Load from metadata.yaml
-        parameters = copy.deepcopy(base_params)
-        for key, value in self.metadata.get("parameters", {}).items():
-            parameters[key] = value.format(**base_params)
+        parameters = self._get_parameters(self.environment)
+        tags = self._get_tags(self.environment)
 
         # Deploy stack
         self.run_process(["aws", "cloudformation", "deploy",
             "--stack-name", stack_name,
             "--capabilities", "CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND",
+            # Parameters
             "--parameter-overrides"] + ["{}={}".format(k, v) for k, v in parameters.items()] +
+            # Tags
+            ["--tags"] + ["{}={}".format(k ,v) for k, v in tags.items()] +
             ["--template-file", template_file])
 
     def cmd_lint(self):
@@ -288,35 +304,6 @@ class ToolBox:
                 "lint", openapi_file
             ])
 
-    def cmd_metadata(self):
-        """
-        'metadata' command
-
-        Display metadata about the service
-        """
-
-        self.info("Gathering {} metadata".format(self.service))
-
-        print("{}: {}".format(self.text_blue("Service name"), self.metadata["name"]))
-        if self.metadata.get("permissions", []):
-            print("{}:".format(self.text_blue("Permissions")))
-            for permission in self.metadata["permissions"]:
-                print(" - {}: {}".format(self.text_blue("Service"), permission["service"]))
-                for key, value in permission.get("api", {}).items():
-                    print("   {}: {}".format(self.text_blue(key), ",".join(value)))
-                if permission.get("events", []):
-                    print("   {}: {}".format(self.text_blue("events"), ",".join(permission["events"])))
-
-        if self.metadata.get("dependencies", []):
-            print("{}:".format(self.text_blue("Dependencies")))
-            for dependency in self.metadata["dependencies"]:
-                print(" - {}".format(dependency))
-
-        if self.metadata.get("parameters", {}):
-            print("{}:".format(self.text_blue("Parameters")))
-            for key, value in self.metadata["parameters"].items():
-                print(" - {}: {}".format(self.text_blue(key), value))
-
     def cmd_package(self):
         """
         'package' command
@@ -333,7 +320,7 @@ class ToolBox:
         os.chdir(self.build_dir)
         process = self.run_process(["aws", "cloudformation", "package",
             "--s3-bucket", s3_bucket,
-            "--s3-prefix", "artifacts/",
+            "--s3-prefix", "artifacts",
             "--template-file", "template.yaml",
             "--output-template-file", "template.out"], check=False)
 
@@ -391,6 +378,36 @@ class ToolBox:
                 os.environ[key] = orig_environ[key]
             else:
                 del os.environ[key]
+
+    def cmd_display_metadata(self):
+        """
+        'display-metadata' command
+
+        Display metadata about the service
+        """
+
+        self.info("Displaying {} metadata".format(self.service))
+        print(yaml.dump(self.metadata), end="")
+
+    def cmd_display_parameters(self):
+        """
+        'display-parameters' command
+
+        Display parameters for the given environment
+        """
+
+        self.info("Displaying {} parameters".format(self.service))
+        print(yaml.dump(self._get_parameters(self.environment)), end="")
+
+    def cmd_display_tags(self):
+        """
+        'display-tags' command
+
+        Display tags for the given environment
+        """
+
+        self.info("Displaying {} tags".format(self.service))
+        print(yaml.dump(self._get_tags(self.environment)), end="")
 
     def cmd_tests_integ(self):
         """
@@ -496,6 +513,28 @@ class ToolBox:
                 raise exc
         return process
 
+    def _build_artifacts(self):
+        """
+        Build all artifacts for the service for integration with CodePipeline
+
+        See https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/continuous-delivery-codepipeline-cfn-artifacts.html
+        """
+
+        # Create the 'artifacts' folder
+        try:
+            os.mkdir(self.artifacts_build_dir)
+        except FileExistsError:
+            pass
+
+        for environment in self._get_all_environments().values():
+            config = {
+                "Parameters": self._get_parameters(environment),
+                "Tags": self._get_tags(environment)
+            }
+            artifact_file = os.path.join(self.artifacts_build_dir, "config.{environment}.json".format(**environment))
+            with open(artifact_file, "w") as fp:
+                json.dump(config, fp, indent=2)
+
     def _copy_openapi(self):
         """
         Parse OpenAPI specs and returns a merged document
@@ -510,14 +549,12 @@ class ToolBox:
 
         self.run_process(["speccy", "resolve", openapi_file, "-o", openapi_out_file])
 
-    def _get_environment(self, environment="dev", metadata={}):
+    def _get_all_environments(self):
         """
-        Retrieve the environment
+        Retrieve all environments
         """
 
-        import jsonschema
-        import yaml
-
+        # Load and validate environments.yaml
         schema_file = os.path.join(self.shared_dir, "environments", "schema.yaml")
         environments_file = "environments.yaml"
 
@@ -533,25 +570,55 @@ class ToolBox:
         jsonschema.validate(environments, schema)
 
         # For services that don't support environments, default to prod
-        if not metadata.get("flags", {}).get("environment", True):
-            retval = environments.get("prod", {})
-            retval["environment"] = ""
-            return retval
+        if not self.metadata.get("flags", {}).get("environment", True):
+            environment = environments.get("prod", {})
+            environment["environment"] = ""
+            return {"": environment}
 
-        if environment not in environments:
+        # Inject the 'environment' key
+        for key, environment in environments.items():
+            environment["environment"] = key
+
+        # Return all environments
+        return environments
+
+    def _get_environment(self, environment_name):
+        """
+        Retrieve the environment
+        """
+
+        # Load and validate environments.yaml
+        schema_file = os.path.join(self.shared_dir, "environments", "schema.yaml")
+        environments_file = "environments.yaml"
+
+        if not os.path.isfile(environments_file):
+            raise ValueError("Missing environments file '{}'".format(environments_file))
+
+        with open(schema_file) as fp:
+            schema = yaml.load(fp, Loader=yaml.SafeLoader)
+
+        with open(environments_file) as fp:
+            environments = yaml.load(fp, Loader=yaml.SafeLoader)
+
+        jsonschema.validate(environments, schema)
+
+        # For services that don't support environments, default to prod
+        if not self.metadata.get("flags", {}).get("environment", True):
+            environment = environments.get("prod", {})
+            environment["environment"] = ""
+            return environment
+
+        if environment_name not in environments:
             raise ValueError("Missing environment '{}'".format(environment))
 
-        retval = environments[environment]
-        retval["environment"] = environment
-        return retval
+        environment = environments[environment_name]
+        environment["environment"] = environment_name
+        return environment
 
     def _get_metadata(self):
         """
         Load metadata for the service
         """
-
-        import jsonschema
-        import yaml
 
         schema_file = os.path.join(self.shared_dir, "metadata", "schema.yaml")
         metadata_file = os.path.join(self.service, "metadata.yaml")
@@ -568,6 +635,59 @@ class ToolBox:
         jsonschema.validate(metadata, schema)
 
         return metadata
+
+    def _get_parameters(self, environment):
+        """
+        Returns CloudFormation parameters based on the environment and metadata
+        """
+    
+        # Set Environment
+        base_params = {
+            "Environment": environment["environment"]
+        }
+        # Load from environments.yaml
+        for key, value in environment.get("parameters", {}).items():
+            if isinstance(value, str):
+                base_params[key] = value.format(**base_params)
+            else:
+                base_params[key] = value
+
+        # Load from metadata.yaml
+        parameters = copy.deepcopy(base_params)
+        for key, value in self.metadata.get("parameters", {}).items():
+            if isinstance(value, str):
+                parameters[key] = value.format(**base_params)
+            else:
+                parameters[key] = value
+
+        return parameters
+
+    def _get_tags(self, environment):
+        """
+        Returns tags for the Template Configuration file based on the environment
+        """
+
+        # Set Environment
+        base_tags = {
+            "Environment": environment["environment"]
+        }
+        # Load from environments.yaml
+        for key, value in environment.get("tags", {}).items():
+            if isinstance(value, str):
+                base_tags[key] = value.format(**base_tags)
+            else:
+                base_tags[key] = value
+
+        # Load from metadata.yaml
+        tags = copy.deepcopy(base_tags)
+        for key, value in self.metadata.get("tags", {}).items():
+            if isinstance(value, str):
+                tags[key] = value.format(**base_tags)
+            else:
+                tags[key] = value
+
+        return tags
+
 
     def _install_packages(self):
         """

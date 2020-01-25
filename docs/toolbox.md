@@ -27,11 +27,15 @@ The following commands are supported: `ci`, `all`, `build`, `clean`, `deploy`, `
 
 ### `ci` command
 
-The __ci__ command runs `metadata`, `lint`, `clean`, `build` and `tests-unit`.
+The __ci__ command runs `display`, `lint`, `clean`, `build` and `tests-unit`.
+
+### `display` command
+
+The __display__ command runs `display-metadata`, `display-parameters` and `display-tags`.
 
 ### `all` command
 
-The __all__ command runs `metadata`, `lint`, `clean`, `build`, `tests-unit`, `package`, `deploy`, `tests-integ`.
+The __all__ command runs `display`, `lint`, `clean`, `build`, `tests-unit`, `package`, `deploy`, `tests-integ`.
 
 ### `build` command
 
@@ -51,15 +55,23 @@ It will take a CloudFormation template at `build/template.out` in the service's 
 
 _Please note that you need to run the __package__ command beforehand._
 
+### `display-metadata` command
+
+The __display-metadata__ command displays metadata information about the service.
+
+### `display-parameters` command
+
+The __display-parameters__ command displays the parameters that will be used to deploy the service using CloudFormation.
+
+### `display-tags` command
+
+The __display-tags__ command displays the tags that will be used to deploy the service using CloudFormation.
+
 ### `lint` command
 
 The __lint__ command runs lint checks against the resources in the service.
 
 Currently, it supports CloudFormation template at `template.yaml` and Lambda source code in the `src` folder.
-
-### `metadata` command
-
-The __metadata__ command displays metadata information about the service.
 
 ### `package` command
 

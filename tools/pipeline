@@ -94,6 +94,9 @@ def upload_template(service: str):
     if not os.path.isfile(template_file):
         raise ValueError("File '{}' does not exist".format(template_file))
 
+    artifacts_dir = os.path.join(service, "build", "artifacts")
+    artifact_files = os.listdir(artifacts_dir)
+
     # Create zip archive
     tmpdir = tempfile.mkdtemp()
     try:
@@ -101,6 +104,11 @@ def upload_template(service: str):
 
         with zipfile.ZipFile(archive, mode="w") as zip:
             zip.write(template_file, arcname="template.yaml")
+            for artifact_file in artifact_files:
+                zip.write(
+                    os.path.join(artifacts_dir, artifact_file),
+                    arcname=artifact_file
+                )
 
         s3 = boto3.resource("s3")
         bucket = s3.Bucket(os.environ.get("S3_BUCKET", "{}-src".format(os.environ.get("USER", ""))))
