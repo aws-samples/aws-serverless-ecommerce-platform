@@ -165,6 +165,7 @@ Resources:
                     "EventBusName": "/ecommerce/tests/platform/event-bus/name"
                   }
                 RoleArn: !GetAtt PipelineTestsDeployRole.Arn
+                TemplateConfiguration: "TemplateArtifact::config.tests.json"
                 TemplatePath: "TemplateArtifact::template.yaml"
               InputArtifacts:
                 - Name: TemplateArtifact
@@ -218,6 +219,7 @@ Resources:
         #             "EventBusName": "/ecommerce/staging/platform/event-bus/name"
         #           }
         #         RoleArn: !GetAtt PipelineStagingDeployRole.Arn
+        #         TemplateConfiguration: "TemplateArtifact::config.staging.json"
         #         TemplatePath: "TemplateArtifact::template.yaml"
         #       InputArtifacts:
         #         - Name: TemplateArtifact
@@ -261,6 +263,7 @@ Resources:
         #             "EventBusName": "/ecommerce/prod/platform/event-bus/name"
         #           }
         #         RoleArn: !GetAtt PipelineProdDeployRole.Arn
+        #         TemplateConfiguration: "TemplateArtifact::config.prod.json"
         #         TemplatePath: "TemplateArtifact::template.yaml"
         #       InputArtifacts:
         #         - Name: TemplateArtifact
