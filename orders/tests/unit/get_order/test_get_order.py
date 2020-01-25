@@ -102,52 +102,6 @@ def order(user_id):
     }
 
 
-def test_encoder(lambda_module):
-    """
-    Test the JSON encoder
-    """
-
-    encoder = lambda_module.Encoder()
-
-    assert isinstance(encoder.default(decimal.Decimal(10.5)), float)
-    assert isinstance(encoder.default(decimal.Decimal(10)), int)
-    assert isinstance(encoder.default(datetime.datetime.now()), str)
-
-
-def test_message_string(lambda_module):
-    """
-    Test message() with a string as input
-    """
-
-    msg = "This is a test"
-    retval = lambda_module.message(msg)
-
-    assert retval["body"] == json.dumps({"message": msg})
-    assert retval["statusCode"] == 200
-
-
-def test_message_dict(lambda_module):
-    """
-    Test message() with a dict as input
-    """
-
-    obj = {"key": "value"}
-    retval = lambda_module.message(obj)
-
-    assert retval["body"] == json.dumps(obj)
-    assert retval["statusCode"] == 200
-
-
-def test_message_status(lambda_module):
-    """
-    Test message() with a different status code
-    """
-
-    status_code = 400
-    retval = lambda_module.message("Message", status_code)
-    assert retval["statusCode"] == status_code
-
-
 def test_get_order(lambda_module, order):
     """
     Test get_order()

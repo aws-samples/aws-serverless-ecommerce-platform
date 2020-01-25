@@ -3,14 +3,12 @@ GetOrdersFunction
 """
 
 
-import datetime
-import decimal
-import json
 import os
-from typing import Optional, Union
+from typing import Optional
 from aws_lambda_powertools.tracing import Tracer
 from aws_lambda_powertools.logging import logger_setup, logger_inject_lambda_context
 import boto3
+from ecom.helpers import message # pylint: disable=import-error
 
 
 ENVIRONMENT = os.environ["ENVIRONMENT"]
@@ -21,35 +19,6 @@ dynamodb = boto3.resource("dynamodb") # pylint: disable=invalid-name
 table = dynamodb.Table(TABLE_NAME) # pylint: disable=invalid-name,no-member
 logger = logger_setup() # pylint: disable=invalid-name
 tracer = Tracer() # pylint: disable=invalid-name
-
-
-class Encoder(json.JSONEncoder):
-    """
-    Helper class to convert a DynamoDB item to JSON
-    """
-
-    def default(self, o): # pylint: disable=method-hidden
-        if isinstance(o, datetime.datetime):
-            return o.isoformat()
-        if isinstance(o, decimal.Decimal):
-            if abs(o) % 1 > 0:
-                return float(o)
-            return int(o)
-        return super(Encoder, self).default(o)
-
-
-def message(msg: Union[dict, str], status_code: int = 200) -> dict:
-    """
-    Prepares a message for API Gateway
-    """
-
-    if isinstance(msg, str):
-        msg = {"message": msg}
-
-    return  {
-        "statusCode": status_code,
-        "body": json.dumps(msg, cls=Encoder)
-    }
 
 
 @tracer.capture_method
@@ -110,7 +79,7 @@ def handler(event, _):
     # Retrieve the orderId
     try:
         order_id = event["pathParameters"]["orderId"]
-    except (KeyError,TypeError):
+    except (KeyError, TypeError):
         logger.warning({"message": "Order ID not found in event"})
         return message("Missing orderId", 400)
 
@@ -120,7 +89,7 @@ def handler(event, _):
     # Check that the order can be sent to the user
     # This includes both when the item is not found and when the user IDs do
     # not match.
-    if order is None or (iam_user == False and user_id != order["userId"]):
+    if order is None or (not iam_user and user_id != order["userId"]):
         return message("Order not found", 404)
 
     # Send the response

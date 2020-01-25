@@ -3,15 +3,13 @@ GetOrdersFunction
 """
 
 
-import datetime
-import decimal
-import json
 import os
 from typing import List, Optional, Set, Union
 from aws_lambda_powertools.tracing import Tracer
 from aws_lambda_powertools.logging import logger_setup, logger_inject_lambda_context
 import boto3
 from boto3.dynamodb.conditions import Key
+from ecom.helpers import message # pylint: disable=import-error
 
 
 ENVIRONMENT = os.environ["ENVIRONMENT"]
@@ -24,35 +22,6 @@ dynamodb = boto3.resource("dynamodb") # pylint: disable=invalid-name
 table = dynamodb.Table(TABLE_NAME) # pylint: disable=invalid-name,no-member
 logger = logger_setup() # pylint: disable=invalid-name
 tracer = Tracer() # pylint: disable=invalid-name
-
-
-class Encoder(json.JSONEncoder):
-    """
-    Helper class to convert a DynamoDB item to JSON
-    """
-
-    def default(self, o): # pylint: disable=method-hidden
-        if isinstance(o, datetime.datetime):
-            return o.isoformat()
-        if isinstance(o, decimal.Decimal):
-            if abs(o) % 1 > 0:
-                return float(o)
-            return int(o)
-        return super(Encoder, self).default(o)
-
-
-def message(msg: Union[dict, str], status_code: int = 200) -> dict:
-    """
-    Prepares a message for API Gateway
-    """
-
-    if isinstance(msg, str):
-        msg = {"message": msg}
-
-    return  {
-        "statusCode": status_code,
-        "body": json.dumps(msg, cls=Encoder)
-    }
 
 
 @tracer.capture_method
