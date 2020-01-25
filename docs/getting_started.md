@@ -22,4 +22,4 @@ When you want to push modifications to AWS, you can run `git push aws HEAD:maste
 
 ## Creating or modifying a service
 
-To read how you can create a new service or modify an existing one, please read the [service structure documentation](service.md)
+To read how you can create a new service or modify an existing one, please read the [service structure documentation](service.md).
