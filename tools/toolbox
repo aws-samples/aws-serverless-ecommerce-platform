@@ -670,6 +670,8 @@ class ToolBox:
 
         # Set Environment
         base_tags = {
+            # Inject the service name
+            "Service": self.service,
             # If "environment" is an empty string, returns "prod"
             "Environment": environment["environment"] or "prod"
         }
