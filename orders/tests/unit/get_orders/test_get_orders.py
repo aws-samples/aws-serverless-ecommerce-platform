@@ -107,52 +107,6 @@ def order(user_id):
     }
 
 
-def test_encoder(lambda_module):
-    """
-    Test the JSON encoder
-    """
-
-    encoder = lambda_module.Encoder()
-
-    assert isinstance(encoder.default(decimal.Decimal(10.5)), float)
-    assert isinstance(encoder.default(decimal.Decimal(10)), int)
-    assert isinstance(encoder.default(datetime.datetime.now()), str)
-
-
-def test_message_string(lambda_module):
-    """
-    Test message() with a string as input
-    """
-
-    msg = "This is a test"
-    retval = lambda_module.message(msg)
-
-    assert retval["body"] == json.dumps({"message": msg})
-    assert retval["statusCode"] == 200
-
-
-def test_message_dict(lambda_module):
-    """
-    Test message() with a dict as input
-    """
-
-    obj = {"key": "value"}
-    retval = lambda_module.message(obj)
-
-    assert retval["body"] == json.dumps(obj)
-    assert retval["statusCode"] == 200
-
-
-def test_message_status(lambda_module):
-    """
-    Test message() with a different status code
-    """
-
-    status_code = 400
-    retval = lambda_module.message("Message", status_code)
-    assert retval["statusCode"] == status_code
-
-
 def test_get_orders(lambda_module, user_id, next_token, order):
     """
     Test get_orders()
@@ -245,7 +199,6 @@ def test_get_orders_no_next_token(lambda_module, user_id, order):
     compare_dict(order, orders[0])
 
 
-
 def test_handler(lambda_module, user_id, next_token, apigateway_event, order, context):
     """
     Test handler()
@@ -294,6 +247,52 @@ def test_handler(lambda_module, user_id, next_token, apigateway_event, order, co
     assert len(body["orders"]) == 1
     compare_dict(order, body["orders"][0])
     assert "nextToken" in body
+
+
+def test_handler_no_next_token(lambda_module, user_id, next_token, apigateway_event, order, context):
+    """
+    Test handler()
+    """
+
+    # Remove query string
+    apigateway_event = copy.deepcopy(apigateway_event)
+    apigateway_event["queryStringParameters"] = None
+
+    # Stub boto3
+    table = stub.Stubber(lambda_module.table.meta.client)
+    response = {
+        "Items": [{k: TypeSerializer().serialize(v) for k, v in order.items()}],
+        "Count": 1,
+        "ScannedCount": 1,
+        # We do not use ConsumedCapacity
+        "ConsumedCapacity": {}
+    }
+    expected_params = {
+        "TableName": lambda_module.TABLE_NAME,
+        "IndexName": lambda_module.USER_INDEX_NAME,
+        "Limit": lambda_module.ORDERS_LIMIT,
+        # As the DynamoDB resource handles that, it might not return a
+        # consistent value across versions.
+        "KeyConditionExpression": stub.ANY,
+        "Select": stub.ANY
+    }
+    table.add_response("query", response, expected_params)
+    table.activate()
+
+    # Send request
+    response = lambda_module.handler(apigateway_event, context)
+
+    # Remove stub
+    table.assert_no_pending_responses()
+    table.deactivate()
+
+    assert response["statusCode"] == 200
+    assert "body" in response
+    body = json.loads(response["body"])
+    assert "orders" in body
+    assert len(body["orders"]) == 1
+    compare_dict(order, body["orders"][0])
+    assert "nextToken" not in body
 
 
 def test_handler_forbidden(lambda_module, apigateway_event, context):

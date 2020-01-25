@@ -4,8 +4,8 @@ import json
 import uuid
 import pytest
 from botocore import stub
-from fixtures import context, lambda_module
-from helpers import compare_event
+from fixtures import context, lambda_module # pylint: disable=import-error
+from helpers import compare_event # pylint: disable=import-error,no-name-in-module
 
 
 lambda_module = pytest.fixture(scope="module", params=[{
@@ -197,18 +197,6 @@ def modify_data():
     }
 
     return {"record": record, "event": event}
-
-
-def test_encoder(lambda_module):
-    """
-    Test the JSON encoder
-    """
-
-    encoder = lambda_module.Encoder()
-
-    assert isinstance(encoder.default(decimal.Decimal(10.5)), float)
-    assert isinstance(encoder.default(decimal.Decimal(10)), int)
-    assert isinstance(encoder.default(datetime.datetime.now()), str)
 
 
 def test_process_record_insert(lambda_module, insert_data):

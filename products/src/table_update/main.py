@@ -4,7 +4,6 @@ TableUpdateFunction
 
 
 import datetime
-import decimal
 import json
 import os
 from typing import List, Optional
@@ -12,6 +11,7 @@ from aws_lambda_powertools.tracing import Tracer
 from aws_lambda_powertools.logging import logger_setup, logger_inject_lambda_context
 import boto3
 from boto3.dynamodb.types import TypeDeserializer
+from ecom.helpers import Encoder # pylint: disable=import-error
 
 
 ENVIRONMENT = os.environ["ENVIRONMENT"]
@@ -22,21 +22,6 @@ eventbridge = boto3.client("events") # pylint: disable=invalid-name
 type_deserializer = TypeDeserializer() # pylint: disable=invalid-name
 logger = logger_setup() # pylint: disable=invalid-name
 tracer = Tracer() # pylint: disable=invalid-name
-
-
-class Encoder(json.JSONEncoder):
-    """
-    Helper class to convert a DynamoDB item to JSON
-    """
-
-    def default(self, o): # pylint: disable=method-hidden
-        if isinstance(o, datetime.datetime):
-            return o.isoformat()
-        if isinstance(o, decimal.Decimal):
-            if abs(o) % 1 > 0:
-                return float(o)
-            return int(o)
-        return super(Encoder, self).default(o)
 
 
 @tracer.capture_method

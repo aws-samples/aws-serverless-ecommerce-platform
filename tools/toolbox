@@ -551,10 +551,8 @@ class ToolBox:
                     "--requirement", os.path.join(path, "requirements.txt"),
                     "--target", path])
 
-if __name__ == "__main__":
-    # Prevent writing __pycache__ folders
-    os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
 
+if __name__ == "__main__":
     args = get_args()
 
     toolbox = ToolBox(args.service, vars(args))
