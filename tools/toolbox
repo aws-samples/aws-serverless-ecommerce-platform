@@ -19,31 +19,28 @@ def get_args() -> argparse.Namespace:
     parser.add_argument("service")
     parser.add_argument("commands", nargs="+")
     parser.add_argument("--color", default="auto", choices=["yes", "no", "auto"])
-    parser.add_argument("--env", "-e", default="dev")
+    parser.add_argument("--environment", "--env", "-e", default="dev")
     parser.add_argument("--quiet", "-q", default=False, type=lambda x: x == "yes")
 
     return parser.parse_args()
 
 
 class ToolBox:
+    """
+    CLI interface
+    """
+
     def __init__(self, service: str, kwargs: str={}):
         self.service = service
         self.color = kwargs.get("color", "auto")
-        self._env = kwargs.get("env", "dev")
         self.quiet = kwargs.get("quiet", False)
 
         self.metadata = self._get_metadata()
+        self.environment = self._get_environment(kwargs.get("environment", "dev"), self.metadata)
 
     @property
     def is_interactive(self):
         return os.isatty(sys.stdout.fileno())
-
-    @property
-    def env(self):
-        if self.metadata.get("flags", {}).get("environment", True):
-            return self._env
-        else:
-            return ""
 
     @property
     def build_dir(self):
@@ -195,14 +192,14 @@ class ToolBox:
         assumes that this is a development stack.
         """
 
-        if self.env:
-            self.info("Deploying {} in {}".format(self.service, self.env))
+        if self.environment["environment"]:
+            self.info("Deploying {} in {}".format(self.service, self.environment["environment"]))
         else:
             self.info("Deploying {}".format(self.service))
 
         template_file = os.path.join(self.build_dir, "template.out")
-        if self.env:
-            stack_name = "ecommerce-{}-{}".format(self.env, self.service)
+        if self.environment["environment"]:
+            stack_name = "ecommerce-{}-{}".format(self.environment["environment"], self.service)
         else:
             stack_name = "ecommerce-{}".format(self.service)
 
@@ -210,15 +207,18 @@ class ToolBox:
             raise ValueError("'{}' or '{}' not found.".format(self.build_dir, template_file))
 
         # Display warning for prod environment
-        if self.env in ["prod", ""]:
+        if self.environment.get("flags", {}).get("is-prod", False):
             self.warning("Prod deployment for {}".format(self.service))
 
         # Load parameter overrides
         base_params = {
-            "Environment": self.env
+            "Environment": self.environment["environment"]
         }
-        if self.env in ["dev", "tests"]:
-            base_params["LogLevel"] = "DEBUG"
+        # Load from environments.yaml
+        for key, value in self.environment.get("parameters", {}).items():
+            base_params[key] = value.format(**base_params)
+
+        # Load from metadata.yaml
         parameters = copy.deepcopy(base_params)
         for key, value in self.metadata.get("parameters", {}).items():
             parameters[key] = value.format(**base_params)
@@ -252,7 +252,7 @@ class ToolBox:
                 "--ignore-checks", "W2001"
             ]
             # Skip checking parameters if the environment doesn't exist
-            if not self.env:
+            if not self.environment["environment"]:
                 template_lint_cmd.extend(["--ignore-checks", "E9000"])
             self.run_process(template_lint_cmd)
 
@@ -409,8 +409,8 @@ class ToolBox:
         if not os.path.isdir(tests_dir):
             raise ValueError("'{}' does not exist".format(tests_dir))
 
-        if self.env == "prod":
-            raise ValueError("Cannot run integration tests in prod")
+        if not self.environment.get("flags", {}).get("can-test"):
+            raise ValueError("Cannot run tests in {environment}".format(**self.environment))
 
         # Inject shared modules for unit tests in the PYTHONPATH
         shared_tests = os.path.join(self.shared_dir, "tests", "integ")
@@ -420,7 +420,7 @@ class ToolBox:
             os.environ["PYTHONPATH"] = shared_tests
 
         # Set the environment name
-        os.environ["ECOM_ENVIRONMENT"] = self.env
+        os.environ["ECOM_ENVIRONMENT"] = self.environment["environment"]
 
         self.run_process(["pytest", tests_dir])
 
@@ -509,6 +509,41 @@ class ToolBox:
             return
 
         self.run_process(["speccy", "resolve", openapi_file, "-o", openapi_out_file])
+
+    def _get_environment(self, environment="dev", metadata={}):
+        """
+        Retrieve the environment
+        """
+
+        import jsonschema
+        import yaml
+
+        schema_file = os.path.join(self.shared_dir, "environments", "schema.yaml")
+        environments_file = "environments.yaml"
+
+        if not os.path.isfile(environments_file):
+            raise ValueError("Missing environments file '{}'".format(environments_file))
+
+        with open(schema_file) as fp:
+            schema = yaml.load(fp, Loader=yaml.SafeLoader)
+
+        with open(environments_file) as fp:
+            environments = yaml.load(fp, Loader=yaml.SafeLoader)
+
+        jsonschema.validate(environments, schema)
+
+        # For services that don't support environments, default to prod
+        if not metadata.get("flags", {}).get("environment", True):
+            retval = environments.get("prod", {})
+            retval["environment"] = ""
+            return retval
+
+        if environment not in environments:
+            raise ValueError("Missing environment '{}'".format(environment))
+
+        retval = environments[environment]
+        retval["environment"] = environment
+        return retval
 
     def _get_metadata(self):
         """

@@ -1,0 +1,22 @@
+type: object
+description: Environments file
+
+additionalProperties:
+  type: object
+  description: Represents a single environment
+  properties:
+    parameters:
+      type: object
+      description: |
+        CloudFormation Parameters and their values for a specific environment.
+      additionalProperties:
+        type: [string, integer]
+    flags:
+      type: object
+      properties:
+        can-test:
+          type: boolean
+          default: true
+        is-prod:
+          type: boolean
+          default: false
