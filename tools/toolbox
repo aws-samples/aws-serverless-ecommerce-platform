@@ -643,7 +643,8 @@ class ToolBox:
     
         # Set Environment
         base_params = {
-            "Environment": environment["environment"]
+            # If environment is an empty string, returns prod
+            "Environment": environment["environment"] or "prod"
         }
         # Load from environments.yaml
         for key, value in environment.get("parameters", {}).items():
@@ -669,7 +670,8 @@ class ToolBox:
 
         # Set Environment
         base_tags = {
-            "Environment": environment["environment"]
+            # If "environment" is an empty string, returns "prod"
+            "Environment": environment["environment"] or "prod"
         }
         # Load from environments.yaml
         for key, value in environment.get("tags", {}).items():
