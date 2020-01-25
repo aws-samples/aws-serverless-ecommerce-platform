@@ -1,2 +1,3 @@
 aws-lambda-logging
 aws-lambda-powertools
+shared/src/ecom/
