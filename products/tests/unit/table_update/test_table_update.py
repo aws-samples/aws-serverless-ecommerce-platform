@@ -199,36 +199,6 @@ def modify_data():
     return {"record": record, "event": event}
 
 
-def test_process_record_insert(lambda_module, insert_data):
-    """
-    Test process_record() against an INSERT event
-    """
-
-    retval = lambda_module.process_record(insert_data["record"])
-
-    compare_event(insert_data["event"], retval)
-
-
-def test_process_record_remove(lambda_module, remove_data):
-    """
-    Test process_record() against a REMOVE event
-    """
-
-    retval = lambda_module.process_record(remove_data["record"])
-
-    compare_event(remove_data["event"], retval)
-
-
-def test_process_record_modify(lambda_module, modify_data):
-    """
-    Test process_record() against a MODIFY event
-    """
-
-    retval = lambda_module.process_record(modify_data["record"])
-
-    compare_event(modify_data["event"], retval)
-
-
 def test_send_events(lambda_module, insert_data):
     """
     Test send_events()

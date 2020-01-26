@@ -11,7 +11,7 @@ from aws_lambda_powertools.tracing import Tracer
 from aws_lambda_powertools.logging import logger_setup, logger_inject_lambda_context
 import boto3
 from boto3.dynamodb.types import TypeDeserializer
-from ecom.helpers import Encoder # pylint: disable=import-error
+from ecom.helpers import ddb_to_event # pylint: disable=import-error
 
 
 ENVIRONMENT = os.environ["ENVIRONMENT"]
@@ -22,60 +22,6 @@ eventbridge = boto3.client("events") # pylint: disable=invalid-name
 type_deserializer = TypeDeserializer() # pylint: disable=invalid-name
 logger = logger_setup() # pylint: disable=invalid-name
 tracer = Tracer() # pylint: disable=invalid-name
-
-
-@tracer.capture_method
-def process_record(record: dict) -> Optional[dict]:
-    """
-    Process a single record from DynamoDB Stream
-    """
-
-    event = {
-        "Time": datetime.datetime.now(),
-        "Source": "ecommerce.products",
-        "Resources": [record["dynamodb"]["Keys"]["productId"]["S"]],
-        "EventBusName": EVENT_BUS_NAME
-    }
-
-    # ProductCreated
-    if record["eventName"].upper() == "INSERT":
-        event["DetailType"] = "ProductCreated"
-        event["Detail"] = json.dumps({
-            k: type_deserializer.deserialize(v)
-            for k, v
-            in record["dynamodb"]["NewImage"].items()
-        }, cls=Encoder)
-
-    # ProductDeleted
-    elif record["eventName"].upper() == "REMOVE":
-        event["DetailType"] = "ProductDeleted"
-        event["Detail"] = json.dumps({
-            k: type_deserializer.deserialize(v)
-            for k, v
-            in record["dynamodb"]["OldImage"].items()
-        }, cls=Encoder)
-
-    # ProductModified
-    elif record["eventName"].upper() == "MODIFY":
-        event["DetailType"] = "ProductModified"
-        event["Detail"] = json.dumps({
-            "new": {
-                k: type_deserializer.deserialize(v)
-                for k, v
-                in record["dynamodb"]["NewImage"].items()
-            },
-            "old": {
-                k: type_deserializer.deserialize(v)
-                for k, v
-                in record["dynamodb"]["OldImage"].items()
-            }
-        }, cls=Encoder)
-
-    # Unknown action
-    else:
-        return None
-
-    return event
 
 
 @tracer.capture_method
@@ -105,7 +51,10 @@ def handler(event, _):
         "records": event.get("Records", [])
     })
 
-    events = [process_record(record) for record in event.get("Records", [])]
+    events = [
+        ddb_to_event(record, EVENT_BUS_NAME, "ecommerce.products", "Product", "productId")
+        for record in event.get("Records", [])
+    ]
 
     logger.info("Received %d event(s)", len(events))
     logger.debug({
