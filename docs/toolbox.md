@@ -35,13 +35,17 @@ The __display__ command runs `display-metadata`, `display-parameters` and `displ
 
 ### `all` command
 
-The __all__ command runs `display`, `lint`, `clean`, `build`, `tests-unit`, `package`, `deploy`, `tests-integ`.
+The __all__ command runs `display`, `lint`, `clean`, `build`, `tests-unit`, `check-deps`, `package`, `deploy` and `tests-integ`.
 
 ### `build` command
 
 The __build__ command copies files from the `src/` and `resources/` folders of a service as well as `template.yaml` into a `build/` folder, transforms the OpenAPI specifications and install required Python packages in the Lambda folders.
 
 It installs Python packages by looking at the `src/{function}/requirements.txt` file.
+
+### `check-deps` command
+
+The __check-deps__ command checks if all dependencies of the service are deployed in the environment.
 
 ### `clean` command
 

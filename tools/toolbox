@@ -10,6 +10,7 @@ import subprocess
 import sys
 import traceback
 from typing import List
+import boto3
 import jsonschema
 import yaml
 
@@ -39,7 +40,12 @@ class ToolBox:
         self.quiet = kwargs.get("quiet", False)
 
         self.metadata = self._get_metadata()
+        self._orig_environment = kwargs.get("environment", "dev")
         self.environment = self._get_environment(kwargs.get("environment", "dev"))
+
+    ##############
+    # PROPERTIES #
+    ##############
 
     @property
     def is_interactive(self):
@@ -81,6 +87,10 @@ class ToolBox:
     def tests_dir(self):
         return os.path.join(self.service, "tests")
 
+    ##############
+    # RUN METHOD #
+    ##############
+
     def run(self, commands: List[str]):
         """
         Run a sequence of commands
@@ -104,6 +114,10 @@ class ToolBox:
             print(self.text_red("{}: {}".format(exc.__class__.__name__, str(exc))))
             traceback.print_exc()
             sys.exit(1)
+
+    #################
+    # META-COMMANDS #
+    #################
 
     def cmd_ci(self):
         """
@@ -144,6 +158,7 @@ class ToolBox:
         - clean
         - build
         - tests-unit
+        - check-deps
         - package
         - deploy
         - tests-integ
@@ -151,8 +166,12 @@ class ToolBox:
 
         self.run([
             "display", "lint", "clean", "build", "tests-unit",
-            "package", "deploy", "tests-integ"
+            "check-deps", "package", "deploy", "tests-integ"
         ])
+
+    ############
+    # COMMANDS #
+    ############
 
     def cmd_build(self):
         """
@@ -191,6 +210,60 @@ class ToolBox:
 
         # Create artifacts
         self._build_artifacts()
+
+    def cmd_check_deps(self):
+        """
+        'check-deps' command
+
+        Check if dependencies are properly deployed.
+        """
+
+        self.info("Checking dependencies for {}".format(self.service))
+
+        cloudformation = boto3.client("cloudformation")
+        dependencies = self.metadata.get("dependencies", [])
+        # If it contains '*', it means that this service has all other services
+        # as dependency.
+        if "*" in dependencies:
+            dependencies = self._get_all_services()
+        missing_deps = []
+
+        for dependency in dependencies:
+            # Check for environment-aware stacks
+            try:
+                retval = cloudformation.describe_stacks(
+                    StackName="ecommerce-{}-{}".format(self._orig_environment, dependency)
+                )
+                for stack in retval.get("Stacks", []):
+                    if stack["StackStatus"] not in [
+                        "CREATE_FAILED",
+                        "ROLLBACK_IN_PROGRESS", "ROLLBACK_COMPLETE", "ROLLBACK_FAILED",
+                        "DELETE_IN_PROGRESS", "DELETE_COMPLETE", "DELETE_FAILED"
+                        ]:
+                        continue
+            except cloudformation.exceptions.ClientError:
+                pass
+            
+            # Check for non-environment-aware stacks
+            try:
+                retval = cloudformation.describe_stacks(
+                    StackName="ecommerce-{}".format(dependency)
+                )
+                for stack in retval.get("Stacks", []):
+                    if stack["StackStatus"] not in [
+                        "CREATE_FAILED",
+                        "ROLLBACK_IN_PROGRESS", "ROLLBACK_COMPLETE", "ROLLBACK_FAILED",
+                        "DELETE_IN_PROGRESS", "DELETE_COMPLETE", "DELETE_FAILED"
+                        ]:
+                        continue
+            except cloudformation.exceptions.ClientError:
+                pass
+
+            missing_deps.append(dependency)
+
+        if len(missing_deps) > 0:
+            self.error("Missing dependencies: {}".format(", ".join(missing_deps)))
+            sys.exit(1)
 
     def cmd_clean(self):
         """
@@ -441,6 +514,10 @@ class ToolBox:
 
         self.run_process(["pytest", tests_dir])
 
+    ################
+    # TEXT METHODS #
+    ################
+
     def text_red(self, text: str) -> str:
         """
         Return the text in red if this is an interactive session
@@ -494,6 +571,10 @@ class ToolBox:
 
         print("[!] {}".format(self.text_red(text)))
 
+    ######################
+    # RUN PROCESS METHOD #
+    ######################
+
     def run_process(self, cmds: List[str], check: bool=True):
         """
         Run a subprocess
@@ -512,6 +593,10 @@ class ToolBox:
                     print(process.stdout)
                 raise exc
         return process
+
+    ##################
+    # HELPER METHODS #
+    ##################
 
     def _build_artifacts(self):
         """
@@ -581,6 +666,16 @@ class ToolBox:
 
         # Return all environments
         return environments
+
+    def _get_all_services(self):
+        """
+        Retrieve all services in the project
+        """
+
+        return {
+            name for name in os.listdir(os.getcwd())
+            if os.path.isfile(os.path.join(os.getcwd(), name, "metadata.yaml"))
+        }
 
     def _get_environment(self, environment_name):
         """
@@ -691,7 +786,6 @@ class ToolBox:
                 tags[key] = value
 
         return tags
-
 
     def _install_packages(self):
         """
