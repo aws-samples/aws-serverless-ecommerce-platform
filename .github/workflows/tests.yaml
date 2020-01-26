@@ -34,8 +34,7 @@ jobs:
           npm install -g speccy
       - name: lint and unit tests
         run: |
-          echo "SERVICES:" */metadata.yaml
-          for metafile in */metadata.yaml; do
-            echo "Running tests on $(dirname $metafile)"
-            tools/toolbox $(dirname $metafile) ci
+          for service in $(tools/pipeline services); do
+            echo "Running tests on $service"
+            tools/toolbox $service ci
           done
