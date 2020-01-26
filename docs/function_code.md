@@ -99,6 +99,13 @@ Within the folder containing a Lambda function code, you can put a `requirements
 
 As a convenience, you can use the `ecom` python module provided at [shared/src/ecom/](../shared/src/ecom/). To use this module within your function code, add `shared/src/ecom/` in your function's requirements.txt file. From there, you can use `import ecom` in your function code.
 
+The `ecom.helpers` module provides the following functions and classes:
+
+* `Encoder`: a JSON encoder for converting DynamoDB items to JSON.
+* `ddb_to_event`: function to transform a DynamoDB Streams record into an EventBridge event.
+* `message`: function to create a response for API Gateway Proxy integration.
+
+
 ## Lambda powertools
 
 As a best practice, you should use the [AWS Lambda Powertools](https://github.com/awslabs/aws-lambda-powertools/tree/develop/python) module. You can start using it by adding `aws-lambda-powertools` in the [requirements.txt](#requirementstxt) of your Lambda functions.
