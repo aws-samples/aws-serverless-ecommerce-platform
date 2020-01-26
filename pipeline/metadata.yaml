@@ -1,4 +1,6 @@
 name: pipeline
+dependencies:
+  - "*"
 flags:
   environment: false
   skip-tests: true

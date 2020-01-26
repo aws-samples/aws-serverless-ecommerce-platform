@@ -45,15 +45,23 @@ requirements:
 	@pip install -r requirements.txt
 
 # Bootstrap all resources on AWS
-bootstrap: bootstrap-platform bootstrap-pipeline bootstrap-repository
+bootstrap-prod: bootstrap-services bootstrap-repository
 
-bootstrap-platform:
-	$(info [*] Bootstrap platform)
-	@tools/toolbox platform all --env dev --quiet yes
-	@tools/toolbox platform deploy --env tests --quiet yes
-	# tools/toolbox platform deploy --env staging --quiet yes
-	# tools/toolbox platform deploy --env prod --quiet yes
+# Bootstrap just the dev environment
+bootstrap-dev:
+	$(info [*] Bootstrap services)
+	@for service in tools/pipeline services; do \
+		tools/toolbox $$service all --env dev --quiet yes \
+	done
 
+# Bootstrap services in non-dev environment
+bootstrap-services:
+	$(info [*] Bootstrap services)
+	@for service in tools/pipeline services; do \
+		tools/toolbox $$service all --env tests --quiet yes \
+	done
+
+# Bootstrap the pipeline
 bootstrap-pipeline:
 	$(info [*] Bootstrap pipeline)
 	@tools/toolbox pipeline all --quiet yes
