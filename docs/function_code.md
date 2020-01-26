@@ -5,6 +5,7 @@ Writing function code
 * [CloudFormation resources](#cloudformation-resources)
 * [requirements.txt](#requirementstxt)
 * [`ecom` module](#ecom-module)
+* [Lambda powertools](#lambda-powertools)
 
 ## Function folders
 
