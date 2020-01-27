@@ -78,6 +78,25 @@ def test_get_product_empty(endpoint_url, product):
     assert isinstance(body["message"], str)
 
 
+def test_get_products(endpoint_url, product):
+    """
+    Test GET /
+    """
+
+    res = requests.get("{}/".format(endpoint_url))
+
+    assert res.status_code == 200
+    body = res.json()
+    assert "products" in body
+
+    found = False
+    for product in body["products"]:
+        if product["productId"] == product["productId"]:
+            found = True
+    
+    assert found == True
+
+
 def test_backend_validate(endpoint_url, iam_auth, product):
     """
     Test POST /backend/validate

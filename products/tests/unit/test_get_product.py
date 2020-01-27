@@ -3,8 +3,6 @@ import decimal
 import json
 import uuid
 import pytest
-from boto3.dynamodb.types import TypeSerializer
-from botocore import stub
 from fixtures import context, lambda_module # pylint: disable=import-error
 from helpers import mock_table # pylint: disable=import-error,no-name-in-module
 
