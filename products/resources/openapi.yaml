@@ -8,6 +8,79 @@ info:
     url: https://github.com/aws/mit-0
 
 paths:
+  /:
+    get:
+      description: |
+        Retrieve products.
+      operationId: getProducts
+      parameters:
+        - in: query
+          name: nextToken
+          description: Continuation token
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - products
+                properties:
+                  products:
+                    type: array
+                    items:
+                      $ref: "../../shared/resources/schemas.yaml#Product"
+                  nextToken:
+                    type: string
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "../../shared/resources/schemas.yaml#/Message"
+      x-amazon-apigateway-integration:
+        httpMethod: "POST"
+        type: aws_proxy
+        uri:
+          Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetProductsFunction.Arn}/invocations"
+      
+
+  /{productId}:
+    get:
+      description: |
+        Retrieve information about a single item.
+      operationId: getProduct
+      parameters:
+        - name: productId
+          in: path
+          description: Product ID in UUID format
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "../../shared/resources/schemas.yaml#Product"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "../../shared/resources/schemas.yaml#/Message"
+      x-amazon-apigateway-integration:
+        httpMethod: "POST"
+        type: aws_proxy
+        uri:
+          Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetProductFunction.Arn}/invocations"    
+
+
   /backend/validate:
     post:
       description: |

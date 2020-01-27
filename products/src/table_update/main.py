@@ -3,10 +3,8 @@ TableUpdateFunction
 """
 
 
-import datetime
-import json
 import os
-from typing import List, Optional
+from typing import List
 from aws_lambda_powertools.tracing import Tracer
 from aws_lambda_powertools.logging import logger_setup, logger_inject_lambda_context
 import boto3

@@ -234,13 +234,17 @@ class ToolBox:
                 retval = cloudformation.describe_stacks(
                     StackName="ecommerce-{}-{}".format(self._orig_environment, dependency)
                 )
+                found = False
                 for stack in retval.get("Stacks", []):
                     if stack["StackStatus"] not in [
                         "CREATE_FAILED",
                         "ROLLBACK_IN_PROGRESS", "ROLLBACK_COMPLETE", "ROLLBACK_FAILED",
                         "DELETE_IN_PROGRESS", "DELETE_COMPLETE", "DELETE_FAILED"
                         ]:
-                        continue
+                        found = True
+                        break
+                if found:
+                    continue
             except cloudformation.exceptions.ClientError:
                 pass
             
@@ -249,13 +253,17 @@ class ToolBox:
                 retval = cloudformation.describe_stacks(
                     StackName="ecommerce-{}".format(dependency)
                 )
+                found = False
                 for stack in retval.get("Stacks", []):
                     if stack["StackStatus"] not in [
                         "CREATE_FAILED",
                         "ROLLBACK_IN_PROGRESS", "ROLLBACK_COMPLETE", "ROLLBACK_FAILED",
                         "DELETE_IN_PROGRESS", "DELETE_COMPLETE", "DELETE_FAILED"
                         ]:
-                        continue
+                        found = True
+                        break
+                if found:
+                    continue
             except cloudformation.exceptions.ClientError:
                 pass
 

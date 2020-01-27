@@ -193,11 +193,6 @@ For example, if you are using a listener stack to listen to incoming EventBridge
 ```python
 import pytest
 from fixtures import listener
-
-listener = pytest.fixture(scope="module", params=[{
-    # Replace 'your-service' with your service name
-    "service": "your-service"
-}])(listener)
 ```
 
 Then, to listen to messages within a test case:
@@ -214,7 +209,7 @@ def test_listen_to_event(listener, endpoint_url):
     requests.post(endpoint_url, data={"key": "value"})
 
     # Listen to events
-    messages = listener()
+    messages = listener("your-service")
 
     # Parse messages
     found = False

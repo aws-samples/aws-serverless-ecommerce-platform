@@ -1,4 +1,7 @@
 import json
+from typing import Optional
+from boto3.dynamodb.types import TypeSerializer
+from botocore import stub
 
 
 def compare_dict(a: dict, b: dict):
@@ -46,3 +49,62 @@ def compare_event(a: dict, b: dict):
             compare_event(value, b[key])
         else:
             assert value == b[key]
+
+
+def mock_table(
+        ddb_table, action: str, key: str,
+        item: Optional[dict]=None,
+        expected_params: Optional[dict]=None,
+        response: Optional[dict]=None) -> stub.Stubber:
+    """
+    Mock a DynamoDB table
+    """
+
+    SUPPORTED_ACTIONS = ["get_item", "query", "scan"]
+
+    if action not in SUPPORTED_ACTIONS:
+        raise ValueError("DynamoDB action {} is not supported".format(action))
+
+    table = stub.Stubber(ddb_table.meta.client)
+
+    if action == "get_item":
+        response = response or {
+            "ConsumedCapacity": {}
+        }
+        expected_params = expected_params or {
+            "TableName": ddb_table.name,
+            "Key": {key: stub.ANY}
+        }
+        if item is not None:
+            response["Item"] = {k: TypeSerializer().serialize(v) for k, v in item.items()}
+            expected_params["Key"] = {key: item[key]}
+        table.add_response("get_item", response, expected_params)
+
+    if action == "query":
+        response = response or {
+            "ConsumedCapacity": {}
+        }
+        expected_params = expected_params or {
+            "TableName": ddb_table.name,
+            "KeyConditionExpression": stub.ANY,
+            "Limit": stub.ANY
+        }
+        if item is not None:
+            response["Items"] = [{k: TypeSerializer().serialize(v) for k, v in item.items()}]
+        table.add_response("query", response, expected_params)
+
+    if action == "scan":
+        response = response or {
+            "ConsumedCapacity": {}
+        }
+        expected_params = expected_params or {
+            "TableName": ddb_table.name,
+            "Limit": stub.ANY
+        }
+        if item is not None:
+            response["Items"] = [{k: TypeSerializer().serialize(v) for k, v in item.items()}]
+        table.add_response("scan", response, expected_params)
+
+    table.activate()
+
+    return table

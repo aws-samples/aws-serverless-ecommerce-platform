@@ -8,11 +8,6 @@ import pytest
 from fixtures import listener
 
 
-listener = pytest.fixture(scope="module", params=[{
-    "service": "users"
-}])(listener)
-
-
 ssm = boto3.client("ssm")
 
 
@@ -77,7 +72,7 @@ def test_sign_up(listener, user_id):
     """
 
     # Listen for messages on EventBridge through a listener SQS queue
-    messages = listener()
+    messages = listener("users")
 
     # Parse messages
     found = False
