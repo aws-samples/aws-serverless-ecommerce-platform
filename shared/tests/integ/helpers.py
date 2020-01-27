@@ -1,4 +1,6 @@
 import json
+import os
+import boto3
 
 
 def compare_dict(a: dict, b: dict):
@@ -19,3 +21,15 @@ def compare_dict(a: dict, b: dict):
             compare_dict(value, b[key])
         else:
             assert value == b[key]
+
+
+def get_parameter(param_name: str):
+    """
+    Retrieve an SSM parameter
+    """
+
+    ssm = boto3.client("ssm")
+
+    return ssm.get_parameter(
+        Name=param_name.format(Environment=os.environ["ECOM_ENVIRONMENT"])
+    )["Parameter"]["Value"]

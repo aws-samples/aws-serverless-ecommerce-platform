@@ -1,6 +1,9 @@
 import os
 import time
+from urllib.parse import urlparse
+from aws_requests_auth.boto_utils import BotoAWSRequestsAuth
 import boto3
+import pytest
 
 
 sqs = boto3.client("sqs")
@@ -50,3 +53,22 @@ def listener(request):
         return messages
 
     return get_messages
+
+
+@pytest.fixture
+def iam_auth():
+    """
+    Helper function to return auth for IAM
+    """
+
+    def _iam_auth(endpoint):
+        url = urlparse(endpoint)
+        region = boto3.session.Session().region_name
+
+        return BotoAWSRequestsAuth(
+            aws_host=url.netloc,
+            aws_region=region,
+            aws_service="execute-api"
+        )
+
+    return _iam_auth
