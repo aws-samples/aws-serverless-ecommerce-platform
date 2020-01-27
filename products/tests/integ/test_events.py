@@ -1,26 +1,19 @@
 import json
 import os
 import uuid
-import boto3
 import pytest
-from fixtures import listener
+import boto3
+from fixtures import listener # pylint: disable=import-error
+from helpers import get_parameter # pylint: disable=import-error,no-name-in-module
 
 
-listener = pytest.fixture(scope="module", params=[{
-    "service": "products"
-}])(listener)
+@pytest.fixture
+def table_name():
+    """
+    DynamoDB table name
+    """
 
-
-ssm = boto3.client("ssm")
-
-
-TABLE_NAME = ssm.get_parameter(
-    Name="/ecommerce/{}/products/table/name".format(os.environ["ECOM_ENVIRONMENT"])
-)["Parameter"]["Value"]
-
-
-sqs = boto3.client("sqs")
-table = boto3.resource("dynamodb").Table(TABLE_NAME) # pylint: disable=no-member
+    return get_parameter("/ecommerce/{Environment}/products/table/name")
 
 
 @pytest.fixture
@@ -38,16 +31,17 @@ def product():
     }
 
 
-def test_table_update(listener, product):
+def test_table_update(table_name, listener, product):
     """
     Test that the TableUpdate function reacts to changes to DynamoDB and sends
     events to EventBridge
     """
     # Add a new item
+    table = boto3.resource("dynamodb").Table(table_name) # pylint: disable=no-member
     table.put_item(Item=product)
 
     # Listen for messages on EventBridge through a listener SQS queue
-    messages = listener()
+    messages = listener("products")
 
     # Parse messages
     found = False
@@ -64,7 +58,7 @@ def test_table_update(listener, product):
     table.delete_item(Key={"productId": product["productId"]})
 
     # Listen for messages on EventBridge through a listener SQS queue
-    messages = listener()
+    messages = listener("products")
 
     # Parse messages
     found = False

@@ -1,3 +1,4 @@
+import copy
 import datetime
 import os
 import uuid
@@ -21,9 +22,8 @@ def endpoint_url():
     return get_parameter("/ecommerce/{Environment}/products/api/url")
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def product(table_name):
-
     now = datetime.datetime.now()
 
     product = {
@@ -59,6 +59,7 @@ def test_get_product(endpoint_url, product):
     """
 
     res = requests.get("{}/{}".format(endpoint_url, product["productId"]))
+    
     assert res.status_code == 200
     body = res.json()
     compare_dict(product, body)
@@ -70,7 +71,125 @@ def test_get_product_empty(endpoint_url, product):
     """
 
     res = requests.get("{}/{}a".format(endpoint_url, product["productId"]))
+    
     assert res.status_code == 404
     body = res.json()
     assert "message" in body
     assert isinstance(body["message"], str)
+
+
+def test_backend_validate(endpoint_url, iam_auth, product):
+    """
+    Test POST /backend/validate
+    """
+
+    res = requests.post(
+        "{}/backend/validate".format(endpoint_url),
+        auth=iam_auth(endpoint_url),
+        json={"products": [product]}
+    )
+
+    assert res.status_code == 200
+    body = res.json()
+    assert "products" not in body
+
+
+def test_backend_validate_no_iam(endpoint_url, product):
+    """
+    Test POST /backend/validate without IAM auth
+    """
+
+    res = requests.post(
+        "{}/backend/validate".format(endpoint_url),
+        json={"products": [product]}
+    )
+
+    assert res.status_code == 403
+    body = res.json()
+    assert "message" in body
+    assert isinstance(body["message"], str)
+
+
+def test_backend_validate_incorrect_price(endpoint_url, iam_auth, product):
+    """
+    Test POST /backend/validate with an incorrect product
+    """
+
+    wrong_product = copy.deepcopy(product)
+
+    wrong_product["price"] += 100
+
+    res = requests.post(
+        "{}/backend/validate".format(endpoint_url),
+        auth=iam_auth(endpoint_url),
+        json={"products": [wrong_product]}
+    )
+
+    assert res.status_code == 200
+    body = res.json()
+    assert "products" in body
+    assert len(body["products"]) == 1
+    compare_dict(body["products"][0], product)
+
+
+def test_backend_validate_incorrect_package(endpoint_url, iam_auth, product):
+    """
+    Test POST /backend/validate with an incorrect product
+    """
+
+    wrong_product = copy.deepcopy(product)
+
+    wrong_product["package"]["height"] += 100
+
+    res = requests.post(
+        "{}/backend/validate".format(endpoint_url),
+        auth=iam_auth(endpoint_url),
+        json={"products": [wrong_product]}
+    )
+
+    assert res.status_code == 200
+    body = res.json()
+    assert "products" in body
+    assert len(body["products"]) == 1
+    compare_dict(body["products"][0], product)
+
+
+def test_backend_validate_incorrect_pictures(endpoint_url, iam_auth, product):
+    """
+    Test POST /backend/validate with an incorrect product
+    """
+
+    wrong_product = copy.deepcopy(product)
+
+    wrong_product["pictures"].append("INCORRECT_PICTURE")
+
+    res = requests.post(
+        "{}/backend/validate".format(endpoint_url),
+        auth=iam_auth(endpoint_url),
+        json={"products": [wrong_product]}
+    )
+
+    assert res.status_code == 200
+    body = res.json()
+    assert "products" not in body
+
+
+def test_backend_validate_mixed(endpoint_url, iam_auth, product):
+    """
+    Test /backend/validate with a mix of correct and incorrect product
+    """
+
+    wrong_product = copy.deepcopy(product)
+    wrong_product["price"] += 100
+
+    res = requests.post(
+        "{}/backend/validate".format(endpoint_url),
+        auth=iam_auth(endpoint_url),
+        json={"products": [product, wrong_product]}
+    )
+
+    assert res.status_code == 200
+    body = res.json()
+    assert "products" in body
+    assert len(body["products"]) == 1
+    compare_dict(body["products"][0], product)
