@@ -317,7 +317,9 @@ class ToolBox:
             "--parameter-overrides"] + ["{}={}".format(k, v) for k, v in parameters.items()] +
             # Tags
             ["--tags"] + ["{}={}".format(k ,v) for k, v in tags.items()] +
-            ["--template-file", template_file])
+            # Don't fail if there are no changes
+            ["--no-fail-on-empty-changeset",
+            "--template-file", template_file])
 
     def cmd_lint(self):
         """
@@ -555,21 +557,21 @@ class ToolBox:
         Print an information message
         """
 
-        print("[*] {}".format(self.text_blue(text)))
+        print("[*] {}: {}".format(self.service, self.text_blue(text)))
 
     def warning(self, text: str) -> None:
         """
         Print a warning message
         """
 
-        print("[!] {}".format(self.text_yellow(text)))
+        print("[!] {}: {}".format(self.service, self.text_yellow(text)))
 
     def error(self, text: str) -> None:
         """
         Print an error message
         """
 
-        print("[!] {}".format(self.text_red(text)))
+        print("[!] {}: {}".format(self.service, self.text_red(text)))
 
     ######################
     # RUN PROCESS METHOD #

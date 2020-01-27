@@ -17,7 +17,6 @@ Parameters:
   EventBusName:
     Type: AWS::SSM::Parameter::Value<String>
     Description: EventBridge Event Bus Name
-    Default: /ecommerce/dev/platform/event-bus/name
 
 
 Globals:

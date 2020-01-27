@@ -98,11 +98,9 @@ Parameters:
   UserPoolArn:
     Type: AWS::SSM::Parameter::Value<String>
     Description: Cognito User Pool ARN
-    # The convention is to default to dev
-    Default: /ecommerce/dev/users/user-pool/arn
 ```
 
-You can then add the parameter in the `metadata.yaml` file for automatic transformation:
+To minimize the risk of errors when using multiple environments, you should not set a default value to the parameter. You should instead add the parameter in the `metadata.yaml` file for automatic transformation:
 
 ```yaml
 parameters:

@@ -151,6 +151,17 @@ Resources:
   # SERVICE PIPELINES #
   #####################
 
+  OrdersPipeline:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: resources/service-pipeline.yaml
+      Parameters:
+        ArtifactBucket: !Ref ArtifactBucket
+        ArtifactPrefix: "templates/"
+        ServiceName: orders
+        CodeRepositoryName: !GetAtt CodeRepository.Name
+        CodeRepositoryArn: !GetAtt CodeRepository.Arn
+
   ProductsPipeline:
     Type: AWS::CloudFormation::Stack
     Properties:

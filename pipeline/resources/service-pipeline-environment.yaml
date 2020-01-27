@@ -1,0 +1,45 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: 'AWS::Serverless-2016-10-31'
+
+
+Parameters:
+  ServiceName:
+    Type: String
+    Description: Service name used for deployment
+  Environment:
+    Type: String
+    Description: Environment name
+
+
+Resources:
+  DeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudformation.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: !Sub "${AWS::StackName}-DeployPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              # TODO: scope this down to allowed resources
+              - Effect: Allow
+                Action: "*"
+                Resource: "*"
+                Condition:
+                  ForAllValues:StringEqualsIfExists:
+                    # Restrict to the given environment
+                    aws:ResourceTag/Environment: !Ref Environment
+                    # Restrict to the pipeline region
+                    aws:RequestedRegion: !Ref AWS::Region
+
+
+Outputs:
+  RoleArn:
+    Description: Deyploment role ARN
+    Value: !GetAtt DeployRole.Arn
