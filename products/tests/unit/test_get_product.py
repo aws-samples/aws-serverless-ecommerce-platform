@@ -6,6 +6,7 @@ import pytest
 from boto3.dynamodb.types import TypeSerializer
 from botocore import stub
 from fixtures import context, lambda_module # pylint: disable=import-error
+from helpers import mock_table # pylint: disable=import-error,no-name-in-module
 
 
 lambda_module = pytest.fixture(scope="module", params=[{
@@ -69,18 +70,7 @@ def test_get_product(product, lambda_module):
     """
 
     # Stub boto3
-    table = stub.Stubber(lambda_module.table.meta.client)
-    response = {
-        "Item": {k: TypeSerializer().serialize(v) for k, v in product.items()},
-        # We do not use ConsumedCapacity
-        "ConsumedCapacity": {}
-    }
-    expected_params = {
-        "TableName": lambda_module.TABLE_NAME,
-        "Key": {"productId": product["productId"]}
-    }
-    table.add_response("get_item", response, expected_params)
-    table.activate()
+    table = mock_table(lambda_module.table, "get_item", "productId", product)
 
     # Get product
     ddb_product = lambda_module.get_product(product["productId"])
@@ -99,16 +89,7 @@ def test_get_product_empty(product, lambda_module):
     """
 
     # Stub boto3
-    table = stub.Stubber(lambda_module.table.meta.client)
-    response = {
-        "ConsumedCapacity": {}
-    }
-    expected_params = {
-        "TableName": lambda_module.TABLE_NAME,
-        "Key": {"productId": product["productId"]}
-    }
-    table.add_response("get_item", response, expected_params)
-    table.activate()
+    table = mock_table(lambda_module.table, "get_item", "productId")
 
     # Get product
     ddb_product = lambda_module.get_product(product["productId"])
@@ -127,18 +108,7 @@ def test_handler(product, apigateway_event, context, lambda_module):
     """
 
     # Stub boto3
-    table = stub.Stubber(lambda_module.table.meta.client)
-    response = {
-        "Item": {k: TypeSerializer().serialize(v) for k, v in product.items()},
-        # We do not use ConsumedCapacity
-        "ConsumedCapacity": {}
-    }
-    expected_params = {
-        "TableName": lambda_module.TABLE_NAME,
-        "Key": {"productId": product["productId"]}
-    }
-    table.add_response("get_item", response, expected_params)
-    table.activate()
+    table = mock_table(lambda_module.table, "get_item", "productId", product)
 
     response = lambda_module.handler(apigateway_event, context)
 
@@ -177,17 +147,7 @@ def test_handler_missing(product, apigateway_event, context, lambda_module):
     """
 
     # Stub boto3
-    table = stub.Stubber(lambda_module.table.meta.client)
-    response = {
-        # We do not use ConsumedCapacity
-        "ConsumedCapacity": {}
-    }
-    expected_params = {
-        "TableName": lambda_module.TABLE_NAME,
-        "Key": {"productId": product["productId"]}
-    }
-    table.add_response("get_item", response, expected_params)
-    table.activate()
+    table = mock_table(lambda_module.table, "get_item", "productId")
 
     response = lambda_module.handler(apigateway_event, context)
 
