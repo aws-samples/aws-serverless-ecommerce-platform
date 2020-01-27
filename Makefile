@@ -50,16 +50,16 @@ bootstrap-prod: bootstrap-services bootstrap-repository
 # Bootstrap just the dev environment
 bootstrap-dev:
 	$(info [*] Bootstrap services)
-	@for service in tools/pipeline services --env-only; do \
-		tools/toolbox $$service all --env dev --quiet yes \
-	done
+	@for service in $(shell tools/pipeline services --env-only) ; \
+		do tools/toolbox $$service all --env dev --quiet yes || exit 1 ; \
+		done
 
 # Bootstrap services in non-dev environment
 bootstrap-services:
 	$(info [*] Bootstrap services)
-	@for service in tools/pipeline services; do \
-		tools/toolbox $$service all --env tests --quiet yes \
-	done
+	@for service in $(shell tools/pipeline services) ; \
+		do tools/toolbox $$service all --env tests --quiet yes || exit 1 ; \
+		done
 
 # Push data into the CodeCommit repository
 bootstrap-repository:

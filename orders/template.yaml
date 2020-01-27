@@ -17,11 +17,9 @@ Parameters:
   EventBusName:
     Type: AWS::SSM::Parameter::Value<String>
     Description: EventBridge Event Bus Name
-    Default: /ecommerce/dev/platform/event-bus/name
   UserPoolArn:
     Type: AWS::SSM::Parameter::Value<String>
     Description: Cognito User Pool ARN
-    Default: /ecommerce/dev/users/user-pool/arn
 
 
 Globals:

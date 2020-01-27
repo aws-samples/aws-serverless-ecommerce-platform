@@ -1,3 +1,5 @@
 name: users
 dependencies:
   - platform
+parameters:
+  EventBusName: /ecommerce/{Environment}/platform/event-bus/name

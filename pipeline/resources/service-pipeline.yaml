@@ -80,9 +80,9 @@ Resources:
                 Action:
                   - iam:PassRole
                 Resource:
-                  - !GetAtt PipelineTestsDeployRole.Arn
-                  # - !GetAtt PipelineStagingDeployRole.Arn
-                  # - !GetAtt PipelineProdDeployRole.Arn
+                  - !GetAtt TestsEnvironment.Outputs.RoleArn
+                  # - !GetAtt StagingEnvironment.Outputs.RoleArn
+                  # - !GetAtt ProdEnvironment.Outputs.RoleArn
               # Allow describing CloudFormation stacks
               - Effect: Allow
                 Action:
@@ -164,7 +164,7 @@ Resources:
                     "LogLevel": "DEBUG",
                     "EventBusName": "/ecommerce/tests/platform/event-bus/name"
                   }
-                RoleArn: !GetAtt PipelineTestsDeployRole.Arn
+                RoleArn: !GetAtt TestsEnvironment.Outputs.RoleArn
                 TemplateConfiguration: "TemplateArtifact::config.tests.json"
                 TemplatePath: "TemplateArtifact::template.yaml"
               InputArtifacts:
@@ -180,7 +180,7 @@ Resources:
                 ActionMode: CHANGE_SET_EXECUTE
                 StackName: !Sub "ecommerce-tests-${ServiceName}"
                 ChangeSetName: !Sub "ecommerce-tests-${ServiceName}"
-                RoleArn: !GetAtt PipelineTestsDeployRole.Arn
+                RoleArn: !GetAtt TestsEnvironment.Outputs.RoleArn
               RunOrder: 2
             - Name: tests-integration
               ActionTypeId:
@@ -218,7 +218,7 @@ Resources:
         #             "LogLevel": "DEBUG",
         #             "EventBusName": "/ecommerce/staging/platform/event-bus/name"
         #           }
-        #         RoleArn: !GetAtt PipelineStagingDeployRole.Arn
+        #         RoleArn: !GetAtt StagingEnvironment.Outputs.RoleArn
         #         TemplateConfiguration: "TemplateArtifact::config.staging.json"
         #         TemplatePath: "TemplateArtifact::template.yaml"
         #       InputArtifacts:
@@ -234,7 +234,7 @@ Resources:
         #         ActionMode: CHANGE_SET_EXECUTE
         #         StackName: !Sub "ecommerce-staging-${ServiceName}"
         #         ChangeSetName: !Sub "ecommerce-staging-${ServiceName}"
-        #         RoleArn: !GetAtt PipelineStagingDeployRole.Arn
+        #         RoleArn: !GetAtt StagingEnvironment.Outputs.RoleArn
         #       RunOrder: 2
         #     # TODO: Run end-to-end tests
 
@@ -262,7 +262,7 @@ Resources:
         #             "LogLevel": "DEBUG",
         #             "EventBusName": "/ecommerce/prod/platform/event-bus/name"
         #           }
-        #         RoleArn: !GetAtt PipelineProdDeployRole.Arn
+        #         RoleArn: !GetAtt ProdEnvironment.Outputs.RoleArn
         #         TemplateConfiguration: "TemplateArtifact::config.prod.json"
         #         TemplatePath: "TemplateArtifact::template.yaml"
         #       InputArtifacts:
@@ -278,32 +278,19 @@ Resources:
         #         ActionMode: CHANGE_SET_EXECUTE
         #         StackName: !Sub "ecommerce-prod-${ServiceName}"
         #         ChangeSetName: !Sub "ecommerce-prod-${ServiceName}"
-        #         RoleArn: !GetAtt PipelineProdDeployRole.Arn
+        #         RoleArn: !GetAtt ProdEnvironment.Outputs.RoleArn
         #       RunOrder: 2
 
   #########
   # TESTS #
   #########
-
-  PipelineTestsDeployRole:
-    Type: AWS::IAM::Role
+  TestsEnvironment:
+    Type: AWS::CloudFormation::Stack
     Properties:
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: cloudformation.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: !Sub "${AWS::StackName}-PipelineTestsDeployPolicy"
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              # TODO: scope this down to allowed resources
-              - Effect: Allow
-                Action: "*"
-                Resource: "*"
+      TemplateURL: service-pipeline-environment.yaml
+      Parameters:
+        ServiceName: !Ref ServiceName
+        Environment: tests
 
   TestsProjectRole:
     Type: AWS::IAM::Role
@@ -398,46 +385,22 @@ Resources:
   # # STAGING #
   # ###########
 
-  # PipelineStagingDeployRole:
-  #   Type: AWS::IAM::Role
+  # StagingEnvironment:
+  #   Type: AWS::CloudFormation::Stack
   #   Properties:
-  #     AssumeRolePolicyDocument:
-  #       Version: "2012-10-17"
-  #       Statement:
-  #         - Effect: Allow
-  #           Principal:
-  #             Service: cloudformation.amazonaws.com
-  #           Action: sts:AssumeRole
-  #     Policies:
-  #       - PolicyName: !Sub "${AWS::StackName}-PipelineStagingDeployPolicy"
-  #         PolicyDocument:
-  #           Version: "2012-10-17"
-  #           Statement:
-  #             # TODO: scope this down to allowed resources
-  #             - Effect: Allow
-  #               Action: "*"
-  #               Resource: "*"
+  #     TemplateURL: service-pipeline-environment.yaml
+  #     Parameters:
+  #       ServiceName: !Ref ServiceName
+  #       Environment: staging
 
   # ########
   # # PROD #
   # ########
 
-  # PipelineProdDeployRole:
-  #   Type: AWS::IAM::Role
+  # ProdEnvironment:
+  #   Type: AWS::CloudFormation::Stack
   #   Properties:
-  #     AssumeRolePolicyDocument:
-  #       Version: "2012-10-17"
-  #       Statement:
-  #         - Effect: Allow
-  #           Principal:
-  #             Service: cloudformation.amazonaws.com
-  #           Action: sts:AssumeRole
-  #     Policies:
-  #       - PolicyName: !Sub "${AWS::StackName}-PipelineProdDeployPolicy"
-  #         PolicyDocument:
-  #           Version: "2012-10-17"
-  #           Statement:
-  #             # TODO: scope this down to allowed resources
-  #             - Effect: Allow
-  #               Action: "*"
-  #               Resource: "*"
+  #     TemplateURL: service-pipeline-environment.yaml
+  #     Parameters:
+  #       ServiceName: !Ref ServiceName
+  #       Environment: prod

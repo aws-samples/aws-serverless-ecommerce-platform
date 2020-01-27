@@ -5,4 +5,4 @@ dependencies:
   - users
 parameters:
   EventBusName: /ecommerce/{Environment}/platform/event-bus/name
-  UserPoolId: /ecommerce/{Environment}/users/user-pool/id
+  UserPoolArn: /ecommerce/{Environment}/users/user-pool/arn
