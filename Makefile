@@ -50,7 +50,7 @@ bootstrap-prod: bootstrap-services bootstrap-repository
 # Bootstrap just the dev environment
 bootstrap-dev:
 	$(info [*] Bootstrap services)
-	@for service in tools/pipeline services; do \
+	@for service in tools/pipeline services --env-only; do \
 		tools/toolbox $$service all --env dev --quiet yes \
 	done
 
@@ -61,11 +61,7 @@ bootstrap-services:
 		tools/toolbox $$service all --env tests --quiet yes \
 	done
 
-# Bootstrap the pipeline
-bootstrap-pipeline:
-	$(info [*] Bootstrap pipeline)
-	@tools/toolbox pipeline all --quiet yes
-
+# Push data into the CodeCommit repository
 bootstrap-repository:
 	$(info [*] Bootstrap repository)
 	@git remote add aws $(shell aws ssm get-parameter --name /ecommerce/pipeline/repository/url | jq -r '.Parameter.Value')
