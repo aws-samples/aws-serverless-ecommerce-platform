@@ -49,10 +49,21 @@ Resources:
       AttributeDefinitions:
         - AttributeName: productId
           AttributeType: S
+        - AttributeName: category
+          AttributeType: S
       BillingMode: PAY_PER_REQUEST
       KeySchema:
         - AttributeName: productId
           KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: category
+          KeySchema:
+            - AttributeName: category
+              KeyType: HASH
+            - AttributeName: productId
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES
 

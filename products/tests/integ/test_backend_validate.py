@@ -10,9 +10,6 @@ import requests
 ssm = boto3.client("ssm")
 
 
-print(os.environ["ECOM_ENVIRONMENT"])
-
-
 TABLE_NAME = ssm.get_parameter(
     Name="/ecommerce/{}/products/table/name".format(os.environ["ECOM_ENVIRONMENT"])
 )["Parameter"]["Value"]
@@ -35,7 +32,7 @@ def setup_module(module):
     with open(DATA_FILENAME) as fp:
         correct_product = json.load(fp)
 
-    table = boto3.resource('dynamodb').Table(TABLE_NAME)
+    table = boto3.resource('dynamodb').Table(TABLE_NAME) # pylint: disable=no-member
     table.put_item(Item=correct_product)
 
 
