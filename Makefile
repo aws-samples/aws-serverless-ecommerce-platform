@@ -66,3 +66,10 @@ bootstrap-repository:
 	$(info [*] Bootstrap repository)
 	@git remote add aws $(shell aws ssm get-parameter --name /ecommerce/pipeline/repository/url | jq -r '.Parameter.Value')
 	@git push aws HEAD:master
+
+# Test for pull requests
+pr:
+	$(info [*] Run PR tests)
+	@for service in $(shell tools/pipeline services) ; \
+		do tools/toolbox $$service ci --quiet yes || exit 1 ; \
+		done

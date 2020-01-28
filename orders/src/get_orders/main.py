@@ -9,7 +9,7 @@ from aws_lambda_powertools.tracing import Tracer
 from aws_lambda_powertools.logging import logger_setup, logger_inject_lambda_context
 import boto3
 from boto3.dynamodb.conditions import Key
-from ecom.helpers import message # pylint: disable=import-error
+from ecom.apigateway import cognito_user_id, response # pylint: disable=import-error
 
 
 ENVIRONMENT = os.environ["ENVIRONMENT"]
@@ -53,8 +53,8 @@ def get_orders(user_id: str, next_token: Optional[str]) -> Set[Union[List[dict],
     })
 
     # Send request to DynamoDB
-    response = table.query(**kwargs) # pylint: disable=no-member
-    orders = response.get("Items", [])
+    res = table.query(**kwargs) # pylint: disable=no-member
+    orders = res.get("Items", [])
 
     # Log retrieved informations
     logger.info({
@@ -73,7 +73,7 @@ def get_orders(user_id: str, next_token: Optional[str]) -> Set[Union[List[dict],
     # From: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dynamodb.html#DynamoDB.Table.query
     # If LastEvaluatedKey is empty, then the "last page" of results has been
     # processed and there is no more data to be retrieved.
-    return (orders, response.get("LastEvaluatedKey", {}).get("createdDate", None))
+    return (orders, res.get("LastEvaluatedKey", {}).get("createdDate", None))
 
 
 @logger_inject_lambda_context
@@ -86,15 +86,13 @@ def handler(event, _):
     logger.debug({"message": "Event received", "event": event})
 
     # Retrieve the userId
-    try:
-        user_id = event["requestContext"]["authorizer"]["claims"]["sub"]
+    user_id = cognito_user_id(event)
+    if user_id is not None:
         logger.info({"message": "Received get orders for user", "userId": user_id})
         tracer.put_annotation("userId", user_id)
-    # API Gateway should ensure that the claims are present, but checking here
-    # protects against configuration errors.
-    except KeyError:
+    else:
         logger.warning({"message": "User ID not found in event"})
-        return message("Forbidden", 403)
+        return response("Forbidden", 403)
 
     # Gather the next token, if any
     # event["queryStringParameters"] == None if there is no query string
@@ -107,9 +105,9 @@ def handler(event, _):
     orders, new_next_token = get_orders(user_id, next_token)
 
     # Send the response
-    response = {
+    body = {
         "orders": orders
     }
     if new_next_token is not None:
-        response["nextToken"] = new_next_token
-    return message(response)
+        body["nextToken"] = new_next_token
+    return response(body)

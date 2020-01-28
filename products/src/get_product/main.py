@@ -8,7 +8,7 @@ from typing import Optional
 import boto3
 from aws_lambda_powertools.tracing import Tracer
 from aws_lambda_powertools.logging import logger_setup, logger_inject_lambda_context
-from ecom.helpers import message # pylint: disable=import-error
+from ecom.apigateway import response # pylint: disable=import-error
 
 
 ENVIRONMENT = os.environ["ENVIRONMENT"]
@@ -26,8 +26,8 @@ def get_product(product_id: str) -> Optional[dict]:
     Retrieve the product from DynamoDB
     """
 
-    response = table.get_item(Key={"productId": product_id}) # pylint: disable=no-member
-    product = response.get("Item", None)
+    res = table.get_item(Key={"productId": product_id}) # pylint: disable=no-member
+    product = res.get("Item", None)
 
     # Log retrieved informations
     if product is None:
@@ -58,14 +58,14 @@ def handler(event, _):
         product_id = event["pathParameters"]["productId"]
     except (KeyError, TypeError):
         logger.warning({"message": "Product ID not found in event"})
-        return message("Missing productId", 400)
+        return response("Missing productId", 400)
 
     # Retrieve the product
     product = get_product(product_id)
 
     # 404: Product Not Found
     if product is None:
-        return message({"message": "Product Not Found"}, 404)
+        return response({"message": "Product Not Found"}, 404)
 
     # Send the product
-    return message(product)
+    return response(product)

@@ -5,7 +5,7 @@ import uuid
 import pytest
 from boto3.dynamodb.types import TypeSerializer
 from botocore import stub
-from fixtures import context, lambda_module # pytest: disable=import-error
+from fixtures import apigateway_event, context, lambda_module # pytest: disable=import-error
 
 
 lambda_module = pytest.fixture(scope="module", params=[{
@@ -166,15 +166,16 @@ def test_validate_products(lambda_module, product):
     table.deactivate()
 
 
-def test_handler_bad_body(lambda_module, context, product):
+def test_handler_bad_body(lambda_module, apigateway_event, context, product):
     """
     Test the function handler with a bad body
     """
 
     # Create request
-    event = {
-        "body": json.dumps({"products": [product]})+"{"
-    }
+    event = apigateway_event(
+        iam="USER_ARN",
+        body=json.dumps({"products": [product]})+"{"
+    )
 
     # Parse request
     response = lambda_module.handler(event, context)
@@ -188,15 +189,16 @@ def test_handler_bad_body(lambda_module, context, product):
     assert isinstance(response_body["message"], str)
 
 
-def test_handler_missing_products(lambda_module, context, product):
+def test_handler_missing_products(lambda_module, apigateway_event, context, product):
     """
     Test the function handler with missing 'products' in request body
     """
 
     # Create request
-    event = {
-        "body": json.dumps({})
-    }
+    event = apigateway_event(
+        iam="USER_ARN",
+        body=json.dumps({})
+    )
 
     # Parse request
     response = lambda_module.handler(event, context)
@@ -210,7 +212,7 @@ def test_handler_missing_products(lambda_module, context, product):
     assert isinstance(response_body["message"], str)
 
 
-def test_handler_incorrect(lambda_module, context, product):
+def test_handler_incorrect(lambda_module, apigateway_event, context, product):
     """
     Test the function handler against an incorrect product
     """
@@ -219,9 +221,10 @@ def test_handler_incorrect(lambda_module, context, product):
     product_incorrect["price"] += 200
 
     # Create request
-    event = {
-        "body": json.dumps({"products": [product_incorrect]})
-    }
+    event = apigateway_event(
+        iam="USER_ARN",
+        body=json.dumps({"products": [product_incorrect]})
+    )
 
     # Stub boto3
     table = stub.Stubber(lambda_module.table.meta.client)
@@ -254,15 +257,16 @@ def test_handler_incorrect(lambda_module, context, product):
     assert len(response_body["products"]) == 1
 
 
-def test_handler_correct(lambda_module, context, product):
+def test_handler_correct(lambda_module, apigateway_event, context, product):
     """
     Test the function handler against an incorrect product
     """
 
     # Create request
-    event = {
-        "body": json.dumps({"products": [product]})
-    }
+    event = apigateway_event(
+        iam="USER_ARN",
+        body=json.dumps({"products": [product]})
+    )
 
     # Stub boto3
     table = stub.Stubber(lambda_module.table.meta.client)
