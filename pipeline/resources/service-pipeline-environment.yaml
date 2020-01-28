@@ -37,6 +37,17 @@ Resources:
                     aws:ResourceTag/Environment: !Ref Environment
                     # Restrict to the pipeline region
                     aws:RequestedRegion: !Ref AWS::Region
+              # Global services
+              - Effect: Allow
+                Action:
+                  - cloudfront:*
+                  - iam:*
+                  - route53:*
+                Resource: "*"
+                Condition:
+                  ForAllValues:StringEqualsIfExists:
+                    # Restrict to the given environment
+                    aws:ResourceTag/Environment: !Ref Environment
 
 
 Outputs:

@@ -355,6 +355,8 @@ Resources:
               - Effect: Allow
                 Action:
                   - cognito-idp:Admin*
+                  - cognito-idp:CreateUserPoolClient
+                  - cognito-idp:DeleteUserPoolClient
                 Resource: "*"
 
   TestsProject:
