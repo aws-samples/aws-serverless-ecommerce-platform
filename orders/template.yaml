@@ -37,6 +37,11 @@ Globals:
         POWERTOOLS_TRACE_DISABLED: "false"
         LOG_LEVEL: !Ref LogLevel
 
+
+Conditions:
+  IsNotProd: !Not [!Equals [!Ref Environment, prod]]
+
+
 Resources:
   #########
   # TABLE #
@@ -157,6 +162,31 @@ Resources:
   #     LogGroupName: !Sub "/aws/lambda/${PostOrderFunction}"
   #     RetentionInDays: !Ref RetentionInDays
 
+  TableUpdateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      CodeUri: src/table_update/
+      Events:
+        DynamoDB:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt Table.StreamArn
+            StartingPosition: TRIM_HORIZON
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: "*"
+
+  TableUpdateLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${TableUpdateFunction}"
+      RetentionInDays: !Ref RetentionInDays
+
   ###############
   # API GATEWAY #
   ###############
@@ -179,3 +209,16 @@ Resources:
       Name: !Sub /ecommerce/${Environment}/orders/api/url
       Type: String
       Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com/prod"
+
+  ############
+  # LISTENER #
+  ############
+  Listener:
+    Type: AWS::CloudFormation::Stack
+    Condition: IsNotProd
+    Properties:
+      TemplateURL: ../../shared/templates/listener.yaml
+      Parameters:
+        Environment: !Ref Environment
+        EventBusName: !Ref EventBusName
+        ServiceName: "orders"
