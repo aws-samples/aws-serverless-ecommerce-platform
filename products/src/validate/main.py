@@ -9,7 +9,7 @@ from typing import List, Optional, Union, Set
 import boto3
 from aws_lambda_powertools.tracing import Tracer
 from aws_lambda_powertools.logging import logger_setup, logger_inject_lambda_context
-from ecom.helpers import message # pylint: disable=import-error
+from ecom.apigateway import iam_user_id, response # pylint: disable=import-error
 
 
 ENVIRONMENT = os.environ["ENVIRONMENT"]
@@ -97,22 +97,27 @@ def handler(event, _):
     Lambda function handler for /backend/validate
     """
 
+    user_id = iam_user_id(event)
+    if user_id is None:
+        logger.warning({"message": "User ARN not found in event"})
+        return response("Unauthorized", 401)
+
     # Extract the list of products
     try:
         body = json.loads(event["body"])
     except Exception as exc: # pylint: disable=broad-except
         logger.warning("Exception caught: %s", exc)
-        return message("Failed to parse JSON body", 400)
+        return response("Failed to parse JSON body", 400)
 
     if "products" not in body:
-        return message("Missing 'products' in body", 400)
+        return response("Missing 'products' in body", 400)
 
     products, reason = validate_products(body["products"])
 
     if len(products) > 0:
-        return message({
+        return response({
             "message": reason,
             "products": products
         }, 200)
 
-    return message("All products are valid")
+    return response("All products are valid")

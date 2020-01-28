@@ -1,6 +1,59 @@
 import importlib
 import os
 import sys
+from typing import Optional
+import pytest
+
+
+
+@pytest.fixture()
+def apigateway_event():
+    """
+    Return a base API Gateway
+    """
+
+    def _apigateway_event(
+            resource: str = "/",
+            path: str = "/",
+            method: str = "GET",
+            body: Optional[str] = None,
+            iam: Optional[str] = None,
+            cognito: Optional[str] = None,
+            path_params: Optional[dict] = None,
+            query_params: Optional[dict] = None
+            ) -> dict:
+        """
+        API Gateway event generator
+        """
+        event = {
+            "resource": resource,
+            "path": path,
+            "httpMethod": method,
+            "headers": None,
+            "multiValueHeaders": None,
+            "queryStringParameters": None,
+            "multiValueQueryStringParameters": None,
+            "pathParameters": None,
+            "stageVariables": None,
+            "requestContext": None,
+            "body": body,
+            "isBase64Encoded": False
+        }
+
+        if cognito is not None:
+            event["requestContext"] = {"authorizer": {"claims": {"sub": cognito}}}
+        if iam is not None:
+            event["requestContext"] = {"identity": {"userArn": iam}}
+
+        if path_params is not None:
+            event["pathParameters"] = path_params
+
+        if query_params is not None:
+            event["queryStringParameters"] = query_params
+
+        return event
+
+    return _apigateway_event
 
 
 def context():

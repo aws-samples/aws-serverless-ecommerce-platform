@@ -8,7 +8,7 @@ from typing import List, Optional, Tuple
 import boto3
 from aws_lambda_powertools.tracing import Tracer
 from aws_lambda_powertools.logging import logger_setup, logger_inject_lambda_context
-from ecom.helpers import message # pylint: disable=import-error
+from ecom.apigateway import response # pylint: disable=import-error
 
 
 ENVIRONMENT = os.environ["ENVIRONMENT"]
@@ -32,9 +32,9 @@ def get_products(next_token: Optional[str] = None) -> Tuple[List[dict], Optional
     if next_token is not None:
         kwargs["ExclusiveStartKey"] = {"productId": next_token}
 
-    response = table.scan(**kwargs)
+    res = table.scan(**kwargs)
 
-    products = response.get("Items", [])
+    products = res.get("Items", [])
 
     # Log retrieved informations
     if len(products) == 0:
@@ -47,9 +47,7 @@ def get_products(next_token: Optional[str] = None) -> Tuple[List[dict], Optional
             "productCount": len(products)
         })
 
-    next_token = response.get("LastEvaluatedKey", {}).get("productId", None)
-
-    return products, next_token
+    return products, res.get("LastEvaluatedKey", {}).get("productId", None)
 
 
 @logger_inject_lambda_context
@@ -76,4 +74,4 @@ def handler(event, _):
     if next_token is not None:
         retval["nextToken"] = next_token
 
-    return message(retval)
+    return response(retval)

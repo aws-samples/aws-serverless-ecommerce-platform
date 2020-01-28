@@ -8,7 +8,7 @@ from typing import Optional
 from aws_lambda_powertools.tracing import Tracer
 from aws_lambda_powertools.logging import logger_setup, logger_inject_lambda_context
 import boto3
-from ecom.helpers import message # pylint: disable=import-error
+from ecom.apigateway import cognito_user_id, iam_user_id, response # pylint: disable=import-error
 
 
 ENVIRONMENT = os.environ["ENVIRONMENT"]
@@ -28,8 +28,8 @@ def get_order(order_id: str) -> Optional[dict]:
     """
 
     # Send request to DynamoDB
-    response = table.get_item(Key={"orderId": order_id}) # pylint: disable=no-member
-    order = response.get("Item", None)
+    res = table.get_item(Key={"orderId": order_id}) # pylint: disable=no-member
+    order = res.get("Item", None)
 
     # Log retrieved informations
     if order is None:
@@ -56,32 +56,29 @@ def handler(event, _):
     logger.debug({"message": "Event received", "event": event})
 
     # Retrieve the userId
-    try:
-        user_id = event["requestContext"]["authorizer"]["claims"]["sub"]
+    user_id = cognito_user_id(event)
+    if user_id is not None:
         iam_user = False
         logger.info({"message": "Received get order from user", "userId": user_id})
         tracer.put_annotation("userId", user_id)
         tracer.put_annotation("iamUser", False)
-    # API Gateway should ensure that the claims are present, but checking here
-    # protects against configuration errors.
-    except KeyError:
-        # Check if there is an IAM user ARN
-        try:
-            user_id = event["requestContext"]["identity"]["userArn"]
-            iam_user = True
+    else:
+        user_id = iam_user_id(event)
+        if user_id is not None:
             logger.info({"message": "Received get order from IAM user", "userArn": user_id})
             tracer.put_annotation("userArn", user_id)
             tracer.put_annotation("iamUser", True)
-        except KeyError:
+            iam_user = True
+        else:
             logger.warning({"message": "User ID not found in event"})
-            return message("Unauthorized", 401)
+            return response("Unauthorized", 401)
 
     # Retrieve the orderId
     try:
         order_id = event["pathParameters"]["orderId"]
     except (KeyError, TypeError):
         logger.warning({"message": "Order ID not found in event"})
-        return message("Missing orderId", 400)
+        return response("Missing orderId", 400)
 
     # Retrieve the order from DynamoDB
     order = get_order(order_id)
@@ -90,7 +87,7 @@ def handler(event, _):
     # This includes both when the item is not found and when the user IDs do
     # not match.
     if order is None or (not iam_user and user_id != order["userId"]):
-        return message("Order not found", 404)
+        return response("Order not found", 404)
 
     # Send the response
-    return message(order)
+    return response(order)
