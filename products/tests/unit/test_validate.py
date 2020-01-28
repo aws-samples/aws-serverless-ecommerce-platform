@@ -5,7 +5,7 @@ import uuid
 import pytest
 from boto3.dynamodb.types import TypeSerializer
 from botocore import stub
-from fixtures import apigateway_event, context, lambda_module # pytest: disable=import-error
+from fixtures import apigateway_event, context, lambda_module # pylint: disable=import-error
 
 
 lambda_module = pytest.fixture(scope="module", params=[{
