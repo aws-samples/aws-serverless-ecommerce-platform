@@ -3,24 +3,17 @@ OrderEventsFunction
 """
 
 
-import copy
-from enum import Enum
 import os
-from typing import Dict, Generator, List, Optional
+from typing import Dict, List, Optional
 from aws_lambda_powertools.tracing import Tracer
 from aws_lambda_powertools.logging import logger_setup, logger_inject_lambda_context
 import boto3
+from boto3.dynamodb.conditions import Key
 
 
 ENVIRONMENT = os.environ["ENVIRONMENT"]
 METADATA_KEY = os.environ["METADATA_KEY"]
 TABLE_NAME = os.environ["TABLE_NAME"]
-
-
-class Status(Enum):
-    NEW = "NEW"
-    PROCESSING = "PROCESSING"
-    COMPLETE = "COMPLETE"
 
 
 dynamodb = boto3.resource("dynamodb") # pylint: disable=invalid-name
@@ -56,14 +49,14 @@ def get_diff(old_products: List[dict], new_products: List[dict]) -> Dict[str, di
             # As DynamoDB put_item operations overwrite the whole item, we
             # don't need to save the old item.
             diff["modified"].append(product)
-        
+
         # Remove the item from old
         del old[product_id]
 
     # Since we delete values from 'old' as we encounter them, only values that
     # are in 'old' but not in 'new' are left. Therefore, these were deleted
-    # from 
-    diff["deleted"] = list(old.products.values())
+    # from the original order.
+    diff["deleted"] = list(old.values())
 
     return diff
 
@@ -88,7 +81,10 @@ def get_products(order_id: str) -> List[dict]:
     Retrieve products from the DynamoDB table
     """
 
-    res = table.query(Key={"orderId": order_id})
+    res = table.query(
+        KeyConditionExpression=Key("orderId").eq(order_id),
+        Limit=100
+    )
     logger.info({
         "message": "Retrieving {} products from order {}".format(
             len(res.get("Items", [])), order_id
@@ -100,8 +96,9 @@ def get_products(order_id: str) -> List[dict]:
 
     while res.get("LastEvaluatedKey", None) is not None:
         res = table.query(
-            Key={"orderId": order_id},
-            ExclusiveStartKey=res["LastEvaluatedKey"]
+            KeyConditionExpression=Key("orderId").eq(order_id),
+            ExclusiveStartKey=res["LastEvaluatedKey"],
+            Limit=100
         )
         logger.info({
             "message": "Retrieving {} products from order {}".format(
@@ -167,7 +164,7 @@ def delete_products(order_id: str, products: Optional[list] = None) -> None:
 
 
 @tracer.capture_method
-def save_metadata(order_id: str, last_modified: str, status: str = Status.NEW) -> None:
+def save_metadata(order_id: str, modified_date: str, status: str = "NEW") -> None:
     """
     Save metadata in the DynamoDB table
     """
@@ -175,7 +172,7 @@ def save_metadata(order_id: str, last_modified: str, status: str = Status.NEW) -
     item = {
         "orderId": order_id,
         "productId": METADATA_KEY,
-        "lastModified": last_modified,
+        "modifiedDate": modified_date,
         "status": status
     }
 
@@ -222,7 +219,7 @@ def update_products(order_id: str, old_products: List[dict], new_products: List[
     diff = get_diff(old_products, new_products)
 
     # As DynamoDB put_item overwrite existing items, we can perform both steps
-    # in one go.    
+    # in one go.
     if len(diff["created"]) + len(diff["modified"]) > 0:
         save_products(order_id, diff["created"] + diff["modified"])
 
@@ -241,7 +238,7 @@ def on_order_created(order: dict):
     # Idempotency check
     metadata = get_metadata(order_id)
     # Check if the metadata exist and is newer/same version as the event
-    if metadata is not None and metadata["lastModified"] >= order["lastModified"]:
+    if metadata is not None and metadata["modifiedDate"] >= order["modifiedDate"]:
         logger.info({
             "message": "Order {} is already in the database".format(order_id),
             "orderId": order_id
@@ -250,7 +247,7 @@ def on_order_created(order: dict):
         return
 
     save_products(order_id, order["products"])
-    save_metadata(order_id, order["lastModified"])
+    save_metadata(order_id, order["modifiedDate"])
 
 
 @tracer.capture_method
@@ -261,21 +258,21 @@ def on_order_modified(old_order: dict, new_order: dict):
 
     order_id = old_order["orderId"]
 
-    #Idempotency check
+    # Idempotency check
     metadata = get_metadata(order_id)
     # If no metadata, the order is not in the database
     if metadata is None:
         save_products(order_id, new_order["products"])
-        save_metadata(order_id, new_order["lastModified"])
+        save_metadata(order_id, new_order["modifiedDate"])
     # The order is not new, cannot modify it anymore
-    elif metadata["status"] != Status.NEW:
+    elif metadata["status"] != "NEW":
         return
     # 'new_order' is older or the same as the last known state
-    elif metadata["lastModified"] >= new_order["lastModified"]:
+    elif metadata["modifiedDate"] >= new_order["modifiedDate"]:
         return
 
     update_products(old_order["orderId"], old_order["products"], new_order["products"])
-    save_metadata(old_order["orderId"], new_order["lastModified"], metadata["status"])
+    save_metadata(old_order["orderId"], new_order["modifiedDate"], metadata["status"])
 
 
 @tracer.capture_method
@@ -288,11 +285,9 @@ def on_order_deleted(order: dict):
 
     # Idempotency check
     metadata = get_metadata(order_id)
-    # If no metadata, the order is not in the database
-    if metadata is None:
-        return
-    # Cannot cancel the order if it is not new
-    elif metadata["status"] != Status.NEW:
+    # If no metadata, the order is not in the database.
+    # If the order status is not 'NEW', we cannot cancel the order.
+    if metadata is None or metadata["status"] != "NEW":
         return
 
     delete_products(order_id, order["products"])

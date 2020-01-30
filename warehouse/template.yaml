@@ -65,20 +65,28 @@ Resources:
           Projection:
             ProjectionType: ALL
 
-  OrderEventsFunction:
+  OnOrderEventsFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: src/order_events/
       Events:
-        OrderEvent:
-          Type: EventBridgeRule
-          Pattern:
-            # Capture all orders events
-            source: ecommerce.orders
+        Orders:
+          Type: CloudWatchEvent
+          Properties:
+            EventBusName: !Ref EventBusName
+            Pattern:
+              # Capture all orders events
+              source: [ecommerce.orders]
+              detail-type:
+                - OrderCreated
+                - OrderModified
+                - OrderDeleted
       EventInvokeConfig:
         # Put failed events on a DLQ
         DestinationConfig:
-          OnFailure: !GetAtt DeadLetterQueue.Outputs.QueueArn
+          OnFailure:
+            Type: SQS
+            Destination: !GetAtt DeadLetterQueue.Outputs.QueueArn
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref Table
@@ -89,10 +97,10 @@ Resources:
               Action: sqs:SendMessage
               Resource: !GetAtt DeadLetterQueue.Outputs.QueueArn
 
-  OrderEventsLogGroup:
+  OnOrderEventsLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "/aws/lambda/${OrderEventsFunction}"
+      LogGroupName: !Sub "/aws/lambda/${OnOrderEventsFunction}"
       RetentionInDays: !Ref RetentionInDays
 
   #####################
