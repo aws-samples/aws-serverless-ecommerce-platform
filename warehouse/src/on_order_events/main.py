@@ -264,15 +264,11 @@ def on_order_modified(old_order: dict, new_order: dict):
     if metadata is None:
         save_products(order_id, new_order["products"])
         save_metadata(order_id, new_order["modifiedDate"])
-    # The order is not new, cannot modify it anymore
-    elif metadata["status"] != "NEW":
-        return
-    # 'new_order' is older or the same as the last known state
-    elif metadata["modifiedDate"] >= new_order["modifiedDate"]:
-        return
-
-    update_products(old_order["orderId"], old_order["products"], new_order["products"])
-    save_metadata(old_order["orderId"], new_order["modifiedDate"], metadata["status"])
+    # Accepting modifications only if the order is in the 'NEW' state and
+    # the event is newer than the last known state
+    elif metadata["status"] == "NEW" and metadata["modifiedDate"] < new_order["modifiedDate"]:
+        update_products(old_order["orderId"], old_order["products"], new_order["products"])
+        save_metadata(old_order["orderId"], new_order["modifiedDate"], metadata["status"])
 
 
 @tracer.capture_method

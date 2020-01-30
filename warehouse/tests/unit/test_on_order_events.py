@@ -2,6 +2,7 @@ import copy
 import datetime
 import random
 import uuid
+from botocore import stub
 import pytest
 from fixtures import context, lambda_module, get_order, get_product # pylint: disable=import-error
 from helpers import mock_table # pylint: disable=import-error,no-name-in-module
@@ -116,6 +117,46 @@ def test_get_products(lambda_module, order, order_products):
     table.deactivate()
 
     assert response == order_products
+
+
+def test_get_products_next(lambda_module, order, order_products):
+    """
+    Test get_products() with a LastEvaluatedKey value
+    """
+
+    table = mock_table(
+        lambda_module.table, "query",
+        ["orderId", "productId"],
+        response={
+            "Items": order_products,
+            "LastEvaluatedKey": {
+                "orderId": {"S": order_products[-1]["orderId"]},
+                "productId": {"S": order_products[-1]["productId"]}
+            }
+        },
+        items=order_products
+    )
+    mock_table(
+        table, "query",
+        ["orderId", "productId"],
+        expected_params={
+            "TableName": lambda_module.table.name,
+            "KeyConditionExpression": stub.ANY,
+            "Limit": 100,
+            "ExclusiveStartKey": {
+                "orderId": order_products[-1]["orderId"],
+                "productId": order_products[-1]["productId"]
+            }
+        },
+        items=order_products
+    )
+
+    response = lambda_module.get_products(order["orderId"])
+
+    table.assert_no_pending_responses()
+    table.deactivate()
+
+    assert response == order_products + order_products
 
 
 def test_delete_metadata(lambda_module, order_metadata):
@@ -289,6 +330,51 @@ def test_on_order_created_idempotent(lambda_module, order, order_metadata):
     table.deactivate()
 
 
+def test_on_order_modified_new(lambda_module, order, order_products, order_metadata):
+    """
+    Test on_order_modified() with a new event
+    """
+
+    table = mock_table(
+        lambda_module.table, "get_item", ["orderId", "productId"]
+    )
+    mock_table(
+        table, "batch_write_item",
+        ["orderId", "productId"],
+        table_name=lambda_module.table.name,
+        items=[
+            {"PutRequest": {"Item": product}}
+            for product in order_products
+        ]
+    )
+    mock_table(
+        table, "put_item", ["orderId", "productId"],
+        table_name=lambda_module.table.name,
+        items=order_metadata
+    )
+
+    lambda_module.on_order_modified(order, order)
+
+    table.assert_no_pending_responses()
+    table.deactivate()
+
+
+def test_on_order_modified_idempotent(lambda_module, order, order_metadata):
+    """
+    Test on_order_modified() with an already processed event
+    """
+
+    table = mock_table(
+        lambda_module.table, "get_item", ["orderId", "productId"],
+        items=order_metadata
+    )
+
+    lambda_module.on_order_modified(order, order)
+
+    table.assert_no_pending_responses()
+    table.deactivate()
+
+
 def test_on_order_deleted(lambda_module, order, order_products, order_metadata):
     """
     Test on_order_deleted()
@@ -323,7 +409,7 @@ def test_on_order_deleted(lambda_module, order, order_products, order_metadata):
     table.deactivate()
 
 
-def test_on_order_deleted_idempotent(lambda_module, order, order_products, order_metadata):
+def test_on_order_deleted_idempotent(lambda_module, order):
     """
     Test on_order_deleted() with an already deleted item
     """
@@ -333,6 +419,77 @@ def test_on_order_deleted_idempotent(lambda_module, order, order_products, order
     )
     
     lambda_module.on_order_deleted(order)
+
+    table.assert_no_pending_responses()
+    table.deactivate()
+
+
+def test_handler_created(lambda_module, context, order, order_products, order_metadata):
+    """
+    Test handler() with OrderCreated
+    """
+
+    table = mock_table(
+        lambda_module.table, "get_item", ["orderId", "productId"]
+    )
+    mock_table(
+        table, "batch_write_item",
+        ["orderId", "productId"],
+        table_name=lambda_module.table.name,
+        items=[
+            {"PutRequest": {"Item": product}}
+            for product in order_products
+        ]
+    )
+    mock_table(
+        table, "put_item", ["orderId", "productId"],
+        table_name=lambda_module.table.name,
+        items=order_metadata
+    )
+
+    lambda_module.handler({
+        "source": "ecommerce.orders",
+        "detail-type": "OrderCreated",
+        "detail": order
+    }, context)
+
+    table.assert_no_pending_responses()
+    table.deactivate()
+
+
+def test_handler_deleted(lambda_module, context, order, order_products, order_metadata):
+    """
+    Test handler() with OrderDeleted
+    """
+
+    table = mock_table(
+        lambda_module.table, "get_item", ["orderId", "productId"],
+        items=order_metadata
+    )
+    mock_table(
+        table, "batch_write_item",
+        ["orderId", "productId"],
+        table_name=lambda_module.table.name,
+        items=[
+            {"DeleteRequest": {"Key": {
+                "orderId": product["orderId"],
+                "productId": product["productId"]
+            }}}
+            for product in order_products
+        ]
+    )
+    mock_table(
+        table, "delete_item",
+        ["orderId", "productId"],
+        table_name=lambda_module.table.name,
+        items=order_metadata
+    )
+
+    lambda_module.handler({
+        "source": "ecommerce.orders",
+        "detail-type": "OrderDeleted",
+        "detail": order
+    }, context)
 
     table.assert_no_pending_responses()
     table.deactivate()
