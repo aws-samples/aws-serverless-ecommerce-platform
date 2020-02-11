@@ -35,11 +35,16 @@ components:
                   $ref: "../../shared/resources/schemas.yaml#/Order"
                 new:
                   $ref: "../../shared/resources/schemas.yaml#/Order"
+                changed:
+                  type: array
+                  description: Array containing field names that were changed
+                  items:
+                    type: string
 
-    OrderCancelled:
+    OrderDeleted:
       x-amazon-events-source: ecommerce.order
-      x-amazon-events-detail-type: OrderCancelled
-      description: Event emitted when an order is cancelled.
+      x-amazon-events-detail-type: OrderDeleted
+      description: Event emitted when an order is deleted.
       allOf:
         - $ref: "../../shared/resources/schemas.yaml#/EventBridgeHeader"
         - type: object

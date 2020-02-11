@@ -145,7 +145,8 @@ def modify_data(order):
         "DetailType": "OrderDeleted",
         "Detail": json.dumps({
             "old": order,
-            "new": new_order
+            "new": new_order,
+            "changed": ["status"]
         }),
         "EventBusName": "EVENT_BUS_NAME"
     }
