@@ -1,0 +1,34 @@
+openapi: "3.0.2"
+info:
+  title: Warehouse events
+  version: 1.0.0
+  license:
+    name: MIT-0
+  
+paths: {}
+
+components:
+  schemas:
+    PackageCreated:
+      x-amazon-event-source: ecommerce.warehouse
+      x-amazon-events-detail-type: PackageCreated
+      description: Event emitted when an order is packaged and ready to be shipped
+      allOf:
+        - $ref: "../../shared/resources/schemas.yaml#/EventBridgeHeader"
+        - type: object
+          properties:
+            detail:
+              type: object
+              required:
+                - orderId
+                - products
+              properties:
+                orderId:
+                  type: string
+                  format: uuid
+                  description: Identifier for the order relative to the package
+                  example: b2d0c356-f92b-4629-a87f-786331c2842f
+                products:
+                  type: array
+                  items:
+                    $ref: "../../shared/resources/schemas.yaml#/Product"
