@@ -56,18 +56,32 @@ def ddb_to_event(
         }, cls=Encoder)
 
     elif ddb_record["eventName"].upper() == "MODIFY":
+        new = {
+            k: deserialize(v)
+            for k, v
+            in ddb_record["dynamodb"]["NewImage"].items()
+        }
+        old = {
+            k: deserialize(v)
+            for k, v
+            in ddb_record["dynamodb"]["OldImage"].items()
+        }
+
+        # Old keys not in NewImage
+        changed = [k for k in old.keys() if k not in new.keys()]
+        for k in new.keys():
+            # New keys not in OldImage
+            if k not in old.keys():
+                changed.append(k)
+            # New keys that are not equal to old values
+            elif new[k] != old[k]:
+                changed.append(k)
+
         event["DetailType"] = "{}Modified".format(object_type)
         event["Detail"] = json.dumps({
-            "new": {
-                k: deserialize(v)
-                for k, v
-                in ddb_record["dynamodb"]["NewImage"].items()
-            },
-            "old": {
-                k: deserialize(v)
-                for k, v
-                in ddb_record["dynamodb"]["OldImage"].items()
-            }
+            "new": new,
+            "old": old,
+            "changed": changed
         }, cls=Encoder)
 
     else:

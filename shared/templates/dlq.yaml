@@ -1,0 +1,47 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+
+Parameters:
+  AlarmAction:
+    Type: String
+    Default: ""
+  Threshold:
+    Type: Number
+    Description: Number of messages sent before triggering the alarm
+    Default: 1
+
+
+Conditions:
+  HasAction: !Not [!Equals [!Ref AlarmAction, ""]]
+
+
+Resources:
+  DeadLetterQueue:
+    Type: AWS::SQS::Queue
+
+  DeadLetterQueueAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions: !If [ HasAction, [!Ref AlarmAction], !Ref AWS::NoValue ]
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt DeadLetterQueue.QueueName
+      EvaluationPeriods: 1
+      MetricName: NumberOfMessagesSent
+      Namespace: AWS/SQS
+      Statistic: Sum
+      Threshold: !Ref Threshold
+      TreatMissingData: notBreaching
+      Unit: Count
+
+
+Outputs:
+  QueueArn:
+    Value: !GetAtt DeadLetterQueue.Arn
+
+  QueueName:
+    Value: !GetAtt DeadLetterQueue.QueueName
+
+  QueueURL:
+    Value: !Ref DeadLetterQueue

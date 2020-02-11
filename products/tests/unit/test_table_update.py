@@ -191,7 +191,8 @@ def modify_data():
         "DetailType": "ProductModified",
         "Detail": json.dumps({
             "old": product_old,
-            "new": product_new
+            "new": product_new,
+            "changed": ["name", "price", "package"]
         }),
         "EventBusName": "EVENT_BUS_NAME"
     }
