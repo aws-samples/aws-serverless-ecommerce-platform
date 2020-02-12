@@ -57,15 +57,26 @@ Resources:
       KeySchema:
         - AttributeName: orderId
           KeyType: HASH
+        - AttributeName: productId
+          KeyType: RANGE
       GlobalSecondaryIndexes:
         - IndexName: product
           KeySchema:
             - AttributeName: productId
               KeyType: HASH
+            - AttributeName: orderId
+              KeyType: RANGE
           Projection:
             ProjectionType: ALL
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES
+
+  TableParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /ecommerce/${Environment}/warehouse/table/name
+      Type: String
+      Value: !Ref Table
 
   #############
   # FUNCTIONS #
@@ -74,7 +85,7 @@ Resources:
   OnOrderEventsFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: src/order_events/
+      CodeUri: src/on_order_events/
       Events:
         Orders:
           Type: CloudWatchEvent
@@ -127,6 +138,10 @@ Resources:
               Action:
                 - events:PutEvents
               Resource: "*"
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+              Resource: !GetAtt Table.Arn
 
   TableUpdateLogGroup:
     Type: AWS::Logs::LogGroup

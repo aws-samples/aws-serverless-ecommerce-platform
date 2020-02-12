@@ -30,6 +30,7 @@ Resources:
       EvaluationPeriods: 1
       MetricName: NumberOfMessagesSent
       Namespace: AWS/SQS
+      Period: 300
       Statistic: Sum
       Threshold: !Ref Threshold
       TreatMissingData: notBreaching

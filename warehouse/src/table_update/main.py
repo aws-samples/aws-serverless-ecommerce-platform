@@ -35,8 +35,11 @@ def send_events(events: List[dict]):
     Send events to EventBridge
     """
 
-    logger.info("Sending %d events to EventBridge", len(events))
-    eventbridge.put_events(Entries=events)
+    if len(events) > 0:
+        logger.info("Sending %d events to EventBridge", len(events))
+        eventbridge.put_events(Entries=events)
+    else:
+        logger.info("Skip sending %d event to EventBridge", len(events))
 
 
 @tracer.capture_method
@@ -48,8 +51,8 @@ def parse_record(ddb_record: dict) -> Optional[dict]:
     # Discard records that concern removed events, non-metadata items or items that are
     # not in the COMPLETED status.
     if (ddb_record["eventName"].upper() == "REMOVE"
-        or ddb_record["dynamodb"]["NewImage"]["productId"]["S"] != METADATA_KEY
-        or ddb_record["dynamodb"]["NewImage"]["status"]["S"] != "COMPLETED"):
+            or ddb_record["dynamodb"]["NewImage"]["productId"]["S"] != METADATA_KEY
+            or ddb_record["dynamodb"]["NewImage"]["status"]["S"] != "COMPLETED"):
         return None
 
     # Gather information
