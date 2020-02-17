@@ -2,9 +2,11 @@ Conventions
 ===========
 
 * [API standards](#api-standards)
-* [Service folder structure](#service-folder-structure)
+* [Events naming](#events-naming)
 * [Passing resources across services](#passing-resources-across-services)
 * [Python 3](#python-3)
+* [Service folder structure](#service-folder-structure)
+
 
 ## API standards
 
@@ -51,17 +53,67 @@ Admin-only paths should be prefixed by `/admin`. For example: `PUT /admin/{produ
 
 All other requests should not use any specific prefix. For example: `GET /{productId}`.
 
-## Service folder structure
+## Events naming
 
-Each service should have the following structure in its folder:
+When creating new events, services should use the following naming convention for detail-types.
 
-* `/{service}/metadata.yaml`: File containing information about the service, such as its name, permissions, dependencies and parameters.
-* `/{service}/resources/openapi.yaml` (optional): File containing the OpenAPI specification. This is optional if the service does not provide an API.
-* `/{service}/resources/events.yaml` (optional): File containing the event schemas for EventBridge in OpenAPI format. This is optional if the service does not emit events.
-* `/{service}/src/{function}/` (optional): Source code for Lambda functions. This is optional if the service does not provide Lambda functions or include the code in the template itself.
-* `/{service}/template.yaml`: CloudFormation template for the service.
-* `/{service}/tests/integ/` (optional): Contains integration tests that are run on a deployed infrastructure.
-* `/{service}/tests/unit/{function}/` (optional): Contains unit tests that are run locally.
+### `[Resource]Created`
+
+This event results from the creation of a specific resource owned by the service. The detail must contain all the values of that resource.
+
+### `[Resource]Deleted`
+
+This event results from the deletion of a specific resource owned by the service. The detail must contain the resource identifier (e.g. `resourceId`) and can contain all the other information.
+
+### `[Resource]Modified`
+
+This event results from the modification of a specific resource owned by the service. The detail must contain three parameters: `old`, `new` and `changed`.
+
+* `old` should contain the old values of the resource.
+* `new` should contain the new values.
+* `changed` should contain an array of parameter names that were changed. For nested parameters, this could be either the root parameter name (`rootParam`), or the list of parameters separated by dots (`rootParam.childParam`).
+  If the modification concerns an element in an array, the array itself should be referenced (`rootParam.arrayParam`), not the specific index (not `rootParam.arrayParam[3]`).
+
+For example:
+
+```json
+{
+  "source": "ecommerce.products",
+  "detail-type": "ProductChanged",
+  "resources": ["c60d29c0-434e-4efc-b893-1c604d0718cc"]
+  "detail": {
+    "old": {
+      "productId": "c60d29c0-434e-4efc-b893-1c604d0718cc",
+      "name": "Sample Product",
+      "price": 500,
+      "package": {
+        "width": 500,
+        "height": 300,
+        "length": 200,
+        "weight": 1000
+      }
+    },
+    "new": {
+      "productId": "c60d29c0-434e-4efc-b893-1c604d0718cc",
+      "price": 500,
+      "package": {
+        "width": 500,
+        "height": 300,
+        "length": 350,
+        "weight": 1000
+      }
+    },
+    "changed": [
+      "price",
+      "package.length"
+    ]
+  }
+}
+```
+
+### `[Operation]Failed`
+
+This event results from the failure to perform an operation that is owned by the service. The detail should contain the resource identifier on which the operation applies.
 
 ## Passing resources across services
 
@@ -113,3 +165,15 @@ parameters:
 Services should use [Python 3.8](https://docs.python.org/3/whatsnew/3.8.html) whenever possible, both for tests and for Lambda function code. In the same way, internal tools should be made using Python 3.8.
 
 Tests should be written for [pytest](https://docs.pytest.org/en/latest/).
+
+## Service folder structure
+
+Each service should have the following structure in its folder:
+
+* `/{service}/metadata.yaml`: File containing information about the service, such as its name, permissions, dependencies and parameters.
+* `/{service}/resources/openapi.yaml` (optional): File containing the OpenAPI specification. This is optional if the service does not provide an API.
+* `/{service}/resources/events.yaml` (optional): File containing the event schemas for EventBridge in OpenAPI format. This is optional if the service does not emit events.
+* `/{service}/src/{function}/` (optional): Source code for Lambda functions. This is optional if the service does not provide Lambda functions or include the code in the template itself.
+* `/{service}/template.yaml`: CloudFormation template for the service.
+* `/{service}/tests/integ/` (optional): Contains integration tests that are run on a deployed infrastructure.
+* `/{service}/tests/unit/{function}/` (optional): Contains unit tests that are run locally.
