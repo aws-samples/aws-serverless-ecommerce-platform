@@ -80,7 +80,7 @@ For example:
 {
   "source": "ecommerce.products",
   "detail-type": "ProductChanged",
-  "resources": ["c60d29c0-434e-4efc-b893-1c604d0718cc"]
+  "resources": ["c60d29c0-434e-4efc-b893-1c604d0718cc"],
   "detail": {
     "old": {
       "productId": "c60d29c0-434e-4efc-b893-1c604d0718cc",
