@@ -86,6 +86,18 @@ def event_metadata_completed(order, order_products):
         })
     }
 
+@pytest.fixture
+def event_metadata_failed(order):
+    return {
+        "Source": "ecommerce.warehouse",
+        "DetailType": "PackagingFailed",
+        "Resources": [order["orderId"]],
+        "EventBusName": "EVENT_BUS_NAME", 
+        "Detail": json.dumps({
+            "orderId": order["orderId"]
+        })
+    }
+
 
 @pytest.fixture
 def ddb_record_metadata_product(order):
@@ -176,9 +188,28 @@ def test_parse_record_metadata_completed(lambda_module, ddb_record_metadata_comp
     compare_event(event_metadata_completed, response)
 
 
+def test_parse_record_metadata_completed_empty(lambda_module, ddb_record_metadata_completed, event_metadata_failed, order, order_products):
+    """
+    Test parse_record() with a metadata completed item without products
+    """
+
+    table = mock_table(
+        lambda_module.table, "query",
+        ["orderId", "productId"]
+    )
+
+    response = lambda_module.parse_record(ddb_record_metadata_completed)
+
+    table.assert_no_pending_responses()
+    table.deactivate()
+
+    assert response is not None
+    compare_event(event_metadata_failed, response)
+
+
 def test_parse_record_metadata_product(lambda_module, ddb_record_metadata_product):
     """
-    Test parse_record() with a product  item
+    Test parse_record() with a product item
     """
 
     response = lambda_module.parse_record(ddb_record_metadata_product)
@@ -227,3 +258,39 @@ def test_handler_metadata_completed(lambda_module, context, ddb_record_metadata_
 
     table.assert_no_pending_responses()
     table.deactivate()
+
+    eventbridge.assert_no_pending_responses()
+    eventbridge.deactivate()
+
+
+def test_handler_metadata_completed_empty(lambda_module, context, ddb_record_metadata_completed, event_metadata_failed, order, order_products):
+    """
+    Test handler() with a metadata completed item but no products
+    """
+
+    event_metadata_failed = copy.deepcopy(event_metadata_failed)
+
+    table = mock_table(
+        lambda_module.table, "query",
+        ["orderId", "productId"]
+    )
+    # Stubbing Event Bridge
+    eventbridge = stub.Stubber(lambda_module.eventbridge)
+    # Ignore time and detail
+    event_metadata_failed["Time"] = stub.ANY
+    event_metadata_failed["Detail"] = stub.ANY
+    expected_params = {"Entries": [event_metadata_failed]}
+    eventbridge.add_response("put_events", {}, expected_params)
+    eventbridge.activate()
+
+    event = {"Records": [
+        ddb_record_metadata_completed
+    ]}
+
+    lambda_module.handler(event, context)
+
+    table.assert_no_pending_responses()
+    table.deactivate()
+
+    eventbridge.assert_no_pending_responses()
+    eventbridge.deactivate()

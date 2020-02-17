@@ -59,17 +59,24 @@ def parse_record(ddb_record: dict) -> Optional[dict]:
     order_id = ddb_record["dynamodb"]["NewImage"]["orderId"]["S"]
     products = get_products(order_id)
 
+    # Create the detail
+    detail_type = "PackagingFailed"
+    detail = {
+        "orderId": order_id
+    }
+    # If there are products, we successfully created a package
+    if len(products) > 0:
+        detail_type = "PackageCreated"
+        detail["products"] = products
+
     # Return event
     return {
         "Time": datetime.datetime.now(),
         "Source": "ecommerce.warehouse",
         "Resources": [order_id],
         "EventBusName": EVENT_BUS_NAME,
-        "DetailType": "PackageCreated",
-        "Detail": json.dumps({
-            "orderId": order_id,
-            "products": products
-        }, cls=Encoder)
+        "DetailType": detail_type,
+        "Detail": json.dumps(detail, cls=Encoder)
     }
 
 @tracer.capture_method

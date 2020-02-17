@@ -32,3 +32,26 @@ components:
                   type: array
                   items:
                     $ref: "../../shared/resources/schemas.yaml#/Product"
+            
+    PackagingFailed:
+      x-amazon-event-source: ecommerce.warehouse
+      x-amazon-events-detail-type: PackagingFailed
+      description: |
+        Event emitted when the warehouse service failed to create a package for an order.
+
+        This could be due to multiple reasons, but often because all the products are not available
+        in stock.
+      allOf:
+        - $ref: "../../shared/resources/schemas.yaml#/EventBridgeHeader"
+        - type: object
+          properties:
+            detail:
+              type: object
+              required:
+                - orderId
+              properties:
+                orderId:
+                  type: string
+                  format: uuid
+                  description: Identifier for the order relative to the packaging request
+                  example: b2d0c356-f92b-4629-a87f-786331c2842f
