@@ -3,6 +3,10 @@ AWS Serverless Ecommerce Platform
 
 The __Serverless Ecommerce Platform__ is a sample implementation of a serverless backend for an e-commerce website. Functionalities are split across multiple micro-services that communicate either through asynchronous messages over [Amazon EventBridge](https://aws.amazon.com/eventbridge/) or over synchronous APIs.
 
+<p align="center">
+  <img src="docs/images/flow.png" alt="High-level flow across microservices"/>
+</p>
+
 ## Backend services
 
 |  Services  | Description                               |
