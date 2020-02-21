@@ -1,7 +1,9 @@
 Warehouse service
 =================
 
-![Warehouse architecture diagram](images/warehouse.png)
+<p align="center">
+  <img alt="Warehouse architecture diagram" src="images/warehouse.png"/>
+</p>
 
 The __warehouse__ service handles packaging incoming orders into packages ready for delivery.
 
