@@ -38,7 +38,7 @@ import requests
 url = urlparse(endpoint_url)
 region = boto3.session.Session().region_name
 # Create the signature helper
-auth = BotoAWSRequestsAuth(aws_host=url.netloc,
+iam_auth = BotoAWSRequestsAuth(aws_host=url.netloc,
                            aws_region=region,
                            aws_service='execute-api')
 # Send a GET request
