@@ -1,0 +1,138 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: 'AWS::Serverless-2016-10-31'
+
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    Description: Environment name
+  LogLevel:
+    Type: String
+    Default: INFO
+  RetentionInDays:
+    Type: Number
+    Default: 30
+    Description: CloudWatch Logs retention period for Lambda functions
+  EventBusName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: EventBridge Event Bus Name
+  OrdersApiUrl:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Orders API Gateway URL
+  OrdersApiArn:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Orders API Gateway ARN
+
+
+Globals:
+  Function:
+    Runtime: python3.8
+    Handler: main.handler
+    Timeout: 30
+    Tracing: Active
+    Environment:
+      Variables:
+        ENVIRONMENT: !Ref Environment
+        EVENT_BUS_NAME: !Ref EventBusName
+        TABLE_NAME: !Ref Table
+        POWERTOOLS_SERVICE_NAME: delivery
+        POWERTOOLS_TRACE_DISABLED: "false"
+        LOG_LEVEL: !Ref LogLevel
+
+
+Conditions:
+  IsNotProd: !Not [!Equals [!Ref Environment, prod]]
+
+
+Resources:
+  #########
+  # TABLE #
+  #########
+  Table:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: orderId
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: orderId
+          KeyType: HASH
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+  
+  TableParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /ecommerce/${Environment}/delivery/table/name
+      Type: String
+      Value: !Ref Table
+
+  #############
+  # FUNCTIONS #
+  #############
+  OnPackageCreatedFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/on_package_created/
+      Events:
+        Warehouse:
+          Type: CloudWatchEvent
+          Properties:
+            EventBusName: !Ref EventBusName
+            Pattern:
+              source: [ecommerce.warehouse]
+              detail-type:
+                - PackageCreated
+      Environment:
+        Variables:
+          ORDERS_API_URL: !Sub "${OrdersApiUrl}/backend/"
+      EventInvokeConfig:
+        DestinationConfig:
+          OnFailure:
+            Type: SQS
+            Destination: !GetAtt DeadLetterQueue.Outputs.QueueArn
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref Table
+        # For OnFailure
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action: sqs:SendMessage
+              Resource: !GetAtt DeadLetterQueue.Outputs.QueueArn
+        # Orders API Gateway
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action: execute-api:Invoke
+              # Retrieve the order details
+              Resource: !Sub "${OrdersApiArn}/GET/*"
+
+  OnPackageCreatedLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${OnPackageCreatedFunction}"
+      RetentionInDays: !Ref RetentionInDays
+
+  # ###################
+  # DEAD LETTER QUEUE #
+  #####################
+  DeadLetterQueue:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ../../shared/templates/dlq.yaml
+
+  ############
+  # LISTENER #
+  ############
+  Listener:
+    Type: AWS::CloudFormation::Stack
+    Condition: IsNotProd
+    Properties:
+      TemplateURL: ../../shared/templates/listener.yaml
+      Parameters:
+        Environment: !Ref Environment
+        EventBusName: !Ref EventBusName
+        ServiceName: "delivery"
