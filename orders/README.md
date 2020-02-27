@@ -16,3 +16,4 @@ See [resources/events.yaml](resources/events.yaml) for a list of available event
 This service defines the following SSM parameters:
 
 * `/ecommerce/{Environment}/orders/api/url`: URL for the API Gateway
+* `/ecommerce/{Environment}/orders/api/arn`: ARN for the API Gateway
