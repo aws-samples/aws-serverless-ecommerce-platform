@@ -173,6 +173,12 @@ Resources:
           Properties:
             Stream: !GetAtt Table.StreamArn
             StartingPosition: TRIM_HORIZON
+      EventInvokeConfig:
+        # Put failed events on a DLQ
+        DestinationConfig:
+          OnFailure:
+            Type: SQS
+            Destination: !GetAtt DeadLetterQueue.Outputs.QueueArn
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -180,6 +186,12 @@ Resources:
               Action:
                 - events:PutEvents
               Resource: "*"
+        # For OnFailure
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action: sqs:SendMessage
+              Resource: !GetAtt DeadLetterQueue.Outputs.QueueArn
 
   TableUpdateLogGroup:
     Type: AWS::Logs::LogGroup
@@ -217,6 +229,14 @@ Resources:
       Type: String
       Value: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${Api}/prod"
 
+  #####################
+  # DEAD LETTER QUEUE #
+  #####################
+  DeadLetterQueue:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ../../shared/templates/dlq.yaml
+      
   ############
   # LISTENER #
   ############
