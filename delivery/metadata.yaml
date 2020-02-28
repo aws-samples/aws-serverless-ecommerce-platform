@@ -1,0 +1,8 @@
+name: delivery
+dependencies:
+  - orders
+  - platform
+parameters:
+  EventBusName: /ecommerce/{Environment}/platform/event-bus/name
+  OrdersApiUrl: /ecommerce/{Environment}/orders/api/url
+  OrdersApiArn: /ecommerce/{Environment}/orders/api/arn

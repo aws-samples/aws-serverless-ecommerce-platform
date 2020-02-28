@@ -115,3 +115,20 @@ Using the AWS SDK over CloudFormation makes things unecessary brittles and requi
 Between deploying the stack for each test case and at service deployment time, it's a trade-off between keeping potentially unecessary resources and time to run the tests. As the development, test and staging environments are meant to test that services are behaving as expected, we should expect that the listener stack will be frequently used in these environments. Therefore, it's probably better to keep it permanently in the non-prod environments.
 
 We can easily revert that decision by removing it from the CloudFormation template (in `{service}/template.yaml`) and add a setup and teardown in the test cases.
+
+## 2020-02-27 __Delivery service__: fetching order information synchronously or asynchronously
+
+The delivery service needs to create a delivery request when the warehouse service sends a `PackageCreated` event onto the event bus. This event does not need to contain the address for the order. However, the delivery service needs to have the address to perform a delivery.
+
+There are two options to solve that problem:
+
+* The delivery service listens for events from the orders service.
+* The delivery service queries the order service through an API call to retrieve the delivery address.
+
+In the first case, this means that the delivery service needs to listen for all potential operations: not only `OrderCreated`, but also `OrderModified` and `OrderCancelled`. Before a package is created, the user could potentially change the delivery address and we need to take that into account, thus listening to all `OrderModified` events where the address is changed to ensure that the package is shipped to the right address. Orders could also be cancelled before packaging or the warehouse service could fail to create a package. The delivery service would need to read these events to clean up the database.
+
+In the second case, this creates a synchronous dependency to the orders service, which means that the service could fail to create a delivery request if the orders service is not available. However, these failures can be retried as the function is triggered by an asynchronous event and can have an SQS dead letter queue using [Lambda destinations](https://aws.amazon.com/blogs/compute/introducing-aws-lambda-destinations/).
+
+For this case, the second option is preferred, as it has retriable errors and is much simpler to implement.
+
+This decision can also be reverted by implementing listeners for the orders and other warehouse events. However, as we cannot be sure if any order is missing from the database, changing course would require a one-time operation to synchronise addresses with the orders database.

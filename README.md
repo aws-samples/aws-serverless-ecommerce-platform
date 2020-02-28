@@ -14,8 +14,8 @@ The __Serverless Ecommerce Platform__ is a sample implementation of a serverless
 | [Users](users/) | Provides user management, authentication and authorization. |
 | [Products](products/) | Source of truth for products information. |
 | [Orders](orders/) | Manages order creation and status.        |
-| [Warehouse](warehouse/)  | Manages inventory and packaging orders.   |
-| Delivery   | Manages shipping and tracking packages.   |
+| [Warehouse](warehouse/) | Manages inventory and packaging orders.   |
+| [Delivery](delivery/) | Manages shipping and tracking packages.   |
 | Payment    | Manages payment collection and refunds.   |
 
 ## Shared resources
