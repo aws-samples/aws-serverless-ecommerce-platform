@@ -150,10 +150,10 @@ Resources:
               Resource: !GetAtt Table.Arn
         # For OnFailure
         - Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Action: sqs:SendMessage
-            Resource: !GetAtt DeadLetterQueue.Outputs.QueueArn
+          Statement:
+            - Effect: Allow
+              Action: sqs:SendMessage
+              Resource: !GetAtt DeadLetterQueue.Outputs.QueueArn
 
   TableUpdateLogGroup:
     Type: AWS::Logs::LogGroup
