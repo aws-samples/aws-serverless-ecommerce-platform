@@ -123,20 +123,20 @@ class LambdaLogGroupRule(CloudFormationLintRule):
         return matches
 
 
-class ESMInvokeConfig(CloudFormationLintRule):
+class LambdaESMInvokeConfig(CloudFormationLintRule):
     """
     Check that Lambda Event Source Mapping have an Event Invoke Config with OnFailure destination
     """
 
     id = "E9003"
-    shortdesc = "Lambda Event Source DLQ"
+    shortdesc = "Lambda EventSourceMapping OnFailure"
     description = "Ensure that Lambda functions with Event Source Mapping have an Event Invoke Config with OnFailure destination"
 
     _message = "Event Source Mapping {} does not have a corresponding Event Invoke Config with OnFailure destination"
 
     def match(self, cfn):
         """
-        Match EventSourceMapping that don't have an associated DLQ
+        Match EventSourceMapping that don't have an associated InvokeConfig with OnFailure
         """
 
         matches = []
@@ -151,7 +151,7 @@ class ESMInvokeConfig(CloudFormationLintRule):
                 if resource["Properties"]["FunctionName"] != invoke_config["Properties"]["FunctionName"]:
                     continue
 
-                if invoke_config.get("DestinationConfig", {}).get("OnFailure", None) is None:
+                if invoke_config.get("Properties", {}).get("DestinationConfig", {}).get("OnFailure", None) is None:
                     continue
 
                 found = True
@@ -162,3 +162,52 @@ class ESMInvokeConfig(CloudFormationLintRule):
                     ["Resources", key],
                     self._message.format(key)
                 ))
+
+        return matches
+
+class LambdaRuleInvokeConfig(CloudFormationLintRule):
+    """
+    Check that Lambda functions invoked by EventBridge have a corresponding EventInvokeConfig
+    """
+
+    id = "E9004"
+    shortdesc = "Lambda EventBridge OnFailure"
+    description = "Ensure that Lambda functions invoked by EventBring have an Event Invoke Config with OnFailure destination"
+
+    _message = "Rule {} does not have a corresponding Event Invoke Config with OnFailure destination"
+
+    def match(self, cfn):
+        """
+        Match Events Rules that don't have a corresponding EventInvokeConfig
+        """
+
+        matches = []
+
+        function_names = cfn.get_resources("AWS::Lambda::Function").keys()
+        rules = cfn.get_resources("AWS::Events::Rule")
+        invoke_configs = cfn.get_resources("AWS::Lambda::EventInvokeConfig")
+
+        # Get the list of function names with EventInvokeConfig and OnFailure
+        invoke_config_functions = []
+        for resource in invoke_configs.values():
+            if resource.get("Properties", {}).get("DestinationConfig", {}).get("OnFailure", None) is None:
+                continue
+            invoke_config_functions.append(resource["Properties"]["FunctionName"]["Ref"])
+
+        # Parse rules
+        for key, resource in rules.items():
+            for target in resource.get("Properties", {}).get("Targets", []):
+                if target.get("Arn", {}).get("Fn::GetAtt", None) is None:
+                    continue
+
+                if target["Arn"]["Fn::GetAtt"][0] not in function_names:
+                    continue
+
+                function_name = target["Arn"]["Fn::GetAtt"][0]
+                if function_name not in invoke_config_functions:
+                    matches.append(RuleMatch(
+                        ["Resources", key],
+                        self._message.format(key)
+                    ))
+
+        return matches
