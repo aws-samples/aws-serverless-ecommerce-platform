@@ -131,6 +131,12 @@ Resources:
           Properties:
             Stream: !GetAtt Table.StreamArn
             StartingPosition: TRIM_HORIZON
+      EventInvokeConfig:
+        # Put failed events on a DLQ
+        DestinationConfig:
+          OnFailure:
+            Type: SQS
+            Destination: !GetAtt DeadLetterQueue.Outputs.QueueArn
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -142,6 +148,12 @@ Resources:
               Action:
                 - dynamodb:Query
               Resource: !GetAtt Table.Arn
+        # For OnFailure
+        - Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: sqs:SendMessage
+            Resource: !GetAtt DeadLetterQueue.Outputs.QueueArn
 
   TableUpdateLogGroup:
     Type: AWS::Logs::LogGroup
