@@ -121,3 +121,44 @@ class LambdaLogGroupRule(CloudFormationLintRule):
                 ))
 
         return matches
+
+
+class ESMInvokeConfig(CloudFormationLintRule):
+    """
+    Check that Lambda Event Source Mapping have an Event Invoke Config with OnFailure destination
+    """
+
+    id = "E9003"
+    shortdesc = "Lambda Event Source DLQ"
+    description = "Ensure that Lambda functions with Event Source Mapping have an Event Invoke Config with OnFailure destination"
+
+    _message = "Event Source Mapping {} does not have a corresponding Event Invoke Config with OnFailure destination"
+
+    def match(self, cfn):
+        """
+        Match EventSourceMapping that don't have an associated DLQ
+        """
+
+        matches = []
+
+        sources = cfn.get_resources("AWS::Lambda::EventSourceMapping")
+        invoke_configs = cfn.get_resources("AWS::Lambda::EventInvokeConfig")
+
+        # Scan through Event Source Mappings
+        for key, resource in sources.items():
+            found = False
+            for invoke_config in invoke_configs.values():
+                if resource["Properties"]["FunctionName"] != invoke_config["Properties"]["FunctionName"]:
+                    continue
+
+                if invoke_config.get("DestinationConfig", {}).get("OnFailure", None) is None:
+                    continue
+
+                found = True
+                break
+
+            if not found:
+                matches.append(RuleMatch(
+                    ["Resources", key],
+                    self._message.format(key)
+                ))
