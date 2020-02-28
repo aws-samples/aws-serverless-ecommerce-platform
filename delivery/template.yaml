@@ -96,12 +96,6 @@ Resources:
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref Table
-        # For OnFailure
-        - Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Action: sqs:SendMessage
-              Resource: !GetAtt DeadLetterQueue.Outputs.QueueArn
         # Orders API Gateway
         - Version: "2012-10-17"
           Statement:
