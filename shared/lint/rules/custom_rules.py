@@ -6,7 +6,7 @@ Custom rules for cfn-lint
 import copy
 import logging
 import re
-from cfnlint.rules import CloudFormationLintRule, RuleMatch
+from cfnlint.rules import CloudFormationLintRule, RuleMatch # pylint: disable=import-error
 
 
 LOGGER = logging.getLogger(__name__)
