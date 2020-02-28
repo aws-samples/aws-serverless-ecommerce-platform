@@ -116,7 +116,7 @@ Resources:
       LogGroupName: !Sub "/aws/lambda/${OnPackageCreatedFunction}"
       RetentionInDays: !Ref RetentionInDays
 
-  # ###################
+  #####################
   # DEAD LETTER QUEUE #
   #####################
   DeadLetterQueue:
