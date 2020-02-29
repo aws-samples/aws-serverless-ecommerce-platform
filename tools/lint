@@ -1,0 +1,41 @@
+#!/bin/bash
+# Lint files in a service
+
+set -e
+
+ROOT=${ROOT:-$(pwd)}
+TYPE=$1
+SERVICE=$2
+
+display_usage() {
+    echo "Usage: $0 TYPE SERVICE"
+}
+
+if [ $# -lt 2 ]; then
+    display_usage
+    exit 1
+fi
+
+lint_cloudformation () {
+    cfn-lint $ROOT/$SERVICE/template.yaml \
+        --append-rules $ROOT/shared/lint/rules/ \
+        --ignore-checks W2001
+}
+
+lint_python3 () {
+    pylint --rcfile $ROOT/shared/lint/pylintrc \
+        $ROOT/$SERVICE/src/*/*.py
+}
+
+lint_openapi () {
+    speccy --config $ROOT/shared/lint/speccy.yaml \
+        $ROOT/$SERVICE/resources/openapi.yaml
+}
+
+type lint_$TYPE | grep -q "function" &>/dev/null || {
+    echo "Unsupported type: $TYPE"
+    echo
+    display_usage
+    exit 1
+}
+lint_$TYPE

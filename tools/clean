@@ -1,0 +1,25 @@
+#!/bin/bash
+# Clean up the build directory of a service
+
+set -e
+
+ROOT=${ROOT:-$(pwd)}
+TYPE=$1
+SERVICE=$2
+
+if [ $# -lt 2 ]; then
+    echo "Usage: $0 TYPE SERVICE"
+    exit 1
+fi
+
+clean_cloudformation () {
+    rm -rf $ROOT/$SERVICE/build/
+}
+
+type clean_$TYPE | grep -q "function" &>/dev/null || {
+    echo "Unsupported type: $TYPE"
+    echo
+    display_usage
+    exit 1
+}
+clean_$TYPE
