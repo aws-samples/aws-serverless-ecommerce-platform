@@ -1,0 +1,124 @@
+#!/bin/bash
+# Run unit tests against services
+
+set -e
+
+ROOT=${ROOT:-$(pwd)}
+TYPE=$1
+SERVICE=$2
+
+service_dir=$ROOT/$SERVICE
+build_dir=$service_dir/build
+
+display_usage () {
+    echo "Usage: $0 TYPE SERVICE"
+}
+
+# Check if there are at least 2 arguments
+if [ $# -lt 2 ]; then
+    display_usage
+    exit 1
+fi
+
+# Check if the service exists
+if [ ! -f $service_dir/metadata.yaml ]; then
+    echo "Service $SERVICE does not exist"
+    exit 1
+fi
+
+# Check for quiet mode
+if [ ! -z $QUIET ]; then
+    export OUTPUT_FILE=$(mktemp)
+    exec 5>&1 6>&2 1>$OUTPUT_FILE 2>&1
+fi
+
+cleanup () {
+    CODE=$?
+    if [ ! -z $QUIET ]; then
+        if [ ! $CODE -eq 0 ]; then
+            cat $OUTPUT_FILE >&5
+        fi
+        rm $OUTPUT_FILE
+    fi
+}
+trap cleanup EXIT
+
+# Copy the CloudFormation template and create artifacts for every environment
+build_cloudformation () {
+    # Create build folder if it doesn't exist
+    if [ ! -d $build_dir ]; then
+        mkdir $build_dir
+    fi
+
+    # Copy CloudFormation template
+    if [ -f $service_dir/template.yaml ]; then
+        cp -p $service_dir/template.yaml $build_dir/template.yaml
+    fi
+
+    # Create artifacts
+    if [ ! -d $build_dir/artifacts/ ]; then
+        mkdir $build_dir/artifacts/
+    fi
+    $ROOT/tools/helpers/build_artifacts $service_dir $build_dir/artifacts/
+}
+
+# Copy resources into the build folder
+build_resources () {
+    # Create build folder if it doesn't exist
+    if [ ! -d $build_dir ]; then
+        mkdir $build_dir
+    fi
+
+    # Copying resource files
+    if [ -d $service_dir/resources/ ]; then
+        cp -rp $service_dir/resources/ $build_dir/resources/
+    fi
+}
+
+# Copy source code and install requirements for each function
+build_python3 () {
+    # Create build folder if it doesn't exist
+    if [ ! -d $build_dir ]; then
+        mkdir $build_dir
+    fi
+
+    # Copying source files
+    if [ -d $service_dir/src/ ]; then
+        cp -rp $service_dir/src/ $build_dir/src/
+    fi
+
+    # Install libraries
+    for requirements in $build_dir/src/*/requirements.txt; do
+        python3 -m pip install \
+            --requirement $requirements \
+            --target $(dirname $requirements)
+    done
+}
+
+# Resolve the openapi.yaml file
+build_openapi () {
+    # Create build folder if it doesn't exist
+    if [ ! -d $build_dir ]; then
+        mkdir $build_dir
+    fi
+
+    openapi=resources/openapi.yaml
+
+    # Resolve OpenAPI files
+    if [ -f $service_dir/$openapi ]; then
+        # Create resources folder if it doesn't exist
+        if [ ! -d $build_dir/resources/ ]; then
+            mkdir $build_dir/resources/
+        fi
+        speccy resolve $service_dir/$openapi -o $build_dir/$openapi
+    fi
+}
+
+
+type build_$TYPE | grep -q "function" &>/dev/null || {
+    echo "Unsupported type: $TYPE"
+    echo
+    display_usage
+    exit 1
+}
+build_$TYPE

@@ -1,25 +1,53 @@
 #!/bin/bash
-# Clean up the build directory of a service
+# Run unit tests against services
 
 set -e
 
 ROOT=${ROOT:-$(pwd)}
-TYPE=$1
-SERVICE=$2
+SERVICE=$1
 
-if [ $# -lt 2 ]; then
+service_dir=$ROOT/$SERVICE
+build_dir=$SERVICE/build
+
+display_usage () {
     echo "Usage: $0 TYPE SERVICE"
+}
+
+# Check if there are at least 2 arguments
+if [ $# -lt 1 ]; then
+    display_usage
     exit 1
 fi
 
-clean_cloudformation () {
-    rm -rf $ROOT/$SERVICE/build/
+# Check if the service exists
+if [ ! -f $service_dir/metadata.yaml ]; then
+    echo "Service $SERVICE does not exist"
+    exit 1
+fi
+
+# Check for quiet mode
+if [ ! -z $QUIET ]; then
+    export OUTPUT_FILE=$(mktemp)
+    exec 5>&1 6>&2 1>$OUTPUT_FILE 2>&1
+fi
+
+cleanup () {
+    CODE=$?
+    if [ ! -z $QUIET ]; then
+        if [ ! $CODE -eq 0 ]; then
+            cat $OUTPUT_FILE >&5
+        fi
+        rm $OUTPUT_FILE
+    fi
+}
+trap cleanup EXIT
+
+clean () {
+    if [ -z $build_dir ]; then
+        echo "\$build_dir not set. Aborting"
+        exit 1
+    fi
+    rm -rf $build_dir
 }
 
-type clean_$TYPE | grep -q "function" &>/dev/null || {
-    echo "Unsupported type: $TYPE"
-    echo
-    display_usage
-    exit 1
-}
-clean_$TYPE
+clean

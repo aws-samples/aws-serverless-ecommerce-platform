@@ -1,1 +1,1 @@
-../shared/makefiles/Makefile.python3
+../shared/makefiles/cfn-python3.mk

@@ -15,13 +15,11 @@ export ENVIRONMENT ?= dev
 
 # Run CI on services
 ci: ci-${SERVICES}
-ci-%:
-	@make -C $* lint clean build tests-unit
+ci-%: lint-% clean-% build-% tests-unit-%
 
 # Run pipeline on services
 all: all-${SERVICES}
-all-%:
-	@make -C $* lint clean build tests-unit package deploy tests-integ
+all-%: lint-% clean-% build-% tests-unit-% package-% deploy-% tests-integ-%
 
 # Build services
 build: build-${SERVICES}
