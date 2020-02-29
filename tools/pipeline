@@ -10,7 +10,6 @@ import tempfile
 import traceback
 from typing import List
 import zipfile
-import boto3
 import yaml
 
 
@@ -173,6 +172,9 @@ def upload_template(service: str):
     """
     Upload templates to S3
     """
+
+    # Import here to prevent issues during first execution
+    import boto3
 
     template_file = os.path.join(service, "build", "template.out")
     if not os.path.isfile(template_file):

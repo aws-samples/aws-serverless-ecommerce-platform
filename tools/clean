@@ -7,7 +7,7 @@ ROOT=${ROOT:-$(pwd)}
 SERVICE=$1
 
 service_dir=$ROOT/$SERVICE
-build_dir=$SERVICE/build
+build_dir=$service_dir/build
 
 display_usage () {
     echo "Usage: $0 TYPE SERVICE"
@@ -47,7 +47,12 @@ clean () {
         echo "\$build_dir not set. Aborting"
         exit 1
     fi
-    rm -rf $build_dir
+    if [ -d $build_dir ]; then
+        echo "Removing $build_dir"
+        rm -r $build_dir
+    else
+        echo "$build_dir does not exit. Skipping"
+    fi
 }
 
 clean

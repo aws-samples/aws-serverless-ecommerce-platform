@@ -9,63 +9,78 @@ SERVICES = $(shell tools/pipeline services)
 export DOMAIN ?= ecommerce
 export ENVIRONMENT ?= dev
 
+# Colors
+ccblue = \033[0;96m
+ccend = \033[0m
+
 ###################
 # SERVICE TARGETS #
 ###################
 
 # Run CI on services
 ci: ci-${SERVICES}
-ci-%: lint-% clean-% build-% tests-unit-%
+ci-%:
+	@${MAKE} lint-$*
+	@${MAKE} clean-$*
+	@${MAKE} build-$*
+	@${MAKE} tests-unit-$*
 
 # Run pipeline on services
 all: all-${SERVICES}
-all-%: lint-% clean-% build-% tests-unit-% package-% deploy-% tests-integ-%
+all-%: 
+	@${MAKE} lint-$*
+	@${MAKE} clean-$*
+	@${MAKE} build-$*
+	@${MAKE} tests-unit-$*
+	@${MAKE} package-$*
+	@${MAKE} deploy-$*
+	@${MAKE} tests-integ-$*
 
 # Build services
 build: build-${SERVICES}
 build-%:
-	@echo "[*] Build $*"
+	@echo "[*] $(ccblue)build $*$(ccend)"
 	@make -C $* build
 
 # Check-deps services
 check-deps: check-deps-${SERVICES}
-clean-%:
-	@echo "[*] Check deps $*"
+check-deps-%:
+	@echo "[*] $(ccblue)check-deps $*$(ccend)"
 	@make -C $* check-deps
 
 # Clean services
 clean: clean-${SERVICES}
 clean-%:
-	@echo "[*] Clean $*"
+	@echo "[*] $(ccblue)clean $*$(ccend)"
 	@make -C $* clean
 
 deploy: deploy-${SERVICES}
 deploy-%:
-	@echo "[*] Deploy $*"
+	@echo "[*] $(ccblue)deploy $*$(ccend)"
 	@make -C $* deploy
 
 # Lint services
 lint: lint-$(SERVICES)
 lint-%:
-	@echo "[*] Lint $*"
+	@echo "[*] $(ccblue)lint $*$(ccend)"
 	@make -C $* lint
 
 # Package services
 package: package-${SERVICES}
 package-%:
-	@echo "[*] Package $*"
+	@echo "[*] $(ccblue)package $*$(ccend)"
 	@make -C $* package
 
 # Integration tests
 tests-integ: tests-integ-${SERVICES}
 tests-integ-%:
-	@echo "[*] Integration tests $*"
+	@echo "[*] $(ccblue)tests-integ $*$(ccend)"
 	@make -C $* tests-integ
 
 # Unit tests
 tests-unit: tests-unit-${SERVICES}
 tests-unit-%:
-	@echo "[*] Unit tests $*"
+	@echo "[*] $(ccblue)tests-unit $*$(ccend)"
 	@make -C $* tests-unit
 
 #################
@@ -95,43 +110,43 @@ endif
 
 # setup: configure tools
 setup: validate
-	$(info [*] Download and install python $(PYTHON_VERSION))
+	@echo "[*] Download and install python $(PYTHON_VERSION)"
 	@pyenv install $(PYTHON_VERSION)
 	@pyenv local $(PYTHON_VERSION)
-	$(info [*] Create virtualenv $(NAME) using python $(PYTHON_VERSION))
+	@echo "[*] Create virtualenv $(NAME) using python $(PYTHON_VERSION)"
 	@pyenv virtualenv $(PYTHON_VERSION) $(NAME)
 	@$(MAKE) activate
 	@$(MAKE) requirements
 
 # Activate the virtual environment
 activate: validate-pyenv
-	$(info [*] Activate virtualenv $(NAME))
+	@echo "[*] Activate virtualenv $(NAME)"
 	$(shell eval "$$(pyenv init -)" && eval "$$(pyenv virtualenv-init -)" && pyenv activate $(NAME) && pyenv local $(NAME))
 
 # Install python dependencies
 requirements:
-	$(info [*] Install requirements)
+	@echo "[*] Install requirements"
 	@pip install -r requirements.txt
 
-# Bootstrap all resources on AWS
-bootstrap-prod: bootstrap-services bootstrap-repository
+# # Bootstrap all resources on AWS
+# bootstrap-prod: bootstrap-services bootstrap-repository
 
-# Bootstrap just the dev environment
-bootstrap-dev:
-	$(info [*] Bootstrap services)
-	@for service in $(shell tools/pipeline services --env-only) ; \
-		do tools/toolbox $$service all --env dev --quiet yes || exit 1 ; \
-		done
+# # Bootstrap just the dev environment
+# bootstrap-dev:
+# 	@echo "[*] Bootstrap services"
+# 	@for service in $(shell tools/pipeline services --env-only) ; \
+# 		do tools/toolbox $$service all --env dev --quiet yes || exit 1 ; \
+# 		done
 
-# Bootstrap services in non-dev environment
-bootstrap-services:
-	$(info [*] Bootstrap services)
-	@for service in $(shell tools/pipeline services) ; \
-		do tools/toolbox $$service all --env tests --quiet yes || exit 1 ; \
-		done
+# # Bootstrap services in non-dev environment
+# bootstrap-services:
+# 	@echo "[*] Bootstrap services"
+# 	@for service in $(shell tools/pipeline services) ; \
+# 		do tools/toolbox $$service all --env tests --quiet yes || exit 1 ; \
+# 		done
 
-# Push data into the CodeCommit repository
-bootstrap-repository:
-	$(info [*] Bootstrap repository)
-	@git remote add aws $(shell aws ssm get-parameter --name /ecommerce/pipeline/repository/url | jq -r '.Parameter.Value')
-	@git push aws HEAD:master
+# # Push data into the CodeCommit repository
+# bootstrap-repository:
+# 	@echo "[*] Bootstrap repository"
+# 	@git remote add aws $(shell aws ssm get-parameter --name /ecommerce/pipeline/repository/url | jq -r '.Parameter.Value')
+# 	@git push aws HEAD:master

@@ -11,12 +11,14 @@ build:
 	@${ROOT}/tools/build cloudformation ${SERVICE}
 .PHONY: build
 
+# TODO
 check-deps:
 	@${ROOT}/tools/check-deps ${SERVICE}
 
 clean:
 	@${ROOT}/tools/clean ${SERVICE}
 
+# TODO
 deploy:
 	@${ROOT}/tools/deploy cloudformation ${SERVICE}
 
@@ -25,9 +27,11 @@ lint:
 	@${ROOT}/tools/lint python3 ${SERVICE}
 	@${ROOT}/tools/lint openapi ${SERVICE}
 
+# TODO
 package:
 	@${ROOT}/tools/package cloudformation ${SERVICE}
 
+# TODO
 tests-integ:
 	@${ROOT}/tools/tests-integ cloudformation ${SERVICE}
 

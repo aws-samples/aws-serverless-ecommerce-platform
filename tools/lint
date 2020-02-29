@@ -54,8 +54,12 @@ lint_cloudformation () {
 # Lint python source code
 lint_python3 () {
     if [ -d $service_dir/src/ ]; then
-        pylint --rcfile $ROOT/shared/lint/pylintrc \
-            $service_dir/src/*/*.py
+        pylint --rcfile $ROOT/shared/lint/pylintrc $service_dir/src/*/*.py || {
+            EXIT_CODE=$?
+            if [ $EXIT_CODE -eq 1 -o $EXIT_CODE -eq 2 -o $EXIT_CODE -eq 32 ]; then
+                exit 1
+            fi
+        }
     fi
 }
 
