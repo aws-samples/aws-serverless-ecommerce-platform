@@ -25,7 +25,7 @@ On top of that, a service also requires a `template.yaml` file, which contains t
 
 ## `Makefile`
 
-The __Makefile__ contains the necessary commands to lint, build, package and deploy services. As each service could work in slightly different way, such as using different languages or deployment methodologies, this gives flexibility to each service to define how to deploy it. For convenience, you can find Makefiles for common scenarios in the `shared/makefiles/` folder.
+The __Makefile__ contains the necessary commands to lint, build, package and deploy services. As each service could work in slightly different way, such as using different languages or deployment methodologies, this gives flexibility to each service to define how to deploy it. For convenience, you can find Makefiles for common scenarios in the [shared/makefiles/](../shared/makefiles/) folder. You can also find a template at [shared/makefiles/empty.mk](../shared/makefiles/empty.mk).
 
 Each Makefile should containing the following targets: build, check-deps, clean, deploy, lint, package, tests-integ and tests-unit.
 
