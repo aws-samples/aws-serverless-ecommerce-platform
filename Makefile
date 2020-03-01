@@ -30,7 +30,6 @@ all-%:
 	@${MAKE} package-$*
 	@${MAKE} deploy-$*
 	@${MAKE} tests-integ-$*
-.NOTPARALLEL: all all-%
 
 # Run CI on services
 ci: $(foreach service,${SERVICES}, ci-${service})
