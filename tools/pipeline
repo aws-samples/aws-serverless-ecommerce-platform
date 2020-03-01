@@ -10,8 +10,10 @@ import tempfile
 import traceback
 from typing import List
 import zipfile
-import boto3
 import yaml
+
+
+ROOT = os.environ.get("ROOT", os.getcwd())
 
 
 # If any file in these folders are changed, rebuild all services
@@ -53,7 +55,7 @@ def get_metadata(service_name: str) -> List[str]:
     Get metadata for a service
     """
 
-    metafile = os.path.join(os.getcwd(), service_name, "metadata.yaml")
+    metafile = os.path.join(ROOT, service_name, "metadata.yaml")
     if not os.path.isfile(metafile):
         raise ValueError("Metadata file not found for {}".format(service_name))
 
@@ -72,8 +74,8 @@ def get_services(env_only: bool=False) -> List[str]:
     services = {
         # Mapping name: reverse dependencies
         name: {"deps": [], "rdeps": [], "metadata": get_metadata(name)}
-        for name in os.listdir(os.getcwd())
-        if os.path.isfile(os.path.join(os.getcwd(), name, "metadata.yaml"))
+        for name in os.listdir(ROOT)
+        if os.path.isfile(os.path.join(ROOT, name, "metadata.yaml"))
         and name not in IGNORE_FOLDERS
     }
 
@@ -173,6 +175,9 @@ def upload_template(service: str):
     """
     Upload templates to S3
     """
+
+    # Import here to prevent issues during first execution
+    import boto3
 
     template_file = os.path.join(service, "build", "template.out")
     if not os.path.isfile(template_file):

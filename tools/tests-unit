@@ -1,0 +1,88 @@
+#!/bin/bash
+
+set -e
+
+ROOT=${ROOT:-$(pwd)}
+TYPE=$1
+SERVICE=$2
+
+service_dir=$ROOT/$SERVICE
+tests_dir=$service_dir/tests/unit
+build_dir=$service_dir/build
+
+display_usage () {
+    echo "Usage: $0 TYPE SERVICE"
+}
+
+# Check if there are at least 2 arguments
+if [ $# -lt 2 ]; then
+    display_usage
+    exit 1
+fi
+
+# Check if the service exists
+if [ ! -f $service_dir/metadata.yaml ]; then
+    echo "Service $SERVICE does not exist"
+    exit 1
+fi
+
+# Check for quiet mode
+if [ ! -z $QUIET ]; then
+    export OUTPUT_FILE=$(mktemp)
+    exec 5>&1 6>&2 1>$OUTPUT_FILE 2>&1
+fi
+
+cleanup () {
+    CODE=$?
+    if [ ! -z $QUIET ]; then
+        if [ ! $CODE -eq 0 ]; then
+            cat $OUTPUT_FILE >&5
+        fi
+        rm $OUTPUT_FILE
+    fi
+}
+trap cleanup EXIT
+
+# Unit tests for python3
+tests_python3 () {
+    # Check if this service skip tests
+    yq -r ' .flags["skip-tests"] | if . == null then false else . end ' $service_dir/metadata.yaml | grep -q true && {
+        echo "Skipping unit tests for $SERVICE"
+        exit 0
+    }
+
+    # If there are no unit tests folder, we skip the unit tests
+    if [ ! -d $tests_dir ]; then
+        echo "Missing unit tests folder in $SERVICE. Skipping"
+        exit 1
+    fi
+
+    # We need a build folder to perform tests
+    if [ ! -d $build_dir ]; then
+        echo "Missing build folder in $SERVICE"
+        exit 1
+    fi
+
+    if [ -z $PYTHONPATH ]; then
+        PYTHONPATH=$ROOT/shared/tests/unit
+    else
+        PYTHONPATH=$PYTHONPATH:$ROOT/shared/tests/unit
+    fi
+
+    ECOM_BUILD_DIR=$build_dir \
+    PYTHONPATH=$PYTHONPATH \
+    AWS_ACCESS_KEY_ID=AWS_ACCESS_KEY_ID \
+    AWS_SECRET_ACCESS_KEY=AWS_SECRET_ACCESS_KEY \
+    AWS_DEFAULT_REGION=eu-west-1 \
+    pytest $tests_dir \
+        --cov $build_dir \
+        --cov-config $ROOT/shared/tests/unit/coveragerc
+}
+
+type tests_$TYPE | grep -q "function" &>/dev/null || {
+    echo "Unsupported type: $TYPE"
+    echo
+    display_usage
+    exit 1
+}
+tests_$TYPE

@@ -1,0 +1,88 @@
+#!/bin/bash
+
+set -e
+
+ROOT=${ROOT:-$(pwd)}
+TYPE=$1
+SERVICE=$2
+
+service_dir=$ROOT/$SERVICE
+build_dir=$service_dir/build
+
+display_usage () {
+    echo "Usage: $0 TYPE SERVICE"
+}
+
+# Check if there are at least 2 arguments
+if [ $# -lt 2 ]; then
+    display_usage
+    exit 1
+fi
+
+# Check if the service exists
+if [ ! -f $service_dir/metadata.yaml ]; then
+    echo "Service $SERVICE does not exist"
+    exit 1
+fi
+
+# Check for quiet mode
+if [ ! -z $QUIET ]; then
+    export OUTPUT_FILE=$(mktemp)
+    exec 5>&1 6>&2 1>$OUTPUT_FILE 2>&1
+fi
+
+cleanup () {
+    CODE=$?
+    if [ ! -z $QUIET ]; then
+        if [ ! $CODE -eq 0 ]; then
+            cat $OUTPUT_FILE >&5
+        fi
+        rm $OUTPUT_FILE
+    fi
+}
+trap cleanup EXIT
+
+deploy_cloudformation () {
+    if [ -f $build_dir/template.out ]; then
+        environment=${ENVIRONMENT:-dev}
+        stack_name=${DOMAIN:-ecommerce}-${environment}-${SERVICE}
+        artifacts_file=$build_dir/artifacts/config.${environment}.json
+
+        # Update variable for services that don't support environments
+        yq -r ' .flags.environment | if . == null then true else . end ' $service_dir/metadata.yaml | grep -q true && {
+            HAS_ENV=true
+        }
+        if [ -z $HAS_ENV ]; then
+            stack_name=${DOMAIN:-ecommerce}-$SERVICE
+            environment=prod
+            artifacts_file=$build_dir/artifacts/config.prod.json
+        fi
+
+        # Parse parameters and tags
+        parameters=$(jq -r ' .Parameters | to_entries[] | [.key, .value] | "\(.[0])=\(.[1])"' $artifacts_file)
+        tags=$(jq -r ' .Tags | to_entries[] | [.key, .value] | "\(.[0])=\(.[1])"' $artifacts_file)
+
+        # Display variables for debugging
+        echo stack_name: $stack_name
+        echo environment: $environment
+        echo parameters: $parameters
+        echo tags: $tags
+
+        # Deploy to AWS
+        aws cloudformation deploy \
+            --stack-name $stack_name \
+            --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
+            --parameter-overrides $parameters \
+            --tags $tags \
+            --no-fail-on-empty-changeset \
+            --template-file $build_dir/template.out
+    fi
+}
+
+type deploy_$TYPE | grep -q "function" &>/dev/null || {
+    echo "Unsupported type: $TYPE"
+    echo
+    display_usage
+    exit 1
+}
+deploy_$TYPE

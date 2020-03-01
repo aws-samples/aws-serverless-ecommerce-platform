@@ -28,7 +28,11 @@ Resources:
           "Version": "2012-10-17",
           "Statement": [{
             "Effect": "Allow",
-            "Principal": "*",
+            "Principal": {
+              "AWS": [
+                "${AWS::AccountId}"
+              ]
+            },
             "Action": "sqs:SendMessage",
             "Resource": "*"
           }]

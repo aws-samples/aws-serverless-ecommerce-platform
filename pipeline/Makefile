@@ -1,0 +1,1 @@
+../shared/makefiles/cfn-nocode.mk

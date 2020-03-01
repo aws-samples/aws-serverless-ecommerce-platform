@@ -22,7 +22,7 @@ In the context of this project, __unit tests__ refers to tests of pieces of code
 
 To add tests for your service, you must create a `tests/unit` folder within your service folder and write test cases using [pytest](https://docs.pytest.org/en/latest/) conventions. The [shared/tests/unit](../shared/tests/unit) folder is present in `sys.path` and contains fixtures and tools to help with testing code within Lambda functions.
 
-Unit tests should have a test coverage of __at least 90%__. Otherwise, `tools/toolbox $SERVICE tests-unit` will return a failure.
+Unit tests should have a test coverage of __at least 90%__. Otherwise, `make tests-unit-$SERVICE` will return a failure.
 
 ### Helper modules
 
@@ -142,10 +142,10 @@ def test_dynamodb(lambda_module, item):
 To run unit tests against a specific service, you can run the following command:
 
 ```bash
-tools/toolbox $SERVICE tests-unit
+make tests-unit-$SERVICE
 
 # Clean and build resources before running the tests
-tools/toolbox $SERVICE clean build tests-unit
+make ci-$SERVICE
 ```
 
 ## Integration tests
@@ -258,10 +258,10 @@ def endpoint_url(scope="module"):
 To run integration tests against a specific service, you can run the following command:
 
 ```bash
-tools/toolbox $SERVICE tests-integ
+make tests-integ-$SERVICE
 
 # Clean, build and deploy resources before running the tests
-tools/toolbox $SERVICE clean build package deploy tests-integ
+make all-$SERVICE
 ```
 
 ## End-to-end tests

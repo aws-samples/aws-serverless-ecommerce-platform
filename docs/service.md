@@ -1,6 +1,7 @@
 Service structure
 =================
 
+* `Makefile`(#makefile)
 * [`metadata.yaml`](#metadatayaml)
 * [`template.yaml`](#templateyaml)
   * [Capabilities](#capabilities)
@@ -17,10 +18,16 @@ Service structure
 Each service is represented by a __folder__ at the root of the repository with a __metadata.yaml__ file. Any folder that does not contain this file is not considered as a service folder. This means that you can retrieve the list of services by running the following command:
 
 ```bash
-for metafile in */metadata.yaml ;do echo $(dirname $metafile); done
+for metafile in */metadata.yaml; do echo $(dirname $metafile); done
 ```
 
 On top of that, a service also requires a `template.yaml` file, which contains the [CloudFormation](https://aws.amazon.com/cloudformation/) template that define resources for that service.
+
+## `Makefile`
+
+The __Makefile__ contains the necessary commands to lint, build, package and deploy services. As each service could work in slightly different way, such as using different languages or deployment methodologies, this gives flexibility to each service to define how to deploy it. For convenience, you can find Makefiles for common scenarios in the [shared/makefiles/](../shared/makefiles/) folder. You can also find a template at [shared/makefiles/empty.mk](../shared/makefiles/empty.mk).
+
+Each Makefile should containing the following targets: build, check-deps, clean, deploy, lint, package, tests-integ and tests-unit.
 
 ## `metadata.yaml`
 

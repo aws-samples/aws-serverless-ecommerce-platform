@@ -10,8 +10,7 @@ phases:
       - apt-get update -y
       - apt-get install -y jq
       - /usr/bin/env python3.8 -m pip install --upgrade pip
-      - make requirements
-      - npm install -g speccy
+      - make requirements npm-install
   build:
     commands:
       - COMMIT_ID=$(aws ssm get-parameter --name $COMMIT_PARAMETER | jq -r '.Parameter.Value')
@@ -19,7 +18,7 @@ phases:
       # Tests for all services must work before moving to the next step
       - |
         for SERVICE in $(tools/pipeline changed $COMMIT_ID); do
-          tools/toolbox $SERVICE ci package || exit 1
+          make ci-$SERVICE package-$SERVICE || exit 1
         done
       # Upload template artifacts to 'templates/$SERVICE.yaml'
       # This will trigger the pipelines per service

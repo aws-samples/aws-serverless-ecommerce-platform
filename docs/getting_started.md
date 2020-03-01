@@ -16,11 +16,11 @@ Deploying the infrastructure with a CI/CD pipeline on AWS will create a new repo
 * [Configured the AWS CLI on your machine](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html)
 * [Configured Git to use the AWS credential helper](https://docs.aws.amazon.com/codecommit/latest/userguide/setting-up-https-unixes.html)
 
-Once this is done, you can run `make bootstrap-dev` which will deploy all services in the dev environment. 
+Once this is done, you can run `make all` which will deploy all services in the dev environment. 
 
 ### Deploy the production pipeline
 
-If you want to deploy a complete pipeline to a production environment, you can run `make bootstrap-prod`, which will deploy all services in all environments needed by the pipeline, the CI/CD pipeline itself and seed a CodeCommit repository with the latest commit from this repository.
+If you want to deploy a complete pipeline to a production environment, you can run `make bootstrap-pipeline`, which will deploy all services in all environments needed by the pipeline, the CI/CD pipeline itself and seed a CodeCommit repository with the latest commit from this repository.
 
 When you want to push modifications to AWS, you can run `git push aws HEAD:master`, which will push the latest commit from the current branch to the master branch in the CodeCommit repository.
 

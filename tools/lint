@@ -1,0 +1,85 @@
+#!/bin/bash
+
+set -e
+
+ROOT=${ROOT:-$(pwd)}
+TYPE=$1
+SERVICE=$2
+
+service_dir=$ROOT/$SERVICE
+
+display_usage () {
+    echo "Usage: $0 TYPE SERVICE"
+}
+
+# Check if there are at least 2 arguments
+if [ $# -lt 2 ]; then
+    display_usage
+    exit 1
+fi
+
+# Check if the service exists
+if [ ! -f $service_dir/metadata.yaml ]; then
+    echo "Service $SERVICE does not exist"
+    exit 1
+fi
+
+# Check for quiet mode
+if [ ! -z $QUIET ]; then
+    export OUTPUT_FILE=$(mktemp)
+    exec 5>&1 6>&2 1>$OUTPUT_FILE 2>&1
+fi
+
+cleanup () {
+    CODE=$?
+    if [ ! -z $QUIET ]; then
+        if [ ! $CODE -eq 0 ]; then
+            cat $OUTPUT_FILE >&5
+        fi
+        rm $OUTPUT_FILE
+    fi
+}
+trap cleanup EXIT
+
+# Lint the CloudFormation template
+lint_cloudformation () {
+    # Setup which checks to ignore
+    ignore_checks="--ignore-checks W2001"
+    # Ignore E9000, which checks if there is an 'Environment' parameter in the template
+    yq -r ' .flags.environment | if . == null then true else . end ' $service_dir/metadata.yaml | grep -q true || {
+        ignore_checks="$ignore_checks --ignore-checks E9000"
+    }
+
+    if [ -f $service_dir/template.yaml ]; then
+        cfn-lint $service_dir/template.yaml \
+            --append-rules $ROOT/shared/lint/rules/ \
+            $ignore_checks
+    fi
+}
+
+# Lint python source code
+lint_python3 () {
+    if [ -d $service_dir/src/ ]; then
+        pylint --rcfile $ROOT/shared/lint/pylintrc $service_dir/src/*/*.py || {
+            EXIT_CODE=$?
+            if [ $EXIT_CODE -eq 1 -o $EXIT_CODE -eq 2 -o $EXIT_CODE -eq 32 ]; then
+                exit 1
+            fi
+        }
+    fi
+}
+
+lint_openapi () {
+    if [ -f $service_dir/resources/openapi.yaml ]; then
+        speccy --config $ROOT/shared/lint/speccy.yaml \
+            $service_dir/resources/openapi.yaml
+    fi
+}
+
+type lint_$TYPE | grep -q "function" &>/dev/null || {
+    echo "Unsupported type: $TYPE"
+    echo
+    display_usage
+    exit 1
+}
+lint_$TYPE

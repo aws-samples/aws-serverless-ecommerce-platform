@@ -1,0 +1,159 @@
+#!/usr/bin/env python3
+
+
+import argparse
+import copy
+import json
+import os
+import jsonschema
+import yaml
+
+
+ROOT = os.environ.get("ROOT", os.getcwd())
+
+
+def get_args():
+    """
+    Returns arguments from the command line
+    """
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("service_dir")
+    parser.add_argument("artifacts_dir")
+    return parser.parse_args()
+
+
+def get_environments(has_env: bool = True) -> dict:
+    """
+    Retrieve all environments
+    """
+
+    # Load and validate environments.yaml
+    schema_file = os.path.join(ROOT, "shared", "environments", "schema.yaml")
+    environments_file = os.path.join(ROOT, "environments.yaml")
+
+    if not os.path.isfile(environments_file):
+        raise ValueError("Missing environments file '{}'".format(environments_file))
+
+    with open(schema_file) as fp:
+        schema = yaml.load(fp, Loader=yaml.SafeLoader)
+    
+    with open(environments_file) as fp:
+        environments = yaml.load(fp, Loader=yaml.SafeLoader)
+
+    jsonschema.validate(environments, schema)
+
+    # For services that don't support environments, default to prod settings
+    if not has_env:
+        environment = environments.get("prod", {})
+        environment["environment"] = ""
+        return {"": environment}
+
+    # Inject the 'environment' key
+    for key, environment in environments.items():
+        environment["environment"] = key
+
+    # Return all environments
+    return environments
+
+
+def get_metadata(service_dir: str) -> dict:
+    """
+    Retrieve metadata for the service
+    """
+
+    # Load and validate service_dir/metadata.yaml
+    schema_file = os.path.join(ROOT, "shared", "metadata", "schema.yaml")
+    metadata_file = os.path.join(service_dir, "metadata.yaml")
+
+    if not os.path.isfile(metadata_file):
+        raise ValueError("Missing metadata file '{}'".format(metadata_file))
+
+    with open(schema_file) as fp:
+        schema = yaml.load(fp, Loader=yaml.SafeLoader)
+    
+    with open(metadata_file) as fp:
+        metadata = yaml.load(fp, Loader=yaml.SafeLoader)
+
+    jsonschema.validate(metadata, schema)
+
+    return metadata
+
+
+def get_parameters(metadata: dict, environment: dict) -> dict:
+    """
+    Return parameters based on the environment and metadata
+    """
+
+    base_params = {
+        "Environment": environment["environment"] or "prod"
+    }
+
+    for key, value in environment.get("parameters", {}).items():
+        if isinstance(value, str):
+            base_params[key] = value.format(**base_params)
+        else:
+            base_params[key] = value
+
+    parameters = copy.deepcopy(base_params)
+
+    for key, value in metadata.get("parameters", {}).items():
+        if isinstance(value, str):
+            parameters[key] = value.format(**base_params)
+        else:
+            parameters[key] = value
+
+    return parameters
+
+def get_tags(metadata: dict, environment: dict) -> dict:
+    """
+    Returns tags based on the environment and metadata
+    """
+
+    base_tags = {
+        "Service": metadata["name"],
+        "Environment": environment["environment"] or "prod"
+    }
+
+    for key, value in environment.get("tags", {}).items():
+        if isinstance(value, str):
+            base_tags[key] = value.format(**base_tags)
+        else:
+            base_tags[key] = value
+
+    tags = copy.deepcopy(base_tags)
+
+    for key, value in metadata.get("tags", {}).items():
+        if isinstance(value, str):
+            tags[key] = value.format(**base_tags)
+        else:
+            tags[key] = value
+
+    return tags
+
+
+def main(service_dir: str, artifacts_dir: str):
+    """
+    Build artifacts from the service directory
+    """
+
+    metadata = get_metadata(service_dir)
+    environments = get_environments(metadata.get("flags", {}).get("environments", True))
+
+    for env_name, environment in environments.items():
+        tags = get_tags(metadata, environment)
+        parameters = get_parameters(metadata, environment)
+
+        config = {
+            "Parameters": parameters,
+            "Tags": tags
+        }
+
+        artifact_file = os.path.join(artifacts_dir, "config.{}.json".format(env_name))
+        with open(artifact_file, "w") as fp:
+            json.dump(config, fp, indent=2)
+
+
+if __name__ == "__main__":
+    args = get_args()
+    main(args.service_dir, args.artifacts_dir)

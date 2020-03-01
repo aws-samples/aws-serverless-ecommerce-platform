@@ -1,0 +1,69 @@
+#!/bin/bash
+
+set -e
+
+ROOT=${ROOT:-$(pwd)}
+TYPE=$1
+SERVICE=$2
+
+service_dir=$ROOT/$SERVICE
+build_dir=$service_dir/build
+
+display_usage () {
+    echo "Usage: $0 TYPE SERVICE"
+}
+
+# Check if there are at least 2 arguments
+if [ $# -lt 2 ]; then
+    display_usage
+    exit 1
+fi
+
+# Check if the service exists
+if [ ! -f $service_dir/metadata.yaml ]; then
+    echo "Service $SERVICE does not exist"
+    exit 1
+fi
+
+# Check for quiet mode
+if [ ! -z $QUIET ]; then
+    export OUTPUT_FILE=$(mktemp)
+    exec 5>&1 6>&2 1>$OUTPUT_FILE 2>&1
+fi
+
+cleanup () {
+    CODE=$?
+    if [ ! -z $QUIET ]; then
+        if [ ! $CODE -eq 0 ]; then
+            cat $OUTPUT_FILE >&5
+        fi
+        rm $OUTPUT_FILE
+    fi
+}
+trap cleanup EXIT
+
+package_cloudformation () {
+    if [ -f $service_dir/build/template.yaml ]; then
+        pushd $build_dir
+        aws cloudformation package \
+            --s3-bucket ${S3_BUCKET:-${USER}-src} \
+            --s3-prefix "artifacts" \
+            --template-file template.yaml \
+            --output-template-file template.out || {
+                # Delay failure so we can popd
+                FAILED=yes
+            }
+        popd
+        if [ ! -z $FAILED ]; then
+            exit 1
+        fi
+    fi
+}
+
+type package_$TYPE | grep -q "function" &>/dev/null || {
+    echo "Unsupported type: $TYPE"
+    echo
+    display_usage
+    exit 1
+}
+package_$TYPE

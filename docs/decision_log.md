@@ -132,3 +132,11 @@ In the second case, this creates a synchronous dependency to the orders service,
 For this case, the second option is preferred, as it has retriable errors and is much simpler to implement.
 
 This decision can also be reverted by implementing listeners for the orders and other warehouse events. However, as we cannot be sure if any order is missing from the database, changing course would require a one-time operation to synchronise addresses with the orders database.
+
+## 2020-03-01 Using Makefiles to build services
+
+At the beginning, this project used a bespoke python script (at `tools/toolbox`). However, this limited the potential for each service to use different tools and methodologies based on their need. If different teams are building each service, this can clauses slow downs if service teams have to wait for a centralized team to build new capabilities in the script.
+
+For example, all services have been built with CloudFormation up to this point, but if a team decides to build a service using CDK instead, it will either have to wait for the tooling team or build capacities in that scripts (in a polyrepo approach, that often means a pull request and waiting for approval.
+
+In the shared service, there is a [folder containing sample Makefiles](../shared/makefiles/), which acts as a paved road for service teams that are happy to build using a standardized methodology, but they are also free to build their own tools and customize the Makefile to their needs.

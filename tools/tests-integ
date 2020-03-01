@@ -1,0 +1,81 @@
+#!/bin/bash
+
+set -e
+
+ROOT=${ROOT:-$(pwd)}
+TYPE=$1
+SERVICE=$2
+
+service_dir=$ROOT/$SERVICE
+tests_dir=$service_dir/tests/integ
+
+display_usage () {
+    echo "Usage: $0 TYPE SERVICE"
+}
+
+# Check if there are at least 2 arguments
+if [ $# -lt 2 ]; then
+    display_usage
+    exit 1
+fi
+
+# Check if the service exists
+if [ ! -f $service_dir/metadata.yaml ]; then
+    echo "Service $SERVICE does not exist"
+    exit 1
+fi
+
+# Check for quiet mode
+if [ ! -z $QUIET ]; then
+    export OUTPUT_FILE=$(mktemp)
+    exec 5>&1 6>&2 1>$OUTPUT_FILE 2>&1
+fi
+
+cleanup () {
+    CODE=$?
+    if [ ! -z $QUIET ]; then
+        if [ ! $CODE -eq 0 ]; then
+            cat $OUTPUT_FILE >&5
+        fi
+        rm $OUTPUT_FILE
+    fi
+}
+trap cleanup EXIT
+
+# Unit tests for cloudformation
+tests_cloudformation () {
+    # Checks if this service skips tests
+    yq -r ' .flags["skip-tests"] | if . == null then false else . end ' $service_dir/metadata.yaml | grep -q true && {
+        echo "Skipping integration tests for $SERVICE"
+        exit 0
+    }
+
+    # Skip tests on environment where we shouldn't run tests
+    yq -r ' .'${ENVIRONMENT}'.flags["can-test"] | if . == null then true else . end ' $ROOT/environments.yaml | grep -q true || {
+        echo "The environment $ENVIRONMENT does not support tests. Skipping"
+        exit 0
+    }
+
+    # If there are no integration tests folder, we skip the unit tests
+    if [ ! -d $tests_dir ]; then
+        echo "Missing integration tests folder in $SERVICE. Skipping"
+        exit 1
+    fi
+
+    if [ -z $PYTHONPATH ]; then
+        PYTHONPATH=$ROOT/shared/tests/integ
+    else
+        PYTHONPATH=$PYTHONPATH:$ROOT/shared/tests/integ
+    fi
+
+    ECOM_ENVIRONMENT=${ENVIRONMENT} \
+    pytest $tests_dir
+}
+
+type tests_$TYPE | grep -q "function" &>/dev/null || {
+    echo "Unsupported type: $TYPE"
+    echo
+    display_usage
+    exit 1
+}
+tests_$TYPE
