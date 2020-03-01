@@ -11,7 +11,7 @@ phases:
       - apt-get install -y jq
       - /usr/bin/env python3.8 -m pip install --upgrade pip
       - make requirements
-      - npm install -g speccy
+      - npm install -g speccy jq
   build:
     commands:
-      - tools/toolbox $SERVICE_NAME tests-integ --env $ENVIRONMENT
+      - make tests-integ-$SERVICE
