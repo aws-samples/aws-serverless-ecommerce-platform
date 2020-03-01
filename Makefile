@@ -6,7 +6,8 @@ JQ := $(shell which jq)
 PYTHON_VERSION = 3.8.1
 
 # Service variables
-SERVICES = $(shell tools/pipeline services --env-only)
+SERVICES = $(shell tools/pipeline services)
+SERVICES_ENVONLY = $(shell tools/pipeline services --env-only)
 export DOMAIN ?= ecommerce
 export ENVIRONMENT ?= dev
 
@@ -19,7 +20,7 @@ ccend = \033[0m
 ###################
 
 # Run pipeline on services
-all: $(foreach service,${SERVICES}, all-${service})
+all: $(foreach service,${SERVICES_ENVONLY}, all-${service})
 all-%: 
 	@${MAKE} lint-$*
 	@${MAKE} clean-$*
@@ -46,7 +47,7 @@ build-%:
 	@make -C $* build
 
 # Check-deps services
-check-deps: $(foreach service,${SERVICES}, check-deps-${service})
+check-deps: $(foreach service,${SERVICES_ENVONLY}, check-deps-${service})
 check-deps-%:
 	@echo "[*] $(ccblue)check-deps $*$(ccend)"
 	@make -C $* check-deps
@@ -57,7 +58,7 @@ clean-%:
 	@echo "[*] $(ccblue)clean $*$(ccend)"
 	@make -C $* clean
 
-deploy: $(foreach service,${SERVICES}, deploy-${service})
+deploy: $(foreach service,${SERVICES_ENVONLY}, deploy-${service})
 deploy-%:
 	@echo "[*] $(ccblue)deploy $*$(ccend)"
 	@make -C $* deploy
@@ -69,13 +70,13 @@ lint-%:
 	@make -C $* lint
 
 # Package services
-package: $(foreach service,${SERVICES}, package-${service})
+package: $(foreach service,${SERVICES_ENVONLY}, package-${service})
 package-%:
 	@echo "[*] $(ccblue)package $*$(ccend)"
 	@make -C $* package
 
 # Integration tests
-tests-integ: $(foreach service,${SERVICES}, tests-integ-${service})
+tests-integ: $(foreach service,${SERVICES_ENVONLY}, tests-integ-${service})
 tests-integ-%:
 	@echo "[*] $(ccblue)tests-integ $*$(ccend)"
 	@make -C $* tests-integ
