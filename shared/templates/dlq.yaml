@@ -19,27 +19,6 @@ Resources:
   DeadLetterQueue:
     Type: AWS::SQS::Queue
 
-  DeadLetterQueuePolicy:
-    Type: AWS::SQS::QueuePolicy
-    Properties:
-      # TODO: scope this down
-      PolicyDocument: !Sub |
-        {
-          "Version": "2012-10-17",
-          "Statement": [{
-            "Effect": "Allow",
-            "Principal": {
-              "AWS": [
-                "${AWS::AccountId}"
-              ]
-            },
-            "Action": "sqs:SendMessage",
-            "Resource": "*"
-          }]
-        }
-      Queues:
-        - !Ref DeadLetterQueue
-
   DeadLetterQueueAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:

@@ -69,6 +69,7 @@ tests_cloudformation () {
     fi
 
     ECOM_ENVIRONMENT=${ENVIRONMENT} \
+    PYTHONPATH=${PYTHONPATH} \
     pytest $tests_dir
 }
 

@@ -111,6 +111,7 @@ def get_tags(metadata: dict, environment: dict) -> dict:
     """
 
     base_tags = {
+        "Domain": os.environ.get("DOMAIN", "ecommerce"),
         "Service": metadata["name"],
         "Environment": environment["environment"] or "prod"
     }

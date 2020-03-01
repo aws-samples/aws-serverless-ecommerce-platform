@@ -161,6 +161,10 @@ Resources:
               Action:
                 - events:PutEvents
               Resource: "*"
+            - Effect: Allow
+              Action:
+                - sqs:SendMessage
+              Resource: !GetAtt DeadLetterQueue.Outputs.QueueArn
 
   TableUpdateLogGroup:
     Type: AWS::Logs::LogGroup

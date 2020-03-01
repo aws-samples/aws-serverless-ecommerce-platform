@@ -139,6 +139,10 @@ Resources:
               Action:
                 - dynamodb:Query
               Resource: !GetAtt Table.Arn
+            - Effect: Allow
+              Action:
+                - sqs:SendMessage
+              Resource: !GetAtt DeadLetterQueue.Outputs.QueueArn
 
   TableUpdateLogGroup:
     Type: AWS::Logs::LogGroup
