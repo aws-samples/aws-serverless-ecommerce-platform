@@ -2,6 +2,7 @@
 NAME = ecommerce-platform
 PYENV := $(shell which pyenv)
 SPECCY := $(shell which speccy)
+JQ := $(shell which jq)
 PYTHON_VERSION = 3.8.1
 
 # Service variables
@@ -90,7 +91,7 @@ tests-unit-%:
 #################
 
 # Validate that necessary tools are installed
-validate: validate-pyenv validate-speccy
+validate: validate-pyenv validate-speccy validate-jq
 
 # Validate that pyenv is installed
 validate-pyenv:
@@ -110,6 +111,12 @@ ifndef SPECCY
 	$(error 'speccy' not found. You can install speccy by following the instructions at 'https://github.com/wework/speccy'.)
 endif
 
+# Validate that jq is installed
+validate-jq:
+ifndef JQ
+	$(error 'jq' not found. You can install jq by following the instructions at 'https://stedolan.github.io/jq/download/'.)
+endif
+
 # setup: configure tools
 setup: validate
 	@echo "[*] Download and install python $(PYTHON_VERSION)"
@@ -119,6 +126,7 @@ setup: validate
 	@pyenv virtualenv $(PYTHON_VERSION) $(NAME)
 	@$(MAKE) activate
 	@$(MAKE) requirements
+	@${MAKE} npm-install
 
 # Activate the virtual environment
 activate: validate-pyenv
@@ -127,5 +135,10 @@ activate: validate-pyenv
 
 # Install python dependencies
 requirements:
-	@echo "[*] Install requirements"
+	@echo "[*] Install Python requirements"
 	@pip install -r requirements.txt
+
+# Install npm dependencies
+npm-install:
+	@echo "[*] Install NPM tools"
+	@npm install -g speccy

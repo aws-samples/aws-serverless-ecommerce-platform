@@ -170,6 +170,7 @@ Tests should be written for [pytest](https://docs.pytest.org/en/latest/).
 
 Each service should have the following structure in its folder:
 
+* `/{service}/Makefile`: File containing the build instructions for the service.
 * `/{service}/metadata.yaml`: File containing information about the service, such as its name, permissions, dependencies and parameters.
 * `/{service}/resources/openapi.yaml` (optional): File containing the OpenAPI specification. This is optional if the service does not provide an API.
 * `/{service}/resources/events.yaml` (optional): File containing the event schemas for EventBridge in OpenAPI format. This is optional if the service does not emit events.

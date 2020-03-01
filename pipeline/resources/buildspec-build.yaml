@@ -10,8 +10,7 @@ phases:
       - apt-get update -y
       - apt-get install -y jq
       - /usr/bin/env python3.8 -m pip install --upgrade pip
-      - make requirements
-      - npm install -g speccy jq
+      - make requirements npm-install
   build:
     commands:
       - COMMIT_ID=$(aws ssm get-parameter --name $COMMIT_PARAMETER | jq -r '.Parameter.Value')
