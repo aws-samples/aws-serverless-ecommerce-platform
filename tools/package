@@ -3,7 +3,8 @@
 set -e
 
 ROOT=${ROOT:-$(pwd)}
-SERVICE=$1
+TYPE=$1
+SERVICE=$2
 
 service_dir=$ROOT/$SERVICE
 build_dir=$service_dir/build
@@ -13,7 +14,7 @@ display_usage () {
 }
 
 # Check if there are at least 2 arguments
-if [ $# -lt 1 ]; then
+if [ $# -lt 2 ]; then
     display_usage
     exit 1
 fi
@@ -41,17 +42,28 @@ cleanup () {
 }
 trap cleanup EXIT
 
-clean () {
-    if [ -z $build_dir ]; then
-        echo "\$build_dir not set. Aborting"
-        exit 1
-    fi
-    if [ -d $build_dir ]; then
-        echo "Removing $build_dir"
-        rm -r $build_dir
-    else
-        echo "$build_dir does not exit. Skipping"
+package_cloudformation () {
+    if [ -f $service_dir/build/template.yaml ]; then
+        pushd $build_dir
+        aws cloudformation package \
+            --s3-bucket ${S3_BUCKET:-${USER}-src} \
+            --s3-prefix "artifacts" \
+            --template-file template.yaml \
+            --output-template-file template.out || {
+                # Delay failure so we can popd
+                FAILED=yes
+            }
+        popd
+        if [ ! -z $FAILED ]; then
+            exit 1
+        fi
     fi
 }
 
-clean
+type package_$TYPE | grep -q "function" &>/dev/null || {
+    echo "Unsupported type: $TYPE"
+    echo
+    display_usage
+    exit 1
+}
+package_$TYPE

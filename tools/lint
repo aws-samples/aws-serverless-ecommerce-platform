@@ -1,5 +1,4 @@
 #!/bin/bash
-# Run unit tests against services
 
 set -e
 
@@ -44,10 +43,17 @@ trap cleanup EXIT
 
 # Lint the CloudFormation template
 lint_cloudformation () {
+    # Setup which checks to ignore
+    ignore_checks="--ignore-checks W2001"
+    # Ignore E9000, which checks if there is an 'Environment' parameter in the template
+    yq -r ' .flags.environment | if . == null then true else . end ' $service_dir/metadata.yaml | grep -q true || {
+        ignore_checks="$ignore_checks --ignore-checks E9000"
+    }
+
     if [ -f $service_dir/template.yaml ]; then
         cfn-lint $service_dir/template.yaml \
             --append-rules $ROOT/shared/lint/rules/ \
-            --ignore-checks W2001
+            $ignore_checks
     fi
 }
 

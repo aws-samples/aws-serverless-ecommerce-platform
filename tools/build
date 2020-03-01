@@ -1,5 +1,4 @@
 #!/bin/bash
-# Run unit tests against services
 
 set -e
 

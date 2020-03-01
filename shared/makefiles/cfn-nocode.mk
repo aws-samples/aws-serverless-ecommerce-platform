@@ -6,7 +6,6 @@ export SERVICE ?= $(shell basename ${CURDIR})
 build:
 	@${ROOT}/tools/build resources ${SERVICE}
 	@${ROOT}/tools/build openapi ${SERVICE}
-	@${ROOT}/tools/build python3 ${SERVICE}
 	@${ROOT}/tools/build cloudformation ${SERVICE}
 .PHONY: build
 
@@ -21,7 +20,6 @@ deploy:
 
 lint:
 	@${ROOT}/tools/lint cloudformation ${SERVICE}
-	@${ROOT}/tools/lint python3 ${SERVICE}
 	@${ROOT}/tools/lint openapi ${SERVICE}
 
 package:
@@ -31,4 +29,4 @@ tests-integ:
 	@${ROOT}/tools/tests-integ cloudformation ${SERVICE}
 
 tests-unit:
-	@${ROOT}/tools/tests-unit python3 ${SERVICE}
+	@echo "Skipping unit tests"

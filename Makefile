@@ -5,7 +5,7 @@ SPECCY := $(shell which speccy)
 PYTHON_VERSION = 3.8.1
 
 # Service variables
-SERVICES = $(shell tools/pipeline services)
+SERVICES = $(shell tools/pipeline services --env-only)
 export DOMAIN ?= ecommerce
 export ENVIRONMENT ?= dev
 
@@ -17,68 +17,70 @@ ccend = \033[0m
 # SERVICE TARGETS #
 ###################
 
+# Run pipeline on services
+all: $(foreach service,${SERVICES}, all-${service})
+all-%: 
+	@${MAKE} lint-$*
+	@${MAKE} clean-$*
+	@${MAKE} build-$*
+	@${MAKE} tests-unit-$*
+	@${MAKE} check-deps-$*
+	@${MAKE} package-$*
+	@${MAKE} deploy-$*
+	@${MAKE} tests-integ-$*
+.NOTPARALLEL: all all-%
+
 # Run CI on services
-ci: ci-${SERVICES}
+ci: $(foreach service,${SERVICES}, ci-${service})
 ci-%:
 	@${MAKE} lint-$*
 	@${MAKE} clean-$*
 	@${MAKE} build-$*
 	@${MAKE} tests-unit-$*
 
-# Run pipeline on services
-all: all-${SERVICES}
-all-%: 
-	@${MAKE} lint-$*
-	@${MAKE} clean-$*
-	@${MAKE} build-$*
-	@${MAKE} tests-unit-$*
-	@${MAKE} package-$*
-	@${MAKE} deploy-$*
-	@${MAKE} tests-integ-$*
-
 # Build services
-build: build-${SERVICES}
+build: $(foreach service,${SERVICES}, build-${service})
 build-%:
 	@echo "[*] $(ccblue)build $*$(ccend)"
 	@make -C $* build
 
 # Check-deps services
-check-deps: check-deps-${SERVICES}
+check-deps: $(foreach service,${SERVICES}, check-deps-${service})
 check-deps-%:
 	@echo "[*] $(ccblue)check-deps $*$(ccend)"
 	@make -C $* check-deps
 
 # Clean services
-clean: clean-${SERVICES}
+clean: $(foreach service,${SERVICES}, clean-${service})
 clean-%:
 	@echo "[*] $(ccblue)clean $*$(ccend)"
 	@make -C $* clean
 
-deploy: deploy-${SERVICES}
+deploy: $(foreach service,${SERVICES}, deploy-${service})
 deploy-%:
 	@echo "[*] $(ccblue)deploy $*$(ccend)"
 	@make -C $* deploy
 
 # Lint services
-lint: lint-$(SERVICES)
+lint: $(foreach service,${SERVICES}, lint-${service})
 lint-%:
 	@echo "[*] $(ccblue)lint $*$(ccend)"
 	@make -C $* lint
 
 # Package services
-package: package-${SERVICES}
+package: $(foreach service,${SERVICES}, package-${service})
 package-%:
 	@echo "[*] $(ccblue)package $*$(ccend)"
 	@make -C $* package
 
 # Integration tests
-tests-integ: tests-integ-${SERVICES}
+tests-integ: $(foreach service,${SERVICES}, tests-integ-${service})
 tests-integ-%:
 	@echo "[*] $(ccblue)tests-integ $*$(ccend)"
 	@make -C $* tests-integ
 
 # Unit tests
-tests-unit: tests-unit-${SERVICES}
+tests-unit: $(foreach service,${SERVICES}, tests-unit-${service})
 tests-unit-%:
 	@echo "[*] $(ccblue)tests-unit $*$(ccend)"
 	@make -C $* tests-unit
@@ -127,26 +129,3 @@ activate: validate-pyenv
 requirements:
 	@echo "[*] Install requirements"
 	@pip install -r requirements.txt
-
-# # Bootstrap all resources on AWS
-# bootstrap-prod: bootstrap-services bootstrap-repository
-
-# # Bootstrap just the dev environment
-# bootstrap-dev:
-# 	@echo "[*] Bootstrap services"
-# 	@for service in $(shell tools/pipeline services --env-only) ; \
-# 		do tools/toolbox $$service all --env dev --quiet yes || exit 1 ; \
-# 		done
-
-# # Bootstrap services in non-dev environment
-# bootstrap-services:
-# 	@echo "[*] Bootstrap services"
-# 	@for service in $(shell tools/pipeline services) ; \
-# 		do tools/toolbox $$service all --env tests --quiet yes || exit 1 ; \
-# 		done
-
-# # Push data into the CodeCommit repository
-# bootstrap-repository:
-# 	@echo "[*] Bootstrap repository"
-# 	@git remote add aws $(shell aws ssm get-parameter --name /ecommerce/pipeline/repository/url | jq -r '.Parameter.Value')
-# 	@git push aws HEAD:master
