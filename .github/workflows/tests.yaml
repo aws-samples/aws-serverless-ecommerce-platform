@@ -31,10 +31,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           make requirements
-          npm install -g speccy
+          npm install -g speccy jq
       - name: lint and unit tests
         run: |
-          for service in $(tools/pipeline services); do
-            echo "Running tests on $service"
-            tools/toolbox $service ci
-          done
+          make ci
