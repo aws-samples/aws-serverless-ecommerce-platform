@@ -25,6 +25,9 @@ lint:
 package:
 	@${ROOT}/tools/package cloudformation ${SERVICE}
 
+teardown:
+	@${ROOT}/tools/teardown cloudformation ${SERVICE}
+
 tests-integ:
 	@${ROOT}/tools/tests-integ cloudformation ${SERVICE}
 

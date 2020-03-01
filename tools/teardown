@@ -1,0 +1,66 @@
+#!/bin/bash
+
+set -e
+
+ROOT=${ROOT:-$(pwd)}
+TYPE=$1
+SERVICE=$2
+
+service_dir=$ROOT/$SERVICE
+build_dir=$service_dir/build
+
+display_usage () {
+    echo "Usage: $0 TYPE SERVICE"
+}
+
+# Check if there are at least 2 arguments
+if [ $# -lt 2 ]; then
+    display_usage
+    exit 1
+fi
+
+# Check if the service exists
+if [ ! -f $service_dir/metadata.yaml ]; then
+    echo "Service $SERVICE does not exist"
+    exit 1
+fi
+
+# Check for quiet mode
+if [ ! -z $QUIET ]; then
+    export OUTPUT_FILE=$(mktemp)
+    exec 5>&1 6>&2 1>$OUTPUT_FILE 2>&1
+fi
+
+cleanup () {
+    CODE=$?
+    if [ ! -z $QUIET ]; then
+        if [ ! $CODE -eq 0 ]; then
+            cat $OUTPUT_FILE >&5
+        fi
+        rm $OUTPUT_FILE
+    fi
+}
+trap cleanup EXIT
+
+teardown_cloudformation () {
+    stack_name=${DOMAIN:-ecommerce}-${ENVIRONMENT:-dev}-${SERVICE}
+
+    # Update stack name for services that don't support environments
+    yq -r ' .flags.environment | if . == null then true else . end ' $service_dir/metadata.yaml | grep -q true || {
+        stack_name=${DOMAIN:-ecommerce}-$SERVICE
+    }
+
+    # Display variables for debugging
+    echo stack_name: $stack_name
+
+    aws cloudformation delete-stack --stack-name $stack_name
+    aws cloudformation wait stack-delete-complete --stack-name $stack_name
+}
+
+type teardown_$TYPE | grep -q "function" &>/dev/null || {
+    echo "Unsupported type: $TYPE"
+    echo
+    display_usage
+    exit 1
+}
+teardown_$TYPE

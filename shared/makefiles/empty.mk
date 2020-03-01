@@ -22,6 +22,9 @@ lint:
 package:
 	$(error "Target $@ is not implemented.")
 
+teardown:
+	$(error "Target $@ is not implemented.")
+
 tests-integ:
 	$(error "Target $@ is not implemented.")
 

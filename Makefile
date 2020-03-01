@@ -44,48 +44,55 @@ ci-%:
 build: $(foreach service,${SERVICES}, build-${service})
 build-%:
 	@echo "[*] $(ccblue)build $*$(ccend)"
-	@make -C $* build
+	@${MAKE} -C $* build
 
 # Check-deps services
 check-deps: $(foreach service,${SERVICES_ENVONLY}, check-deps-${service})
 check-deps-%:
 	@echo "[*] $(ccblue)check-deps $*$(ccend)"
-	@make -C $* check-deps
+	@${MAKE} -C $* check-deps
 
 # Clean services
 clean: $(foreach service,${SERVICES}, clean-${service})
 clean-%:
 	@echo "[*] $(ccblue)clean $*$(ccend)"
-	@make -C $* clean
+	@${MAKE} -C $* clean
 
 deploy: $(foreach service,${SERVICES_ENVONLY}, deploy-${service})
 deploy-%:
 	@echo "[*] $(ccblue)deploy $*$(ccend)"
-	@make -C $* deploy
+	@${MAKE} -C $* deploy
 
 # Lint services
 lint: $(foreach service,${SERVICES}, lint-${service})
 lint-%:
 	@echo "[*] $(ccblue)lint $*$(ccend)"
-	@make -C $* lint
+	@${MAKE} -C $* lint
 
 # Package services
 package: $(foreach service,${SERVICES_ENVONLY}, package-${service})
 package-%:
 	@echo "[*] $(ccblue)package $*$(ccend)"
-	@make -C $* package
+	@${MAKE} -C $* package
+
+# Teardown services
+# When running `make teardown`, the shell command inverts the service to remove them in reverse dependency order
+teardown: $(foreach service,$(shell echo ${SERVICES_ENVONLY} | awk '{ for (i=NF; i>1; i--) printf("%s ",$$i); print $$1; }'), teardown-${service})
+teardown-%:
+	@echo "[*] $(ccblue)teardown $*$(ccend)"
+	@${MAKE} -C $* teardown
 
 # Integration tests
 tests-integ: $(foreach service,${SERVICES_ENVONLY}, tests-integ-${service})
 tests-integ-%:
 	@echo "[*] $(ccblue)tests-integ $*$(ccend)"
-	@make -C $* tests-integ
+	@${MAKE} -C $* tests-integ
 
 # Unit tests
 tests-unit: $(foreach service,${SERVICES}, tests-unit-${service})
 tests-unit-%:
 	@echo "[*] $(ccblue)tests-unit $*$(ccend)"
-	@make -C $* tests-unit
+	@${MAKE} -C $* tests-unit
 
 #################
 # SETUP TARGETS #
