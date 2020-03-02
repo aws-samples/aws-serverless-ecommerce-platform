@@ -3,11 +3,18 @@
 
 import argparse
 import os
-from typing import List
+import subprocess
+from typing import List, Optional
 import yaml
 
 
 ROOT = os.environ.get("ROOT", os.getcwd())
+
+
+# If any file in these folders are changed, rebuild all services
+REBUILD_FOLDERS = [
+    "shared"
+]
 
 
 # If any file in these service folders are changed, ignore it.
@@ -23,6 +30,8 @@ def get_args():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--env-only", default=False, action="store_true")
+    parser.add_argument("--exclude", action="append")
+    parser.add_argument("--changed-since", default="0")
 
     return parser.parse_args()
 
@@ -42,7 +51,11 @@ def get_metadata(service_name: str) -> List[str]:
     return metadata
 
 
-def get_services(env_only:bool = False) -> List[str]:
+def get_services(
+        env_only:bool = False,
+        exclude: Optional[List[str]] = None,
+        changed_since: str = "0"
+    ) -> List[str]:
     """
     Retrieve services in dependency order
     """
@@ -53,9 +66,10 @@ def get_services(env_only:bool = False) -> List[str]:
         name: {"deps": [], "rdeps": [], "metadata": get_metadata(name)}
         for name in os.listdir(ROOT)
         if os.path.isfile(os.path.join(ROOT, name, "metadata.yaml"))
-        and name not in IGNORE_FOLDERS
+        and name not in IGNORE_FOLDERS + (exclude or [])
     }
 
+    # If needed, remove services which don't support environments
     if env_only:
         for name in list(services.keys()):
             if not services[name]["metadata"].get("flags", {}).get("environment", True):
@@ -114,10 +128,30 @@ def get_services(env_only:bool = False) -> List[str]:
             print(key, value)
         raise ValueError("Potential circular dependency found: mismatch between number of services: {} vs {}".format(len(retval), len(services)))
 
-    return retval
+    if changed_since == "0":
+        return retval
+
+    # If `--changed-since` has a valid commit ID, we need to check which 
+    process = subprocess.run(["git", "diff", changed_since, "--name-only"], capture_output=True, text=True)
+    process.check_returncode()
+
+    changed = []
+    for filename in process.stdout.split("\n"):
+        basename = filename.split("/", 1)[0]
+
+        # If one file from the special folders has changed, all services need
+        # to be rebuilt.
+        if basename in REBUILD_FOLDERS:
+            return retval
+
+        if basename in services:
+            changed.append(basename)
+
+    # Only return each service once
+    return list(set(changed))
 
 
 if __name__ == "__main__":
     args = get_args()
-    for service in get_services(args.env_only):
+    for service in get_services(args.env_only, args.exclude, args.changed_since):
         print(service)

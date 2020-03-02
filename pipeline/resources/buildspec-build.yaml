@@ -14,16 +14,16 @@ phases:
   build:
     commands:
       - COMMIT_ID=$(aws ssm get-parameter --name $COMMIT_PARAMETER | jq -r '.Parameter.Value')
-      - "echo SERVICES: $(tools/pipeline changed $COMMIT_ID)"
+      - "echo SERVICES: $(tools/services --changed-since $COMMIT_ID)"
       # Tests for all services must work before moving to the next step
       - |
-        for SERVICE in $(tools/pipeline changed $COMMIT_ID); do
+        for SERVICE in $(tools/services --changed-since $COMMIT_ID); do
           make ci-$SERVICE package-$SERVICE || exit 1
         done
       # Upload template artifacts to 'templates/$SERVICE.yaml'
       # This will trigger the pipelines per service
       - |
-        for SERVICE in $(tools/pipeline changed $COMMIT_ID); do
+        for SERVICE in $(tools/services --changed-since $COMMIT_ID); do
           tools/pipeline upload $SERVICE || exit 1
         done
       # Update the parameter
