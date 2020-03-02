@@ -11,6 +11,9 @@ Parameters:
     Type: Number
     Default: 20
     Description: Maximum number of items to return from a single query
+  OrdersTableName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Orders Table Name
   ProductsTableName:
     Type: AWS::SSM::Parameter::Value<String>
     Description: Products Table Name
@@ -55,6 +58,98 @@ Resources:
       ApiId: !GetAtt Api.ApiId
       DefinitionS3Location: "resources/api.graphql"
 
+  ##########
+  # ORDERS #
+  ##########
+  OrdersRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: appsync.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ProductsTableAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${OrdersTableName}"
+              - Effect: Allow
+                Action:
+                  - dynamodb:Query
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${OrdersTableName}/index/userId"
+
+  OrdersDataSource:
+    Type: AWS::AppSync::DataSource
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      Name: OrdersTable
+      Type: AMAZON_DYNAMODB
+      ServiceRoleArn: !GetAtt OrdersRole.Arn
+      DynamoDBConfig:
+        AwsRegion: !Ref AWS::Region
+        TableName: !Ref OrdersTableName
+
+  GetOrdersResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: Schema
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      DataSourceName: !GetAtt OrdersDataSource.Name
+      FieldName: getOrders
+      TypeName: Query
+      RequestMappingTemplate: !Sub |
+        {
+          "version": "2017-02-28",
+          "operation": "Query",
+          "query": {
+            "expression": "userId = :userId",
+            "expressionValues": {
+              ":userId": $util.dynamodb.toDynamoDBJson($ctx.identity.sub)
+            }
+          },
+          "limit": ${QueryLimit},
+          "index": "userId"
+        }
+      ResponseMappingTemplate: |
+        {
+          #if( $ctx.result.nextToken )
+            "nextToken": "$ctx.result.nextToken"
+          #end
+          "orders": $utils.toJson($ctx.result.items)
+        }
+
+  GetOrderResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: Schema
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      DataSourceName: !GetAtt OrdersDataSource.Name
+      FieldName: getOrder
+      TypeName: Query
+      RequestMappingTemplate: |
+        {
+          "version": "2017-02-28",
+          "operation": "GetItem",
+          "key": {
+            "orderId": $util.dynamodb.toDynamoDBJson($ctx.args.orderId)
+          }
+        }
+      ResponseMappingTemplate: |
+        #if( $ctx.identity.sub == $ctx.result.userId )
+          $utils.toJson($ctx.result)
+        #else
+          null
+        #end
+
   ############
   # PRODUCTS #
   ############
@@ -96,13 +191,13 @@ Resources:
         AwsRegion: !Ref AWS::Region
         TableName: !Ref ProductsTableName
 
-  GetAllProductsResolver:
+  GetProductsResolver:
     Type: AWS::AppSync::Resolver
     DependsOn: Schema
     Properties:
       ApiId: !GetAtt Api.ApiId
       DataSourceName: !GetAtt ProductsDataSource.Name
-      FieldName: getAllProducts
+      FieldName: getProducts
       TypeName: Query
       RequestMappingTemplate: !Sub |
         {
