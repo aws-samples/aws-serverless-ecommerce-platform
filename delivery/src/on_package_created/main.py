@@ -6,11 +6,11 @@ OnPackageCreatedFunction
 import os
 from typing import Optional
 from urllib.parse import urlparse
-from aws_lambda_powertools.tracing import Tracer # pylint: disable=import-error
-from aws_lambda_powertools.logging import logger_setup, logger_inject_lambda_context # pylint: disable=import-error
-from aws_requests_auth.boto_utils import BotoAWSRequestsAuth # pylint: disable=import-error
 import boto3
 import requests # pylint: disable=import-error
+from aws_requests_auth.boto_utils import BotoAWSRequestsAuth # pylint: disable=import-error
+from aws_lambda_powertools.tracing import Tracer # pylint: disable=import-error
+from aws_lambda_powertools.logging import logger_setup, logger_inject_lambda_context # pylint: disable=import-error
 
 
 ENVIRONMENT = os.environ["ENVIRONMENT"]
