@@ -50,7 +50,7 @@ clean () {
         echo "Removing $build_dir"
         rm -r $build_dir
     else
-        echo "$build_dir does not exit. Skipping"
+        echo "$build_dir does not exist. Skipping"
     fi
 }
 

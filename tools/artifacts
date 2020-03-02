@@ -1,0 +1,81 @@
+#!/bin/bash
+
+set -e
+
+ROOT=${ROOT:-$(pwd)}
+TYPE=$1
+SERVICE=$2
+
+service_dir=$ROOT/$SERVICE
+build_dir=$service_dir/build
+
+display_usage () {
+    echo "Usage: $0 TYPE SERVICE"
+}
+
+# Check if there are at least 2 arguments
+if [ $# -lt 2 ]; then
+    display_usage
+    exit 1
+fi
+
+# Check if the service exists
+if [ ! -f $service_dir/metadata.yaml ]; then
+    echo "Service $SERVICE does not exist"
+    exit 1
+fi
+
+# Check for quiet mode
+if [ ! -z $QUIET ]; then
+    export OUTPUT_FILE=$(mktemp)
+    exec 5>&1 6>&2 1>$OUTPUT_FILE 2>&1
+fi
+
+cleanup () {
+    CODE=$?
+    if [ ! -z $QUIET ]; then
+        if [ ! $CODE -eq 0 ]; then
+            cat $OUTPUT_FILE >&5
+        fi
+        rm $OUTPUT_FILE
+    fi
+}
+trap cleanup EXIT
+
+artifacts_cloudformation () {
+    if [ ! -d $build_dir ]; then
+        echo "$build_dir does not exist."
+        exit 1
+    fi
+
+    template_file=$build_dir/template.out
+    if [ ! -f $template_file ]; then
+        echo "$template_file does not exist."
+        exit 1
+    fi
+
+    # Create a temporary folder
+    tmpdir=$(mktemp -d)
+
+    # Copy artifacts
+    cp -pv $template_file $tmpdir/template.yaml
+    for artifact_file in $build_dir/artifacts/*; do
+        cp -pv $artifact_file $tmpdir/$(basename $artifact_file)
+    done
+
+    # Create zip file
+    pushd $tmpdir
+    zip $build_dir/artifacts.zip *
+    popd
+
+    # Delete the temporary folder
+    rm -r $tmpdir
+}
+
+type artifacts_$TYPE | grep -q "function" &>/dev/null || {
+    echo "Unsupported type: $TYPE"
+    echo
+    display_usage
+    exit 1
+}
+artifacts_$TYPE

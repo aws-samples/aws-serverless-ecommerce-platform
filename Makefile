@@ -39,6 +39,12 @@ ci-%:
 	@${MAKE} build-$*
 	@${MAKE} tests-unit-$*
 
+# Artifacts services
+artifacts: $(foreach service,${SERVICES_ENVONLY}, all-${service})
+artifacts-%:
+	@echo "[*] $(ccblue)artifacts $*$(ccend)"
+	@${MAKE} -C $* artifacts
+
 # Build services
 build: $(foreach service,${SERVICES}, build-${service})
 build-%:
