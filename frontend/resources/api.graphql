@@ -24,7 +24,9 @@ type PaginatedProducts {
 }
 
 type Query {
-    allProducts(nextToken: String): PaginatedProducts!
+    getAllProducts(nextToken: String): PaginatedProducts!
+    getProduct(productId: ID!): Product
+    getProductsByCategory(category: String!): PaginatedProducts!
 }
 
 schema {

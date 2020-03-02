@@ -79,6 +79,11 @@ Resources:
                   - dynamodb:GetItem
                 Resource:
                   - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ProductsTableName}"
+              - Effect: Allow
+                Action:
+                  - dynamodb:Query
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ProductsTableName}/index/category"
 
   ProductsDataSource:
     Type: AWS::AppSync::DataSource
@@ -91,27 +96,75 @@ Resources:
         AwsRegion: !Ref AWS::Region
         TableName: !Ref ProductsTableName
 
-  ProductsQueryResolver:
+  GetAllProductsResolver:
     Type: AWS::AppSync::Resolver
     DependsOn: Schema
     Properties:
       ApiId: !GetAtt Api.ApiId
       DataSourceName: !GetAtt ProductsDataSource.Name
-      FieldName: allProducts
+      FieldName: getAllProducts
       TypeName: Query
       RequestMappingTemplate: !Sub |
         {
           "version": "2017-02-28",
           "operation": "Scan",
-          #if( ${!ctx.args.nextToken} )
-            "nextToken": "${!ctx.args.nextToken}",
+          #if( $ctx.args.nextToken )
+            "nextToken": "$ctx.args.nextToken",
           #end
           "limit": ${QueryLimit}
         }
       ResponseMappingTemplate: |
         {
-          #if( ${ctx.result.nextToken} )
-            "nextToken": "${ctx.result.nextToken}"
+          #if( $ctx.result.nextToken )
+            "nextToken": "$ctx.result.nextToken"
+          #end
+          "products": $utils.toJson($ctx.result.items)
+        }
+  
+  GetProductResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: Schema
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      DataSourceName: !GetAtt ProductsDataSource.Name
+      FieldName: getProduct
+      TypeName: Query
+      RequestMappingTemplate: |
+        {
+          "version": "2017-02-28",
+          "operation": "GetItem",
+          "key": {
+            "productId": $util.dynamodb.toDynamoDBJson($ctx.args.productId)
+          }
+        }
+      ResponseMappingTemplate: |
+        $utils.toJson($ctx.result)
+
+  GetProductsByCategoryResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: Schema
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      DataSourceName: !GetAtt ProductsDataSource.Name
+      FieldName: getProductsByCategory
+      TypeName: Query
+      RequestMappingTemplate: !Sub |
+        {
+          "version": "2017-02-28",
+          "operation": "Query",
+          "query": {
+            "expression": "category = :category",
+            "expressionValues": {
+              ":category": $util.dynamodb.toDynamoDBJson($ctx.args.category)
+            }
+          },
+          "limit": ${QueryLimit},
+          "index": "category"
+        }
+      ResponseMappingTemplate: |
+        {
+          #if( $ctx.result.nextToken )
+            "nextToken": "$ctx.result.nextToken"
           #end
           "products": $utils.toJson($ctx.result.items)
         }
