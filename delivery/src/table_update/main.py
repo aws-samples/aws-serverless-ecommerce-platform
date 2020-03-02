@@ -136,7 +136,7 @@ def handler(event, _):
         process_record(record)
         for record in event.get("Records", [])
     ]
-    events = [event for event in events if event is not None]
+    events = [event for event in events if event is not None]    
 
     logger.info("Received %d event(s)", len(events))
     logger.debug({
@@ -144,4 +144,5 @@ def handler(event, _):
         "events": events
     })
 
-    send_events(events)
+    if len(events) > 0:
+        send_events(events)

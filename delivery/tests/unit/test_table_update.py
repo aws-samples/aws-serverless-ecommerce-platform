@@ -341,3 +341,26 @@ def test_handler(lambda_module, context, order,
     # Check that events were sent
     eventbridge.assert_no_pending_responses()
     eventbridge.deactivate()
+
+
+def test_handler_nothing(lambda_module, context, order,
+        ddb_record_new):
+    """
+    Test handler() with records that should not create events
+    """
+
+    # Prepare event
+    event = {"Records": [
+        ddb_record_new
+    ]}
+
+    # Stub
+    eventbridge = stub.Stubber(lambda_module.eventbridge)
+    eventbridge.activate()
+
+    # Send request
+    lambda_module.handler(event, context)
+
+    # Check that events were sent
+    eventbridge.assert_no_pending_responses()
+    eventbridge.deactivate()
