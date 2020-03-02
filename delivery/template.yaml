@@ -110,6 +110,38 @@ Resources:
       LogGroupName: !Sub "/aws/lambda/${OnPackageCreatedFunction}"
       RetentionInDays: !Ref RetentionInDays
 
+  TableUpdateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      CodeUri: src/table_update/
+      Events:
+        DynamoDB:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt Table.StreamArn
+            StartingPosition: TRIM_HORIZON
+            DestinationConfig:
+              OnFailure:
+                Destination: !GetAtt DeadLetterQueue.Outputs.QueueArn
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: "*"
+            - Effect: Allow
+              Action:
+                - sqs:SendMessage
+              Resource: !GetAtt DeadLetterQueue.Outputs.QueueArn
+
+  TableUpdateLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${TableUpdateFunction}"
+      RetentionInDays: !Ref RetentionInDays
+
   #####################
   # DEAD LETTER QUEUE #
   #####################
