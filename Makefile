@@ -6,8 +6,8 @@ JQ := $(shell which jq)
 PYTHON_VERSION = 3.8.1
 
 # Service variables
-SERVICES = $(shell tools/pipeline services)
-SERVICES_ENVONLY = $(shell tools/pipeline services --env-only)
+SERVICES = $(shell tools/services)
+SERVICES_ENVONLY = $(shell tools/services --env-only)
 export DOMAIN ?= ecommerce
 export ENVIRONMENT ?= dev
 

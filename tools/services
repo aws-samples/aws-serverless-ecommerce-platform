@@ -1,0 +1,123 @@
+#!/usr/bin/env python3
+
+
+import argparse
+import os
+from typing import List
+import yaml
+
+
+ROOT = os.environ.get("ROOT", os.getcwd())
+
+
+# If any file in these service folders are changed, ignore it.
+# If the folder does not have a `metadata.yaml` file, the folder is ignored
+# anyway.
+IGNORE_FOLDERS = []
+
+
+def get_args():
+    """
+    Retrieve arguments from the commandline
+    """
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--env-only", default=False, action="store_true")
+
+    return parser.parse_args()
+
+
+def get_metadata(service_name: str) -> List[str]:
+    """
+    Get metadata for a service
+    """
+
+    metafile = os.path.join(ROOT, service_name, "metadata.yaml")
+    if not os.path.isfile(metafile):
+        raise ValueError("Metadata file not found for {}".format(service_name))
+
+    with open(metafile) as fp:
+        metadata = yaml.load(fp, Loader=yaml.SafeLoader)
+
+    return metadata
+
+
+def get_services(env_only:bool = False) -> List[str]:
+    """
+    Retrieve services in dependency order
+    """
+
+    # Gather all services
+    services = {
+        # Mapping name: reverse dependencies
+        name: {"deps": [], "rdeps": [], "metadata": get_metadata(name)}
+        for name in os.listdir(ROOT)
+        if os.path.isfile(os.path.join(ROOT, name, "metadata.yaml"))
+        and name not in IGNORE_FOLDERS
+    }
+
+    if env_only:
+        for name in list(services.keys()):
+            if not services[name]["metadata"].get("flags", {}).get("environment", True):
+                del services[name]
+
+    to_scan = []
+
+    # Parse dependencies
+    for name in services.keys():
+        if len(services[name]["metadata"].get("dependencies", [])) == 0:
+            to_scan.append(name)
+        for dep in services[name]["metadata"].get("dependencies", []):
+            if name == dep:
+                continue
+            # This service depends on all the services
+            elif dep == "*":
+                for dname in services.keys():
+                    # Only inject if this is not the same service
+                    if dname != name:
+                        services[name]["deps"].append(dname)
+                        services[dname]["rdeps"].append(name)
+            elif dep not in services:
+                raise ValueError("Dependency {} of {} not found".format(dep, name))
+            else:
+                services[name]["deps"].append(dep)
+                # Inject as a reverse dependency
+                services[dep]["rdeps"].append(name)
+
+    # Scan all services until there are not more services to scan. This looks
+    # for services with no dependencies that were unprocessed.
+    # The initial `to_scan` list is seeded by all services without any
+    # dependency. Whenever this scans a dependency, it goes through the list of
+    # reverse dependencies (services depending on this one) and remove itself
+    # from the list of dependencies of that service. Whenever the list of
+    # dependencies for a service is empty, this means that all dependencies are
+    # satisfied by values in the `retval` list.
+    # At the end, all services should be resolved. If it's not possible to
+    # remove all dependencies of a service, this means that there is a circular
+    # dependency.
+    retval = []
+    while len(to_scan) > 0:
+        name = to_scan.pop(0)
+        # If the service is already processed, something has gone wrong.
+        if name in retval:
+            raise ValueError("Service {} already present in services: {}".format(name, retval))
+        retval.append(name)
+        for rname in services[name]["rdeps"]:
+            services[rname]["deps"].remove(name)
+            if len(services[rname]["deps"]) == 0:
+                to_scan.append(rname)
+
+    # If there is a discrepancy, this means that there is a circular
+    # dependency.
+    if len(retval) != len(services):
+        for key, value in services.items():
+            print(key, value)
+        raise ValueError("Potential circular dependency found: mismatch between number of services: {} vs {}".format(len(retval), len(services)))
+
+    return retval
+
+
+if __name__ == "__main__":
+    args = get_args()
+    for service in get_services(args.env_only):
+        print(service)
