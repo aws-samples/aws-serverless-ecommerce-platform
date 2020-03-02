@@ -10,6 +10,7 @@ from .helpers import Encoder
 
 
 __all__ = ["ddb_to_event"]
+deserialize = TypeDeserializer().deserialize
 
 
 def ddb_to_event(
@@ -25,8 +26,6 @@ def ddb_to_event(
     For this function to works, you need to have a StreamViewType of
     NEW_AND_OLD_IMAGES.
     """
-
-    deserialize = TypeDeserializer().deserialize
 
     event = {
         "Time": datetime.now(),
