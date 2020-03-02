@@ -3,6 +3,9 @@ export ENVIRONMENT ?= dev
 export ROOT ?= $(shell dirname ${CURDIR})
 export SERVICE ?= $(shell basename ${CURDIR})
 
+artifacts:
+	@${ROOT}/tools/artifacts cloudformation ${SERVICE}
+
 build:
 	@${ROOT}/tools/build resources ${SERVICE}
 	@${ROOT}/tools/build openapi ${SERVICE}

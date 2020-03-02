@@ -3,6 +3,9 @@ export ENVIRONMENT ?= dev
 export ROOT ?= $(shell dirname ${CURDIR})
 export SERVICE ?= $(shell basename ${CURDIR})
 
+artifacts:
+	$(error "Target $@ is not implemented.")
+
 build:
 	$(error "Target $@ is not implemented.")
 .PHONY: build

@@ -46,7 +46,7 @@ check-deps_cloudformation () {
     dependencies=$(yq -r ' .dependencies[]? ' $service_dir/metadata.yaml)
     # If it contains '*', this means all other services must be deployed
     echo "$dependencies" | grep -q \* && {
-        dependencies="$($ROOT/tools/pipeline services | sed 's/'${SERVICE}'//')"
+        dependencies="$($ROOT/tools/services --exclude ${SERVICE})"
     }
     echo dependencies=$dependencies
 
