@@ -1,7 +1,9 @@
 Frontend service
 ================
 
-![Frontend architecture diagram](images/frontend.png)
+<p align="center">
+  <img alt="Frontend architecture diagram" src="images/frontend.png"/>
+</p>
 
 ## API
 
