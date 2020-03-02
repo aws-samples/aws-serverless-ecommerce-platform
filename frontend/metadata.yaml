@@ -1,0 +1,10 @@
+name: frontend
+dependencies:
+  - orders
+  - products
+  - users
+parameters:
+  ProductsTableName: /ecommerce/{Environment}/products/table/name
+  UserPoolId: /ecommerce/{Environment}/users/user-pool/id
+flags:
+  skip-tests: true

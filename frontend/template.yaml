@@ -1,0 +1,117 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: 'AWS::Serverless-2016-10-31'
+
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    Description: Environment name
+  QueryLimit:
+    Type: Number
+    Default: 20
+    Description: Maximum number of items to return from a single query
+  ProductsTableName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Products Table Name
+  UserPoolId:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Cognito User Pool ID
+
+
+Resources:
+  ###############
+  # GRAPHQL API #
+  ###############
+  Api:
+    Type: AWS::AppSync::GraphQLApi
+    Properties:
+      Name: !Sub "ecommerce-${Environment}-frontend"
+      AuthenticationType: API_KEY
+      AdditionalAuthenticationProviders:
+        - AuthenticationType: AMAZON_COGNITO_USER_POOLS
+          UserPoolConfig:
+            AwsRegion: !Ref AWS::Region
+            UserPoolId: !Ref UserPoolId
+      XrayEnabled: true
+
+  ApiArnParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /ecommerce/${Environment}/frontend/api/arn
+      Type: String
+      Value: !GetAtt Api.Arn
+
+  ApiUrlParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /ecommerce/${Environment}/frontend/api/url
+      Type: String
+      Value: !GetAtt Api.GraphQLUrl
+
+  Schema:
+    Type: AWS::AppSync::GraphQLSchema
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      DefinitionS3Location: "resources/api.graphql"
+
+  ############
+  # PRODUCTS #
+  ############
+  ProductsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: appsync.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ProductsTableAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:Scan
+                  - dynamodb:GetItem
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ProductsTableName}"
+
+  ProductsDataSource:
+    Type: AWS::AppSync::DataSource
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      Name: ProductsTable
+      Type: AMAZON_DYNAMODB
+      ServiceRoleArn: !GetAtt ProductsRole.Arn
+      DynamoDBConfig:
+        AwsRegion: !Ref AWS::Region
+        TableName: !Ref ProductsTableName
+
+  ProductsQueryResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: Schema
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      DataSourceName: !GetAtt ProductsDataSource.Name
+      FieldName: allProducts
+      TypeName: Query
+      RequestMappingTemplate: !Sub |
+        {
+          "version": "2017-02-28",
+          "operation": "Scan",
+          #if( ${!ctx.args.nextToken} )
+            "nextToken": "${!ctx.args.nextToken}",
+          #end
+          "limit": ${QueryLimit}
+        }
+      ResponseMappingTemplate: |
+        {
+          #if( ${ctx.result.nextToken} )
+            "nextToken": "${ctx.result.nextToken}"
+          #end
+          "products": $utils.toJson($ctx.result.items)
+        }

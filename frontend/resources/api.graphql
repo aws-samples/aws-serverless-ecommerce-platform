@@ -1,0 +1,32 @@
+type Package {
+    width: String
+    length: String
+    height: String
+    weight: String
+}
+
+type Product {
+    productId: ID!
+    createdDate: String
+    modifiedDate: String
+    name: String!
+    package: Package!
+    category: String
+    tags: [String]
+    pictures: [String]
+    price: Int!
+    quantity: Int
+}
+
+type PaginatedProducts {
+    products: [Product!]!
+    nextToken: String
+}
+
+type Query {
+    allProducts(nextToken: String): PaginatedProducts!
+}
+
+schema {
+    query: Query
+}
