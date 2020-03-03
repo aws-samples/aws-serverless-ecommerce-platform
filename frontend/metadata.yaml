@@ -1,0 +1,9 @@
+name: frontend
+dependencies:
+  - orders
+  - products
+  - users
+parameters:
+  OrdersTableName: /ecommerce/{Environment}/orders/table/name
+  ProductsTableName: /ecommerce/{Environment}/products/table/name
+  UserPoolId: /ecommerce/{Environment}/users/user-pool/id

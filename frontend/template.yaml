@@ -1,0 +1,273 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: 'AWS::Serverless-2016-10-31'
+
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    Description: Environment name
+  QueryLimit:
+    Type: Number
+    Default: 20
+    Description: Maximum number of items to return from a single query
+  OrdersTableName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Orders Table Name
+  ProductsTableName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Products Table Name
+  UserPoolId:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Cognito User Pool ID
+
+
+Resources:
+  ###############
+  # GRAPHQL API #
+  ###############
+  Api:
+    Type: AWS::AppSync::GraphQLApi
+    Properties:
+      Name: !Sub "ecommerce-${Environment}-frontend"
+      AuthenticationType: API_KEY
+      AdditionalAuthenticationProviders:
+        - AuthenticationType: AMAZON_COGNITO_USER_POOLS
+          UserPoolConfig:
+            # AppIdClientRegex: !Sub "ecommerce-${Environment}-frontend.*"
+            AwsRegion: !Ref AWS::Region
+            UserPoolId: !Ref UserPoolId
+      XrayEnabled: true
+
+  ApiArnParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /ecommerce/${Environment}/frontend/api/arn
+      Type: String
+      Value: !GetAtt Api.Arn
+
+  ApiIdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /ecommerce/${Environment}/frontend/api/id
+      Type: String
+      Value: !GetAtt Api.ApiId
+
+  ApiUrlParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /ecommerce/${Environment}/frontend/api/url
+      Type: String
+      Value: !GetAtt Api.GraphQLUrl
+
+  Schema:
+    Type: AWS::AppSync::GraphQLSchema
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      DefinitionS3Location: "resources/api.graphql"
+
+  ##########
+  # ORDERS #
+  ##########
+  OrdersRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: appsync.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ProductsTableAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${OrdersTableName}"
+              - Effect: Allow
+                Action:
+                  - dynamodb:Query
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${OrdersTableName}/index/user"
+
+  OrdersDataSource:
+    Type: AWS::AppSync::DataSource
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      Name: OrdersTable
+      Type: AMAZON_DYNAMODB
+      ServiceRoleArn: !GetAtt OrdersRole.Arn
+      DynamoDBConfig:
+        AwsRegion: !Ref AWS::Region
+        TableName: !Ref OrdersTableName
+
+  GetOrdersResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: Schema
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      DataSourceName: !GetAtt OrdersDataSource.Name
+      FieldName: getOrders
+      TypeName: Query
+      RequestMappingTemplate: !Sub |
+        {
+          "version": "2017-02-28",
+          "operation": "Query",
+          "query": {
+            "expression": "userId = :userId",
+            "expressionValues": {
+              ":userId": $util.dynamodb.toDynamoDBJson($ctx.identity.sub)
+            }
+          },
+          "limit": ${QueryLimit},
+          "index": "user"
+        }
+      ResponseMappingTemplate: |
+        {
+          #if( $ctx.result.nextToken )
+            "nextToken": "$ctx.result.nextToken"
+          #end
+          "orders": $utils.toJson($ctx.result.items)
+        }
+
+  GetOrderResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: Schema
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      DataSourceName: !GetAtt OrdersDataSource.Name
+      FieldName: getOrder
+      TypeName: Query
+      RequestMappingTemplate: |
+        {
+          "version": "2017-02-28",
+          "operation": "GetItem",
+          "key": {
+            "orderId": $util.dynamodb.toDynamoDBJson($ctx.args.orderId)
+          }
+        }
+      ResponseMappingTemplate: |
+        #if( $ctx.identity.sub == $ctx.result.userId )
+          $utils.toJson($ctx.result)
+        #else
+          null
+        #end
+
+  ############
+  # PRODUCTS #
+  ############
+  ProductsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: appsync.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ProductsTableAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:Scan
+                  - dynamodb:GetItem
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ProductsTableName}"
+              - Effect: Allow
+                Action:
+                  - dynamodb:Query
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ProductsTableName}/index/category"
+
+  ProductsDataSource:
+    Type: AWS::AppSync::DataSource
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      Name: ProductsTable
+      Type: AMAZON_DYNAMODB
+      ServiceRoleArn: !GetAtt ProductsRole.Arn
+      DynamoDBConfig:
+        AwsRegion: !Ref AWS::Region
+        TableName: !Ref ProductsTableName
+
+  GetProductsResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: Schema
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      DataSourceName: !GetAtt ProductsDataSource.Name
+      FieldName: getProducts
+      TypeName: Query
+      RequestMappingTemplate: !Sub |
+        {
+          "version": "2017-02-28",
+          "operation": "Scan",
+          #if( $ctx.args.nextToken )
+            "nextToken": "$ctx.args.nextToken",
+          #end
+          "limit": ${QueryLimit}
+        }
+      ResponseMappingTemplate: |
+        {
+          #if( $ctx.result.nextToken )
+            "nextToken": "$ctx.result.nextToken"
+          #end
+          "products": $utils.toJson($ctx.result.items)
+        }
+  
+  GetProductResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: Schema
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      DataSourceName: !GetAtt ProductsDataSource.Name
+      FieldName: getProduct
+      TypeName: Query
+      RequestMappingTemplate: |
+        {
+          "version": "2017-02-28",
+          "operation": "GetItem",
+          "key": {
+            "productId": $util.dynamodb.toDynamoDBJson($ctx.args.productId)
+          }
+        }
+      ResponseMappingTemplate: |
+        $utils.toJson($ctx.result)
+
+  GetProductsByCategoryResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: Schema
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      DataSourceName: !GetAtt ProductsDataSource.Name
+      FieldName: getProductsByCategory
+      TypeName: Query
+      RequestMappingTemplate: !Sub |
+        {
+          "version": "2017-02-28",
+          "operation": "Query",
+          "query": {
+            "expression": "category = :category",
+            "expressionValues": {
+              ":category": $util.dynamodb.toDynamoDBJson($ctx.args.category)
+            }
+          },
+          "limit": ${QueryLimit},
+          "index": "category"
+        }
+      ResponseMappingTemplate: |
+        {
+          #if( $ctx.result.nextToken )
+            "nextToken": "$ctx.result.nextToken"
+          #end
+          "products": $utils.toJson($ctx.result.items)
+        }

@@ -1,0 +1,68 @@
+type Address {
+    name: String!
+    companyName: String
+    streetAddress: String!
+    postCode: String
+    city: String!
+    state: String
+    country: String!
+    phoneNumber: String!
+}
+
+type Order @aws_cognito_user_pools {
+    orderId: ID!
+    userId: String!
+    createdDate: String!
+    modifiedDate: String!
+    products: [Product!]!
+    address: Address!
+    deliveryPrice: Int!
+    total: Int!
+}
+
+type Package {
+    width: String
+    length: String
+    height: String
+    weight: String
+}
+
+type PaginatedOrders @aws_cognito_user_pools {
+    orders: [Order!]!
+    nextToken: String
+}
+
+type PaginatedProducts {
+    products: [Product!]!
+    nextToken: String
+}
+
+type Product {
+    productId: ID!
+    createdDate: String
+    modifiedDate: String
+    name: String!
+    package: Package!
+    category: String
+    tags: [String]
+    pictures: [String]
+    price: Int!
+    quantity: Int
+}
+
+type Query {
+    # Orders queries
+    getOrders(nextToken: String): PaginatedOrders!
+    @aws_cognito_user_pools
+    getOrder(orderId: ID!): Order
+    @aws_cognito_user_pools
+
+    # Products queries
+    getProducts(nextToken: String): PaginatedProducts!
+    getProduct(productId: ID!): Product
+    getProductsByCategory(category: String!): PaginatedProducts!
+}
+
+schema {
+    query: Query
+}

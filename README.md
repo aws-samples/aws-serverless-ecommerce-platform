@@ -26,7 +26,7 @@ To install the necessary tools and deploy this in your own AWS account, see the 
 
 |  Services  | Description                               |
 |------------|-------------------------------------------|
-| Frontend | Web interface for interacting with the services. |
+| [Frontend](frontend/) | Web interface for interacting with the services. |
 
 ## Infrastructure services
 

@@ -1,6 +1,11 @@
+import datetime
 import os
+import random
+import string
 import time
+from typing import List, Optional
 from urllib.parse import urlparse
+import uuid
 from aws_requests_auth.boto_utils import BotoAWSRequestsAuth
 import boto3
 import pytest
@@ -79,3 +84,104 @@ def iam_auth():
         )
 
     return _iam_auth
+
+
+@pytest.fixture(scope="module")
+def get_order(get_product):
+    """
+    Returns a random order generator function based on
+    shared/resources/schemas.yaml
+
+    Usage:
+
+        from fixtures import get_order
+        order = get_order()
+    """
+
+    def _get_order(
+            order_id: Optional[str] = None,
+            user_id: Optional[str] = None,
+            products: Optional[List[dict]] = None,
+            address: Optional[dict] = None
+        ):
+        now = datetime.datetime.now()
+
+        order = {
+            "orderId": order_id or str(uuid.uuid4()),
+            "userId": user_id or str(uuid.uuid4()),
+            "createdDate": now.isoformat(),
+            "modifiedDate": now.isoformat(),
+            "products": products or [
+                get_product() for _ in range(random.randrange(2, 8))
+            ],
+            "address": address or {
+                "name": "John Doe",
+                "companyName": "Test Co",
+                "streetAddress": "{} Test St".format(random.randint(10, 100)),
+                "postCode": str((random.randrange(10**4, 10**5))),
+                "city": "Test City",
+                "state": "Test State",
+                "country": "".join(random.choices(string.ascii_uppercase, k=2)),
+                "phoneNumber": "+{}".format(random.randrange(10**9, 10**10))
+            },
+            "deliveryPrice": random.randint(0, 1000)
+        }
+
+        # Insert products quantities and calculate total cost of the order
+        total = order["deliveryPrice"]
+        for product in order["products"]:
+            product["quantity"] = random.randrange(1, 10)
+            total += product["quantity"] * product["price"]
+        order["total"] = total
+
+        return order
+
+    return _get_order
+
+
+@pytest.fixture(scope="module")
+def get_product():
+    """
+    Returns a random product generator function based on
+    shared/resources/schemas.yaml
+
+    Usage:
+
+       from fixtures import get_product
+       product = get_product()
+    """
+
+    PRODUCT_COLORS = [
+        "Red", "Blue", "Green", "Grey", "Pink", "Black", "White"
+    ]
+    PRODUCT_TYPE = [
+        "Shoes", "Socks", "Pants", "Shirt", "Hat", "Gloves", "Vest", "T-Shirt",
+        "Sweatshirt", "Skirt", "Dress", "Tie", "Swimsuit"
+    ]
+
+    def _get_product():
+        color = random.choice(PRODUCT_COLORS)
+        category = random.choice(PRODUCT_TYPE)
+        now = datetime.datetime.now()
+
+        return {
+            "productId": str(uuid.uuid4()),
+            "name": "{} {}".format(color, category),
+            "createdDate": now.isoformat(),
+            "modifiedDate": now.isoformat(),
+            "category": category,
+            "tags": [color, category],
+            "pictures": [
+                "https://example.local/{}.jpg".format(random.randrange(0, 1000))
+                for _ in range(random.randrange(5, 10))
+            ],
+            "package": {
+                "weight": random.randrange(0, 1000),
+                "height": random.randrange(0, 1000),
+                "length": random.randrange(0, 1000),
+                "width": random.randrange(0, 1000)
+            },
+            "price": random.randrange(0, 1000)
+        }
+
+    return _get_product
