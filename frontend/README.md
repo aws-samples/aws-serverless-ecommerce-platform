@@ -18,4 +18,5 @@ _None at the moment._
 This service defines the following SSM parameters:
 
 * `/ecommerce/{Environment}/frontend/api/arn`: ARN for the GraphQL API
+* `/ecommerce/{Environment}/frontend/api/id`: ID of the GraphQL API
 * `/ecommerce/{Environment}/frontend/api/url`: URL of the GraphQL API

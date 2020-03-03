@@ -45,6 +45,13 @@ Resources:
       Type: String
       Value: !GetAtt Api.Arn
 
+  ApiIdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /ecommerce/${Environment}/frontend/api/id
+      Type: String
+      Value: !GetAtt Api.ApiId
+
   ApiUrlParameter:
     Type: AWS::SSM::Parameter
     Properties:
