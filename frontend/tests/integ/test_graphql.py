@@ -101,3 +101,33 @@ def test_get_products(api_url, product, api_key):
         if res_product["productId"] == product["productId"]:
             found = True
     assert found == True
+
+
+def test_get_product(api_url, product, api_key):
+    """
+    Test getProduct
+    """
+
+    headers = {"X-Api-Key": api_key}
+
+    query = """
+    query ($productId: ID!) {
+      getProduct(productId: $productId) {
+        productId
+        name
+      }
+    }
+    """
+    variables = {
+        "productId": product["productId"]
+    }
+
+    response = requests.post(api_url, json={"query": query, "variables": variables}, headers=headers)
+
+    data = response.json()
+
+    assert "data" in data
+    assert "getProduct" in data["data"]
+
+    assert data["data"]["getProduct"]["productId"] == product["productId"]
+    assert data["data"]["getProduct"]["name"] == product["name"]
