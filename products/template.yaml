@@ -77,48 +77,6 @@ Resources:
   #############
   # FUNCTIONS #
   #############
-  GetProductsFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: src/get_products/
-      Events:
-        AnonymousApi:
-          Type: Api
-          Properties:
-            Path: /
-            Method: GET
-            RestApiId: !Ref Api
-      Policies:
-        - DynamoDBReadPolicy:
-            TableName: !Ref Table
-
-  GetProductsLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub "/aws/lambda/${GetProductsFunction}"
-      RetentionInDays: !Ref RetentionInDays
-
-  GetProductFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: src/get_product/
-      Events:
-        AnonymousApi:
-          Type: Api
-          Properties:
-            Path: /{productId}
-            Method: GET
-            RestApiId: !Ref Api
-      Policies:
-        - DynamoDBReadPolicy:
-            TableName: !Ref Table
-
-  GetProductLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub "/aws/lambda/${GetProductFunction}"
-      RetentionInDays: !Ref RetentionInDays
-
   ValidateFunction:
     Type: AWS::Serverless::Function
     Properties:

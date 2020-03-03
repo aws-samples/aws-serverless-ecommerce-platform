@@ -51,52 +51,6 @@ def product(table_name):
 
     # Delete the product in DynamoDB
     table.delete_item(Key={"productId": product["productId"]})
-
-
-def test_get_product(endpoint_url, product):
-    """
-    Test GET /{productId}
-    """
-
-    res = requests.get("{}/{}".format(endpoint_url, product["productId"]))
-    
-    assert res.status_code == 200
-    body = res.json()
-    compare_dict(product, body)
-
-
-def test_get_product_empty(endpoint_url, product):
-    """
-    Test GET /{productId} with a non-existing product
-    """
-
-    res = requests.get("{}/{}a".format(endpoint_url, product["productId"]))
-    
-    assert res.status_code == 404
-    body = res.json()
-    assert "message" in body
-    assert isinstance(body["message"], str)
-
-
-def test_get_products(endpoint_url, product):
-    """
-    Test GET /
-    """
-
-    res = requests.get("{}/".format(endpoint_url))
-
-    assert res.status_code == 200
-    body = res.json()
-    assert "products" in body
-
-    found = False
-    for product in body["products"]:
-        if product["productId"] == product["productId"]:
-            found = True
-    
-    assert found == True
-
-
 def test_backend_validate(endpoint_url, iam_auth, product):
     """
     Test POST /backend/validate
