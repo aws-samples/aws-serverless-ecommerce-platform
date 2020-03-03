@@ -79,6 +79,30 @@ Resources:
   #############
   # FUNCTIONS #
   #############
+  CreateOrderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/create_order/
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action: dynamodb:PutItem
+              Resource: !GetAtt Table.Arn
+  
+  CreateOrderLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${CreateOrderFunction}"
+      RetentionInDays: !Ref RetentionInDays
+
+  CreateOrderArnParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /ecommerce/${Environment}/orders/create-order/arn
+      Type: String
+      Value: !GetAtt CreateOrderFunction.Arn
+
   GetOrderFunction:
     Type: AWS::Serverless::Function
     Properties:

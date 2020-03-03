@@ -6,9 +6,9 @@ GetOrdersFunction
 import os
 from typing import Optional
 import boto3
-from aws_lambda_powertools.tracing import Tracer
-from aws_lambda_powertools.logging import logger_setup, logger_inject_lambda_context
-from ecom.apigateway import cognito_user_id, iam_user_id, response # pylint: disable=import-error
+from aws_lambda_powertools.tracing import Tracer # pylint: disable=import-error
+from aws_lambda_powertools.logging import logger_setup, logger_inject_lambda_context # pylint: disable=import-error
+from ecom.apigateway import iam_user_id, response # pylint: disable=import-error
 
 
 ENVIRONMENT = os.environ["ENVIRONMENT"]
@@ -56,22 +56,15 @@ def handler(event, _):
     logger.debug({"message": "Event received", "event": event})
 
     # Retrieve the userId
-    user_id = cognito_user_id(event)
+    user_id = iam_user_id(event)
     if user_id is not None:
-        iam_user = False
-        logger.info({"message": "Received get order from user", "userId": user_id})
-        tracer.put_annotation("userId", user_id)
-        tracer.put_annotation("iamUser", False)
+        logger.info({"message": "Received get order from IAM user", "userArn": user_id})
+        tracer.put_annotation("userArn", user_id)
+        tracer.put_annotation("iamUser", True)
+        iam_user = True
     else:
-        user_id = iam_user_id(event)
-        if user_id is not None:
-            logger.info({"message": "Received get order from IAM user", "userArn": user_id})
-            tracer.put_annotation("userArn", user_id)
-            tracer.put_annotation("iamUser", True)
-            iam_user = True
-        else:
-            logger.warning({"message": "User ID not found in event"})
-            return response("Unauthorized", 401)
+        logger.warning({"message": "User ID not found in event"})
+        return response("Unauthorized", 401)
 
     # Retrieve the orderId
     try:

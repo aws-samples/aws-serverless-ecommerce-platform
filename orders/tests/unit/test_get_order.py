@@ -25,20 +25,15 @@ context = pytest.fixture(context)
 
 
 @pytest.fixture
-def user_id():
-    return str(uuid.uuid4())
-
-
-@pytest.fixture
-def apigateway_event(order, user_id):
+def apigateway_event(order):
     """
     API Gateway Lambda Proxy event
 
     See https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html#api-gateway-simple-proxy-for-lambda-input-format
     """
     return {
-        "resource": "/{orderId}",
-        "path": "/"+order["orderId"],
+        "resource": "/backend/{orderId}",
+        "path": "/backend/"+order["orderId"],
         "httpMethod": "GET",
         "headers": {},
         "multiValueHeaders": {},
@@ -49,11 +44,14 @@ def apigateway_event(order, user_id):
         },
         "stageVariables": {},
         "requestContext": {
-            "authorizer": {
-                "claims": {
-                    "sub": user_id,
-                    "email": "john.doe@example.example"
-                }
+            "identity": {
+                "accountId": "123456789012",
+                "caller": "CALLER",
+                "sourceIp": "127.0.0.1",
+                "accessKey": "ACCESS_KEY",
+                "userArn": "arn:aws:iam::123456789012:user/alice",
+                "userAgent": "PostmanRuntime/7.1.1",
+                "user": "CALLER"
             }
         },
         "body": {},
@@ -62,7 +60,7 @@ def apigateway_event(order, user_id):
 
 
 @pytest.fixture
-def order(user_id):
+def order():
     """
     Single order
     """
@@ -71,7 +69,7 @@ def order(user_id):
 
     return {
         "orderId": str(uuid.uuid4()),
-        "userId": user_id,
+        "userId": str(uuid.uuid4()),
         "createdDate": now.isoformat(),
         "modifiedDate": now.isoformat(),
         "status": "NEW",
@@ -132,7 +130,7 @@ def test_get_order(lambda_module, order):
     compare_dict(order, ddb_order)
 
 
-def test_handler(lambda_module, user_id, apigateway_event, order, context):
+def test_handler(lambda_module, apigateway_event, order, context):
     """
     Test handler()
     """
@@ -164,51 +162,7 @@ def test_handler(lambda_module, user_id, apigateway_event, order, context):
     compare_dict(order, body)
 
 
-def test_handler_iam(lambda_module, apigateway_event, order, context):
-    """
-    Test handler() with IAM credentials
-    """
-
-    apigateway_event = copy.deepcopy(apigateway_event)
-    del apigateway_event["requestContext"]["authorizer"]
-    apigateway_event["requestContext"]["identity"] = {
-        "accountId": "123456789012",
-        "caller": "CALLER",
-        "sourceIp": "127.0.0.1",
-        "accessKey": "ACCESS_KEY",
-        "userArn": "arn:aws:iam::123456789012:user/alice",
-        "userAgent": "PostmanRuntime/7.1.1",
-        "user": "CALLER"
-    }
-
-    # Stub boto3
-    table = stub.Stubber(lambda_module.table.meta.client)
-    response = {
-        "Item": {k: TypeSerializer().serialize(v) for k, v in order.items()},
-        # We do not use ConsumedCapacity
-        "ConsumedCapacity": {}
-    }
-    expected_params = {
-        "TableName": lambda_module.TABLE_NAME,
-        "Key": {"orderId": order["orderId"]}
-    }
-    table.add_response("get_item", response, expected_params)
-    table.activate()
-
-    # Send request
-    response = lambda_module.handler(apigateway_event, context)
-
-    # Remove stub
-    table.assert_no_pending_responses()
-    table.deactivate()
-
-    assert response["statusCode"] == 200
-    assert "body" in response
-    body = json.loads(response["body"])
-    compare_dict(order, body)
-
-
-def test_handler_not_found(lambda_module, user_id, apigateway_event, order, context):
+def test_handler_not_found(lambda_module, apigateway_event, order, context):
     """
     Test handler() with an unknown order ID
     """
@@ -240,49 +194,13 @@ def test_handler_not_found(lambda_module, user_id, apigateway_event, order, cont
     assert isinstance(body["message"], str)
 
 
-def test_handler_bad_user_id(lambda_module, apigateway_event, order, context):
-    """
-    Test handler() with a wrong user ID
-    """
-
-    apigateway_event = copy.deepcopy(apigateway_event)
-    apigateway_event["requestContext"]["authorizer"]["claims"]["sub"] = str(uuid.uuid4())
-
-    # Stub boto3
-    table = stub.Stubber(lambda_module.table.meta.client)
-    response = {
-        "Item": {k: TypeSerializer().serialize(v) for k, v in order.items()},
-        # We do not use ConsumedCapacity
-        "ConsumedCapacity": {}
-    }
-    expected_params = {
-        "TableName": lambda_module.TABLE_NAME,
-        "Key": {"orderId": order["orderId"]}
-    }
-    table.add_response("get_item", response, expected_params)
-    table.activate()
-
-    # Send request
-    response = lambda_module.handler(apigateway_event, context)
-
-    # Remove stub
-    table.assert_no_pending_responses()
-    table.deactivate()
-
-    assert response["statusCode"] == 404
-    assert "body" in response
-    body = json.loads(response["body"])
-    assert "message" in body
-    assert isinstance(body["message"], str)
-
-
 def test_handler_forbidden(lambda_module, apigateway_event, context):
     """
     Test handler() without claims
     """
 
     apigateway_event = copy.deepcopy(apigateway_event)
-    del apigateway_event["requestContext"]["authorizer"]
+    del apigateway_event["requestContext"]["identity"]
 
     # Send request
     response = lambda_module.handler(apigateway_event, context)
