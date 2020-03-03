@@ -34,6 +34,7 @@ Resources:
       AdditionalAuthenticationProviders:
         - AuthenticationType: AMAZON_COGNITO_USER_POOLS
           UserPoolConfig:
+            # AppIdClientRegex: !Sub "ecommerce-${Environment}-frontend.*"
             AwsRegion: !Ref AWS::Region
             UserPoolId: !Ref UserPoolId
       XrayEnabled: true
@@ -92,7 +93,7 @@ Resources:
                 Action:
                   - dynamodb:Query
                 Resource:
-                  - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${OrdersTableName}/index/userId"
+                  - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${OrdersTableName}/index/user"
 
   OrdersDataSource:
     Type: AWS::AppSync::DataSource
@@ -124,7 +125,7 @@ Resources:
             }
           },
           "limit": ${QueryLimit},
-          "index": "userId"
+          "index": "user"
         }
       ResponseMappingTemplate: |
         {
