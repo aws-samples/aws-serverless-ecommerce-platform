@@ -8,14 +8,18 @@ import datetime
 import json
 import os
 from typing import List, Tuple
+from urllib.parse import urlparse
 import uuid
 import boto3
 import jsonschema
+import requests
+from aws_requests_auth.boto_utils import BotoAWSRequestsAuth
 from aws_lambda_powertools.tracing import Tracer # pylint: disable=import-error
 from aws_lambda_powertools.logging import logger_setup, logger_inject_lambda_context # pylint: disable=import-error
 
 
 ENVIRONMENT = os.environ["ENVIRONMENT"]
+PRODUCTS_API_URL = os.environ["PRODUCTS_API_URL"]
 SCHEMA_FILE = os.path.join(os.path.dirname(__file__), "schema.json")
 TABLE_NAME = os.environ["TABLE_NAME"]
 
@@ -56,8 +60,22 @@ async def validate_products(order: dict) -> Tuple[bool, str]:
     Validate the products in the order
     """
 
-    # TODO
-    return (True, "")
+    # Gather the domain name and AWS region
+    url = urlparse(PRODUCTS_API_URL)
+    region = boto3.session.Session().region_name
+    # Create the signature helper
+    iam_auth = BotoAWSRequestsAuth(aws_host=url.netloc,
+                                   aws_region=region,
+                                   aws_service='execute-api')
+    # Send a POST request
+    response = requests.post(
+        PRODUCTS_API_URL+"/backend/validate",
+        json=order["products"],
+        auth=iam_auth
+    )
+
+    body = response.json()
+    return (response.status_code == 200, body["message"])
 
 
 async def validate(order: dict) -> List[str]:

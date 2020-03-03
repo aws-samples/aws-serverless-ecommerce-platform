@@ -1,3 +1,5 @@
 aws-lambda-powertools>=0.3.1
+aws_requests_auth
 boto3
 jsonschema==3.2.0
+requests
