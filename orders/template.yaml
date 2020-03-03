@@ -17,9 +17,6 @@ Parameters:
   EventBusName:
     Type: AWS::SSM::Parameter::Value<String>
     Description: EventBridge Event Bus Name
-  UserPoolArn:
-    Type: AWS::SSM::Parameter::Value<String>
-    Description: Cognito User Pool ARN
 
 
 Globals:
@@ -82,47 +79,11 @@ Resources:
   #############
   # FUNCTIONS #
   #############
-
-  GetOrdersFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: src/get_orders/
-      Environment:
-        Variables:
-          USER_INDEX_NAME: user
-          ORDERS_LIMIT: "20"
-      Events:
-        UserApi:
-          Type: Api
-          Properties:
-            Path: /
-            Method: GET
-            RestApiId: !Ref Api
-      Policies:
-        - Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Action: dynamodb:Query
-              Resource:
-                - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Table}/index/user"
-
-  GetOrdersLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub "/aws/lambda/${GetOrdersFunction}"
-      RetentionInDays: !Ref RetentionInDays
-
   GetOrderFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: src/get_order/
       Events:
-        UserApi:
-          Type: Api
-          Properties:
-            Path: /{orderId}
-            Method: GET
-            RestApiId: !Ref Api
         BackendApi:
           Type: Api
           Properties:
@@ -136,31 +97,12 @@ Resources:
               Action: dynamodb:GetItem
               Resource:
                 - !GetAtt Table.Arn
-      
 
   GetOrderLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub "/aws/lambda/${GetOrderFunction}"
       RetentionInDays: !Ref RetentionInDays
-
-  # PostOrderFunction:
-  #   Type: AWS::Serverless::Function
-  #   Properties:
-  #     CodeUri: #TODO
-  #     Events:
-  #       UserApi:
-  #         Type: Api
-  #         Properties:
-  #           Path: /
-  #           Method: POST
-  #           RestApiId: !Ref Api
-
-  # PostOrderLogGroup:
-  #   Type: AWS::Logs::LogGroup
-  #   Properties:
-  #     LogGroupName: !Sub "/aws/lambda/${PostOrderFunction}"
-  #     RetentionInDays: !Ref RetentionInDays
 
   TableUpdateFunction:
     Type: AWS::Serverless::Function
@@ -197,7 +139,6 @@ Resources:
   ###############
   # API GATEWAY #
   ###############
-
   Api:
     Type: AWS::Serverless::Api
     Properties:

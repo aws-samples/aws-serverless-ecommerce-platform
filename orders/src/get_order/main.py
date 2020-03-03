@@ -5,9 +5,9 @@ GetOrdersFunction
 
 import os
 from typing import Optional
+import boto3
 from aws_lambda_powertools.tracing import Tracer
 from aws_lambda_powertools.logging import logger_setup, logger_inject_lambda_context
-import boto3
 from ecom.apigateway import cognito_user_id, iam_user_id, response # pylint: disable=import-error
 
 
