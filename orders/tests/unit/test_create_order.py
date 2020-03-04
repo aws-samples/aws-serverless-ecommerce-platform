@@ -82,7 +82,7 @@ def test_validate_products_fail(lambda_module, order):
         m.post(
             url,
             text=json.dumps({"message": "Something is wrong", "products": order["products"]}),
-            status_code=400
+            status_code=200
         )
 
         valid, error_msg = asyncio.run(lambda_module.validate_products(order))

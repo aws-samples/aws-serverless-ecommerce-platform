@@ -70,14 +70,20 @@ async def validate_products(order: dict) -> Tuple[bool, str]:
     # Send a POST request
     response = requests.post(
         PRODUCTS_API_URL+"/backend/validate",
-        json=order["products"],
+        json={"products": order["products"]},
         auth=iam_auth
     )
 
+    logger.debug({
+        "message": "Response received from products",
+        "body": response.json()
+    })
+
     body = response.json()
-    return (response.status_code == 200, body["message"])
+    return (len(body.get("products", [])) == 0, body.get("message", ""))
 
 
+@tracer.capture_method
 async def validate(order: dict) -> List[str]:
     """
     Returns a list of error messages
@@ -99,6 +105,21 @@ async def validate(order: dict) -> List[str]:
         })
 
     return error_msgs
+
+
+@tracer.capture_method
+def cleanup_products(products: List[dict]) -> List[dict]:
+    """
+    Cleanup products
+    """
+
+    return [{
+        "productId": product["productId"],
+        "name": product["name"],
+        "package": product["package"],
+        "price": product["price"],
+        "quantity": product.get("quantity", 1)
+    } for product in products]
 
 
 @tracer.capture_method
@@ -160,6 +181,9 @@ def handler(event, _):
             "message": "JSON Schema validation error",
             "errors": [str(exc)]
         }
+
+    # Cleanup products
+    order["products"] = cleanup_products(order["products"])
 
     # Inject fields in the order
     order = inject_order_fields(order)
