@@ -15,5 +15,6 @@ See [resources/events.yaml](resources/events.yaml) for a list of available event
 
 This service defines the following SSM parameters:
 
+* `/ecommerce/{Environment}/products/api/arn`: ARN for the API Gateway
 * `/ecommerce/{Environment}/products/api/url`: URL for the API Gateway
 * `/ecommerce/{Environment}/products/table/name`: DynamoDB table containing the products
