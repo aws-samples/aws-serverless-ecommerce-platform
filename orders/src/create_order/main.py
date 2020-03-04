@@ -139,8 +139,13 @@ def handler(event, _):
     """
 
     # Basic checks on the event
-    assert "order" in event
-    assert "userId" in event
+    for key in ["order", "userId"]:
+        if key not in event:
+            return {
+                "statusCode": 400,
+                "message": "Invalid event",
+                "errors": ["Missing {} in event".format(key)]
+            }
 
     # Inject userId into the order
     order = event["order"]

@@ -8,40 +8,43 @@
       "type": "string"
     },
     "products": {
-      "type": "object",
-      "required": [
-        "productId", "name", "price", "package"
-      ],
-      "properties": {
-        "productId": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "price": {
-          "type": "integer"
-        },
-        "package": {
-          "type": "object",
-          "required": ["width", "length", "height", "weight"],
-          "properties": {
-            "width": {
-              "type": "string"
-            },
-            "length": {
-              "type": "string"
-            },
-            "height": {
-              "type": "string"
-            },
-            "weight": {
-              "type": "string"
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "productId", "name", "price", "package"
+        ],
+        "properties": {
+          "productId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "price": {
+            "type": "integer"
+          },
+          "package": {
+            "type": "object",
+            "required": ["width", "length", "height", "weight"],
+            "properties": {
+              "width": {
+                "type": "integer"
+              },
+              "length": {
+                "type": "integer"
+              },
+              "height": {
+                "type": "integer"
+              },
+              "weight": {
+                "type": "integer"
+              }
             }
+          },
+          "quantity": {
+            "type": "integer"
           }
-        },
-        "quantity": {
-          "type": "integer"
         }
       }
     },
@@ -79,7 +82,7 @@
       "type": "integer"
     },
     "paymentToken": {
-      "type": "integer"
+      "type": "string"
     }
   }
 }
