@@ -4,6 +4,7 @@ PYENV := $(shell which pyenv)
 SPECCY := $(shell which speccy)
 JQ := $(shell which jq)
 PYTHON_VERSION = 3.8.1
+MAKEOPTS += -j4
 
 # Service variables
 SERVICES = $(shell tools/services)
@@ -20,7 +21,10 @@ ccend = \033[0m
 ###################
 
 # Run pipeline on services
-all: $(foreach service,${SERVICES_ENVONLY}, all-${service})
+all:
+	@for service_line in $(shell tools/services --graph --env-only); do \
+		${MAKE} ${MAKEOPTS} $$(echo all-$$service_line | sed 's/,/ all-/g') QUIET=true ; \
+	done
 all-%: 
 	@${MAKE} lint-$*
 	@${MAKE} clean-$*
@@ -81,8 +85,10 @@ package-%:
 	@${MAKE} -C $* package
 
 # Teardown services
-# When running `make teardown`, the shell command inverts the service to remove them in reverse dependency order
-teardown: $(foreach service,$(shell echo ${SERVICES_ENVONLY} | awk '{ for (i=NF; i>1; i--) printf("%s ",$$i); print $$1; }'), teardown-${service})
+teardown:
+	@for service_line in $(shell tools/services --graph --reverse --env-only); do \
+		${MAKE} ${MAKEOPTS} $$(echo teardown-$$service_line | sed 's/,/ teardown-/g') QUIET=true ; \
+	done
 teardown-%:
 	@echo "[*] $(ccblue)teardown $*$(ccend)"
 	@${MAKE} -C $* teardown
