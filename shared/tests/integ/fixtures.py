@@ -124,6 +124,7 @@ def get_order(get_product):
                 "country": "".join(random.choices(string.ascii_uppercase, k=2)),
                 "phoneNumber": "+{}".format(random.randrange(10**9, 10**10))
             },
+            "paymentToken": str(uuid.uuid4()),
             "deliveryPrice": random.randint(0, 1000)
         }
 

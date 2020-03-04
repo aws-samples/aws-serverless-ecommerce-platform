@@ -11,6 +11,9 @@ Parameters:
     Type: Number
     Default: 20
     Description: Maximum number of items to return from a single query
+  OrdersCreateOrderArn:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Create Order Lambda Function ARN
   OrdersTableName:
     Type: AWS::SSM::Parameter::Value<String>
     Description: Orders Table Name
@@ -80,7 +83,7 @@ Resources:
               Service: appsync.amazonaws.com
             Action: sts:AssumeRole
       Policies:
-        - PolicyName: ProductsTableAccess
+        - PolicyName: OrdersTableAccess
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
@@ -157,6 +160,58 @@ Resources:
         #else
           null
         #end
+
+  ################
+  # CREATE ORDER #
+  ################
+  CreateOrderRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: appsync.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: CreateOrderFunctionAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !Ref OrdersCreateOrderArn
+
+  CreateOrderDataSource:
+    Type: AWS::AppSync::DataSource
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      Name: CreateOrder
+      Type: AWS_LAMBDA
+      ServiceRoleArn: !GetAtt CreateOrderRole.Arn
+      LambdaConfig:
+        LambdaFunctionArn: !Ref OrdersCreateOrderArn
+
+  CreateOrderResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: Schema
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      DataSourceName: !GetAtt CreateOrderDataSource.Name
+      FieldName: createOrder
+      TypeName: Mutation
+      RequestMappingTemplate: |
+        {
+          "version": "2017-02-28",
+          "operation": "Invoke",
+          "payload": {
+            "userId": $utils.toJson($ctx.identity.sub),
+            "order": $utils.toJson($ctx.args.order)
+          }
+        }
+      ResponseMappingTemplate: |
+        $utils.toJson($ctx.result)
 
   ############
   # PRODUCTS #

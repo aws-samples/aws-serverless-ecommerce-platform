@@ -17,6 +17,12 @@ Parameters:
   EventBusName:
     Type: AWS::SSM::Parameter::Value<String>
     Description: EventBridge Event Bus Name
+  ProductsApiUrl:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Products API Gateway URL
+  ProductsApiArn:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Products API Gateway ARN
 
 
 Globals:
@@ -79,6 +85,39 @@ Resources:
   #############
   # FUNCTIONS #
   #############
+  CreateOrderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/create_order/
+      Environment:
+        Variables:
+          PRODUCTS_API_URL: !Ref ProductsApiUrl
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action: dynamodb:PutItem
+              Resource: !GetAtt Table.Arn
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action: execute-api:Invoke
+              # Retrieve the order details
+              Resource: !Sub "${ProductsApiArn}/POST/*"
+  
+  CreateOrderLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${CreateOrderFunction}"
+      RetentionInDays: !Ref RetentionInDays
+
+  CreateOrderArnParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /ecommerce/${Environment}/orders/create-order/arn
+      Type: String
+      Value: !GetAtt CreateOrderFunction.Arn
+
   GetOrderFunction:
     Type: AWS::Serverless::Function
     Properties:

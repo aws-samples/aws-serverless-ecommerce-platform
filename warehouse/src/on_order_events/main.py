@@ -199,7 +199,7 @@ def save_products(order_id: str, products: List[dict]) -> None:
             item = {
                 "orderId": order_id,
                 "productId": product["productId"],
-                "quantity": product["quantity"]
+                "quantity": product.get("quantity", 1)
             }
             logger.debug({
                 "message": "Writing product {}".format(product["productId"]),

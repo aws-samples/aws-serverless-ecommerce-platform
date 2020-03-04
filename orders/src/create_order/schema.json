@@ -1,0 +1,88 @@
+{
+  "type": "object",
+  "required": [
+      "userId", "products", "address", "deliveryPrice", "paymentToken"
+  ],
+  "properties": {
+    "userId": {
+      "type": "string"
+    },
+    "products": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "productId", "name", "price", "package"
+        ],
+        "properties": {
+          "productId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "price": {
+            "type": "integer"
+          },
+          "package": {
+            "type": "object",
+            "required": ["width", "length", "height", "weight"],
+            "properties": {
+              "width": {
+                "type": "integer"
+              },
+              "length": {
+                "type": "integer"
+              },
+              "height": {
+                "type": "integer"
+              },
+              "weight": {
+                "type": "integer"
+              }
+            }
+          },
+          "quantity": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "address": {
+      "type": "object",
+      "required": ["name", "streetAddress", "city", "country", "phoneNumber"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "companyName": {
+          "type": "string"
+        },
+        "streetAddress": {
+          "type": "string"
+        },
+        "postCode": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "country": {
+          "type": "string"
+        },
+        "phoneNumber": {
+          "type": "string"
+        }
+      }
+    },
+    "deliveryPrice": {
+      "type": "integer"
+    },
+    "paymentToken": {
+      "type": "string"
+    }
+  }
+}
