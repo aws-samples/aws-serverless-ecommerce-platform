@@ -143,7 +143,7 @@ Resources:
           Parameters:
             Location: "resources/openapi.yaml"
       EndpointConfiguration: REGIONAL
-      StageName: Prod
+      StageName: prod
       TracingEnabled: true
 
   ApiArnParameter:
@@ -158,7 +158,7 @@ Resources:
     Properties:
       Name: !Sub /ecommerce/${Environment}/products/api/url
       Type: String
-      Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+      Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com/prod"
 
   #####################
   # DEAD LETTER QUEUE #
