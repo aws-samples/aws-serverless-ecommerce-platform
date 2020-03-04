@@ -107,7 +107,6 @@ def test_create_order_fail(function_arn, table_name, order_request, get_product)
     order_request = copy.deepcopy(order_request)
     order_request["order"]["products"] = [get_product()]
 
-    table = boto3.resource("dynamodb").Table(table_name) #pylint: disable=no-member
     lambda_ = boto3.client("lambda")
 
     # Trigger the function
