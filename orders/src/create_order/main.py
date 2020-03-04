@@ -142,7 +142,7 @@ def handler(event, _):
     for key in ["order", "userId"]:
         if key not in event:
             return {
-                "statusCode": 400,
+                "success": False,
                 "message": "Invalid event",
                 "errors": ["Missing {} in event".format(key)]
             }
@@ -156,7 +156,7 @@ def handler(event, _):
         jsonschema.validate(order, schema)
     except jsonschema.ValidationError as exc:
         return {
-            "statusCode": 400,
+            "success": False,
             "message": "JSON Schema validation error",
             "errors": [str(exc)]
         }
@@ -168,7 +168,7 @@ def handler(event, _):
     error_msgs = asyncio.run(validate(order))
     if len(error_msgs) > 0:
         return {
-            "statusCode": 400,
+            "success": False,
             "message": "Validation errors",
             "errors": error_msgs
         }
@@ -176,6 +176,7 @@ def handler(event, _):
     store_order(order)
 
     return {
-        "statusCode": 200,
+        "success": True,
+        "order": order,
         "message": "Order created"
     }

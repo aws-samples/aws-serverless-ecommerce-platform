@@ -7,7 +7,7 @@ import pytest
 import requests
 import requests_mock
 from fixtures import context, lambda_module, get_order, get_product # pylint: disable=import-error
-from helpers import mock_table # pylint: disable=import-error,no-name-in-module
+from helpers import compare_dict, mock_table # pylint: disable=import-error,no-name-in-module
 
 
 lambda_module = pytest.fixture(scope="module", params=[{
@@ -172,8 +172,10 @@ def test_handler(monkeypatch, lambda_module, context, order):
     }, context)
 
     print(response)
-    assert response["statusCode"] == 200
+    assert response["success"] == True
     assert len(response.get("errors", [])) == 0
+    assert "order" in response
+    compare_dict(order, response["order"])
 
 
 def test_handler_wrong_event(monkeypatch, lambda_module, context, order):
@@ -197,7 +199,7 @@ def test_handler_wrong_event(monkeypatch, lambda_module, context, order):
     }, context)
 
     print(response)
-    assert response["statusCode"] == 400
+    assert response["success"] == False
     assert len(response.get("errors", [])) > 0
 
 
@@ -228,7 +230,7 @@ def test_handler_wrong_order(monkeypatch, lambda_module, context, order):
     }, context)
 
     print(response)
-    assert response["statusCode"] == 400
+    assert response["success"] == False
     assert len(response.get("errors", [])) > 0
 
 
@@ -258,5 +260,5 @@ def test_handler_validation_failure(monkeypatch, lambda_module, context, order):
     }, context)
 
     print(response)
-    assert response["statusCode"] == 400
+    assert response["success"] == False
     assert len(response.get("errors", [])) > 0
