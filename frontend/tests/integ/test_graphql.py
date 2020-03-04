@@ -4,7 +4,7 @@ import string
 import os
 import requests
 import boto3
-from fixtures import get_product # pylint: disable=import-error,no-name-in-module
+from fixtures import get_order, get_product # pylint: disable=import-error,no-name-in-module
 from helpers import get_parameter # pylint: disable=import-error,no-name-in-module
 
 
@@ -188,6 +188,61 @@ def product(get_product, products_table_name):
     table.delete_item(Key={"productId": product["productId"]})
 
 
+@pytest.fixture(scope="function")
+def order_request(get_order, product):
+    """
+    Order Request
+    """
+
+    order = get_order()
+
+    return {
+        "products": [product],
+        "address": order["address"],
+        "deliveryPrice": order["deliveryPrice"],
+        "paymentToken": order["paymentToken"]
+    }
+
+
+def test_create_order(jwt_token, api_url, order_request):
+    """
+    Test createOrder
+    """
+
+    headers = {"Authorization": jwt_token}
+
+    query = """
+    mutation ($order: CreateOrderRequest!) {
+      createOrder(order: $order) {
+        success
+        message
+        errors
+        order {
+            orderId
+            userId
+        }
+      }
+    }
+    """
+    variables = {
+        "order": order_request
+    }
+
+    response = requests.post(api_url, json={"query": query, "variables": variables}, headers=headers)
+
+    data = response.json()
+
+    print(data)
+
+    assert "data" in data
+    assert data["data"] is not None
+    assert "createOrder" in data["data"]
+
+    result = data["data"]["createOrder"]
+    assert result["success"] == True
+    assert "order" in result
+
+
 def test_get_products(api_url, product, api_key):
     """
     Test getProducts
@@ -211,6 +266,7 @@ def test_get_products(api_url, product, api_key):
     data = response.json()
 
     assert "data" in data
+    assert data["data"] is not None
     assert "getProducts" in data["data"]
     assert "products" in data["data"]["getProducts"]
 
@@ -245,6 +301,7 @@ def test_get_product(api_url, product, api_key):
     data = response.json()
 
     assert "data" in data
+    assert data["data"] is not None
     assert "getProduct" in data["data"]
 
     assert data["data"]["getProduct"]["productId"] == product["productId"]
