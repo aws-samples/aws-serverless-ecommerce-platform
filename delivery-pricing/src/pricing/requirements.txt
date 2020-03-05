@@ -1,0 +1,2 @@
+aws-lambda-powertools>=0.3.1
+../shared/src/ecom/

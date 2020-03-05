@@ -9,9 +9,6 @@ from fixtures import iam_auth # pylint: disable=import-error,no-name-in-module
 from helpers import compare_dict, get_parameter # pylint: disable=import-error,no-name-in-module
 
 
-ssm = boto3.client("ssm")
-
-
 @pytest.fixture(scope="module")
 def table_name():
     return get_parameter("/ecommerce/{Environment}/products/table/name")

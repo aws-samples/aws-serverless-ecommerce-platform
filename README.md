@@ -15,33 +15,34 @@ To install the necessary tools and deploy this in your own AWS account, see the 
 
 |  Services  | Description                               |
 |------------|-------------------------------------------|
-| [Users](users/) | Provides user management, authentication and authorization. |
-| [Products](products/) | Source of truth for products information. |
-| [Orders](orders/) | Manages order creation and status. |
-| [Warehouse](warehouse/) | Manages inventory and packaging orders. |
-| [Delivery](delivery/) | Manages shipping and tracking packages. |
-| Payment | Manages payment collection and refunds. |
+| [users](users/) | Provides user management, authentication and authorization. |
+| [products](products/) | Source of truth for products information. |
+| [orders](orders/) | Manages order creation and status. |
+| [warehouse](warehouse/) | Manages inventory and packaging orders. |
+| [delivery](delivery/) | Manages shipping and tracking packages. |
+| [delivery-pricing](delivery-pricing/) | Pricing calculator for deliveries. |
+| payment | Manages payment collection and refunds. |
 
 ## Frontend service
 
 |  Services  | Description                               |
 |------------|-------------------------------------------|
-| [Frontend](frontend/) | User-facing layer for interacting with the services. |
+| [frontend](frontend/) | User-facing layer for interacting with the services. |
 
 ## Infrastructure services
 
 |  Services  | Description                               |
 |------------|-------------------------------------------|
-| [Pipeline](pipeline/) | CI/CD pipeline for deploying the resources in production. |
-| [Platform](platform/) | Core platform resources for deploying backend services. |
+| [pipeline](pipeline/) | CI/CD pipeline for deploying the resources in production. |
+| [platform](platform/) | Core platform resources for deploying backend services. |
 
 ## Shared resources
 
 | Name       | Description                               |
 |------------|-------------------------------------------|
-| [Docs](docs/) | Documentation application for all services. |
-| [Shared](shared/) | Shared resources accessible for all services, such as common CloudFormation templates and OpenAPI schemas. |
-| [Tools](tools/) | Tools used to build services.             |
+| [docs](docs/) | Documentation application for all services. |
+| [shared](shared/) | Shared resources accessible for all services, such as common CloudFormation templates and OpenAPI schemas. |
+| [tools](tools/) | Tools used to build services.             |
 
 
 ## Documentation
