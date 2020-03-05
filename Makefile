@@ -43,6 +43,12 @@ ci-%:
 	@${MAKE} build-$*
 	@${MAKE} tests-unit-$*
 
+# All but for dependencies
+deps-%:
+	@for service_line in $(shell tools/services --graph --env-only --deps-of $*); do \
+		${MAKE} ${MAKEOPTS} $$(echo all-$$service_line | sed 's/,/ all-/g') QUIET=true ; \
+	done
+
 # Artifacts services
 artifacts: $(foreach service,${SERVICES_ENVONLY}, all-${service})
 artifacts-%:

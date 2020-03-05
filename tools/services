@@ -5,7 +5,7 @@ import argparse
 import copy
 import os
 import subprocess
-from typing import List, Optional
+from typing import Dict, List, Optional
 import yaml
 
 
@@ -34,12 +34,13 @@ def get_args():
     parser.add_argument("--graph", default=False, action="store_true")
     parser.add_argument("--reverse", default=False, action="store_true")
     parser.add_argument("--exclude", action="append")
+    parser.add_argument("--deps-of", action="append")
     parser.add_argument("--changed-since", default="0")
 
     return parser.parse_args()
 
 
-def get_metadata(service_name: str) -> List[str]:
+def get_metadata(service_name: str) -> dict:
     """
     Get metadata for a service
     """
@@ -55,28 +56,53 @@ def get_metadata(service_name: str) -> List[str]:
 
 
 def get_services(
-        env_only:bool = False,
-        exclude: Optional[List[str]] = None,
-        changed_since: str = "0"
-    ) -> List[str]:
+        env_only: bool = False,
+        deps_of: Optional[List[str]] = None,
+        exclude: Optional[List[str]] = None
+    ) -> Dict[str, dict]:
     """
-    Retrieve services in dependency order
+    Return the list of services
+
+    env_only: only return services that support environments (after parsing dependencies)
+    deps_of: only return services that are a dependency of another service (including itself)
+    exclude: exclude these services from the list (after parsing dependencies)
     """
 
     # Gather all services
-    services = {
-        # Mapping name: reverse dependencies
-        name: {"deps": [], "rdeps": [], "metadata": get_metadata(name)}
-        for name in os.listdir(ROOT)
-        if os.path.isfile(os.path.join(ROOT, name, "metadata.yaml"))
-        and name not in IGNORE_FOLDERS + (exclude or [])
-    }
+    if deps_of is None:
+        services = {
+            # Mapping name: reverse dependencies
+            name: {"deps": [], "rdeps": [], "metadata": get_metadata(name)}
+            for name in os.listdir(ROOT)
+            if os.path.isfile(os.path.join(ROOT, name, "metadata.yaml"))
+        }
+    else:
+        services = {}
+        to_scan = deps_of
+        while len(to_scan) > 0:
+            name = to_scan.pop(0)
+            services[name] = {"deps": [], "rdeps": [], "metadata": get_metadata(name)}
+            for dependency in services[name]["metadata"].get("dependencies", []):
+                if dependency not in services and dependency not in to_scan:
+                    to_scan.append(dependency)
 
     # If needed, remove services which don't support environments
     if env_only:
         for name in list(services.keys()):
             if not services[name]["metadata"].get("flags", {}).get("environment", True):
                 del services[name]
+
+    # Filter out excluded names
+    return {k: v for k, v in services.items() if k not in IGNORE_FOLDERS + (exclude or [])}
+
+
+def make_service_graph(
+        services: List[dict],
+        changed_since: str = "0"
+    ) -> List[str]:
+    """
+    Retrieve services in dependency order
+    """
 
     to_scan = []
 
@@ -124,6 +150,7 @@ def get_services(
             print(key, value)
         raise ValueError("Potential circular dependency found: mismatch between number of services: {} vs {}".format(len(retval), len(services)))
 
+    # If `--changed-since` is absent or does not have a valid commit ID, return the list of services
     if changed_since == "0":
         return retval
 
@@ -154,7 +181,10 @@ def get_services(
 
 if __name__ == "__main__":
     args = get_args()
-    services = get_services(args.env_only, args.exclude, args.changed_since)
+    services = make_service_graph(
+        get_services(args.env_only, args.deps_of, args.exclude),
+        args.changed_since
+    )
     if args.reverse:
         services = services[::-1]
 
