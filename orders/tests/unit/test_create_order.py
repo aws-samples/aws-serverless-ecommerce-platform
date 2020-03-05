@@ -15,6 +15,7 @@ lambda_module = pytest.fixture(scope="module", params=[{
     "module_name": "main",
     "environ": {
         "ENVIRONMENT": "test",
+        "DELIVERY_API_URL": "mock://DELIVERY_API_URL",
         "PRODUCTS_API_URL": "mock://PRODUCTS_API_URL",
         "TABLE_NAME": "TABLE_NAME",
         "POWERTOOLS_TRACE_DISABLED": "true"
@@ -49,6 +50,69 @@ def test_inject_order_fields(lambda_module, order):
     assert new_order["total"] == sum([p["price"]*p.get("quantity", 1) for p in order["products"]]) + order["deliveryPrice"]
 
 
+def test_validate_delivery(lambda_module, order):
+    """
+    Test validate_delivery()
+    """
+
+    url = "mock://DELIVERY_API_URL/backend/pricing"
+
+    with requests_mock.Mocker() as m:
+        m.post(url, text=json.dumps({"pricing": order["deliveryPrice"]}))
+
+        valid, error_msg = asyncio.run(lambda_module.validate_delivery(order))
+
+    print(valid, error_msg)
+
+    assert m.called
+    assert m.call_count == 1
+    assert m.request_history[0].method == "POST"
+    assert m.request_history[0].url == url
+    assert valid == True
+
+
+def test_validate_delivery_incorrect(lambda_module, order):
+    """
+    Test validate_delivery() with incorrect price
+    """
+
+    url = "mock://DELIVERY_API_URL/backend/pricing"
+
+    with requests_mock.Mocker() as m:
+        m.post(url, text=json.dumps({"pricing": order["deliveryPrice"]+200}))
+
+        valid, error_msg = asyncio.run(lambda_module.validate_delivery(order))
+
+    print(valid, error_msg)
+
+    assert m.called
+    assert m.call_count == 1
+    assert m.request_history[0].method == "POST"
+    assert m.request_history[0].url == url
+    assert valid == False
+
+
+def test_validate_delivery_fail(lambda_module, order):
+    """
+    Test validate_delivery() failing
+    """
+
+    url = "mock://DELIVERY_API_URL/backend/pricing"
+
+    with requests_mock.Mocker() as m:
+        m.post(url, text=json.dumps({"message": "Something went wrong"}), status_code=400)
+
+        valid, error_msg = asyncio.run(lambda_module.validate_delivery(order))
+
+    print(valid, error_msg)
+
+    assert m.called
+    assert m.call_count == 1
+    assert m.request_history[0].method == "POST"
+    assert m.request_history[0].url == url
+    assert valid == False
+
+
 def test_validate_products(lambda_module, order):
     """
     Test validate_products()
@@ -68,7 +132,6 @@ def test_validate_products(lambda_module, order):
     assert m.request_history[0].method == "POST"
     assert m.request_history[0].url == url
     assert valid == True
-    assert error_msg == "All products are valid"
 
 
 def test_validate_products_fail(lambda_module, order):

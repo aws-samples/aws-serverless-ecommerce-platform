@@ -2,8 +2,14 @@ import copy
 import json
 import boto3
 import pytest
-from fixtures import get_order, get_product # pylint: disable=import-error,no-name-in-module
+import requests
+from fixtures import iam_auth, get_order, get_product # pylint: disable=import-error,no-name-in-module
 from helpers import compare_dict, get_parameter # pylint: disable=import-error,no-name-in-module
+
+
+@pytest.fixture(scope="module")
+def delivery_api_url():
+    return get_parameter("/ecommerce/{Environment}/delivery-pricing/api/url")
 
 
 @pytest.fixture(scope="module")
@@ -45,16 +51,30 @@ def products(product_table_name, get_product):
         table.delete_item(Key={"productId": product["productId"]})
 
 
-@pytest.fixture(scope="function")
-def order_request(get_order, products):
-    order = get_order()
+@pytest.fixture
+def delivery_price(delivery_api_url, iam_auth, order, products):
+    res = requests.post(
+        url=delivery_api_url+"/backend/pricing",
+        auth=iam_auth(delivery_api_url),
+        json={
+            "products": products,
+            "address": order["address"]
+        }
+    )
 
+    body = res.json()
+    print(body)
+
+    return body["pricing"]
+
+@pytest.fixture(scope="function")
+def order_request(order, products, delivery_price):
     return {
         "userId": order["userId"],
         "order": {
             "products": products,
             "address": order["address"],
-            "deliveryPrice": order["deliveryPrice"],
+            "deliveryPrice": delivery_price,
             "paymentToken": order["paymentToken"]
         }
     }
@@ -99,13 +119,38 @@ def test_create_order(function_arn, table_name, order_request):
     response = table.get_item(Key={"orderId": response["order"]["orderId"]})
 
 
-def test_create_order_fail(function_arn, table_name, order_request, get_product):
+def test_create_order_fail_products(function_arn, table_name, order_request, get_product):
     """
     Test the CreateOrder function
     """
 
     order_request = copy.deepcopy(order_request)
     order_request["order"]["products"] = [get_product()]
+
+    lambda_ = boto3.client("lambda")
+
+    # Trigger the function
+    response = lambda_.invoke(
+        FunctionName=function_arn,
+        InvocationType="RequestResponse",
+        Payload=json.dumps(order_request).encode()
+    )
+    response = json.load(response["Payload"])
+
+    print(response)
+
+    # Check the output of the Function
+    assert response["success"] == False
+    assert len(response.get("errors", [])) > 0
+
+
+def test_create_order_fail_delivery_price(function_arn, table_name, order_request, get_product):
+    """
+    Test the CreateOrder function
+    """
+
+    order_request = copy.deepcopy(order_request)
+    order_request["order"]["deliveryPrice"] += 200
 
     lambda_ = boto3.client("lambda")
 

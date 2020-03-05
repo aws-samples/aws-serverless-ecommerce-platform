@@ -19,9 +19,10 @@ from aws_lambda_powertools.logging import logger_setup, logger_inject_lambda_con
 
 
 ENVIRONMENT = os.environ["ENVIRONMENT"]
-PRODUCTS_API_URL = os.environ["PRODUCTS_API_URL"]
 SCHEMA_FILE = os.path.join(os.path.dirname(__file__), "schema.json")
 TABLE_NAME = os.environ["TABLE_NAME"]
+DELIVERY_API_URL = os.environ["DELIVERY_API_URL"]
+PRODUCTS_API_URL = os.environ["PRODUCTS_API_URL"]
 
 
 dynamodb = boto3.resource("dynamodb") # pylint: disable=invalid-name
@@ -40,8 +41,44 @@ async def validate_delivery(order: dict) -> Tuple[bool, str]:
     Validate the delivery price
     """
 
-    # TODO
-    return (True, "")
+    # Gather the domain name and AWS region
+    url = urlparse(DELIVERY_API_URL)
+    region = boto3.session.Session().region_name
+    # Create the signature helper
+    iam_auth = BotoAWSRequestsAuth(aws_host=url.netloc,
+                                   aws_region=region,
+                                   aws_service='execute-api')
+
+    # Send a POST request
+    response = requests.post(
+        DELIVERY_API_URL+"/backend/pricing",
+        json={"products": order["products"], "address": order["address"]},
+        auth=iam_auth
+    )
+
+    logger.debug({
+        "message": "Response received from delivery",
+        "body": response.json()
+    })
+
+    body = response.json()
+    if response.status_code != 200 or "pricing" not in body:
+        logger.warning({
+            "message": "Failure to contact the delivery service",
+            "statusCode": response.status_code,
+            "body": body
+        })
+        return (False, "Failure to contact the delivery service")
+
+    if body["pricing"] != order["deliveryPrice"]:
+        logger.info({
+            "message": "Wrong delivery price: got {}, expected {}".format(order["deliveryPrice"], body["pricing"]),
+            "orderPrice": order["deliveryPrice"],
+            "deliveryPrice": body["pricing"]
+        })
+        return (False, "Wrong delivery price: got {}, expected {}".format(order["deliveryPrice"], body["pricing"]))
+
+    return (True, "The delivery price is valid")
 
 
 @tracer.capture_method

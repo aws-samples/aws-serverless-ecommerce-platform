@@ -1,7 +1,9 @@
 Orders service
 ==============
 
-![Orders architecture diagram](images/orders.png)
+<p align="center">
+    <img alt="Orders architecture diagram" src="images/orders.png"/>
+</p>
 
 ## API
 
