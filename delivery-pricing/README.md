@@ -1,7 +1,9 @@
 Delivery Pricing service
 ========================
 
-![Delivery Pricing Architecture Diagram](images/delivery-pricing.png)
+<p align="center">
+    <img alt="Delivery Pricing Architecture Diagram" src="images/delivery-pricing.png"/>
+</p>
 
 This service provides an API to calculate the delivery cost for a specific list of products and an address.
 
