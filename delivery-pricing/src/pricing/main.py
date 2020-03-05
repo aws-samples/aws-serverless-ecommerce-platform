@@ -85,7 +85,7 @@ def handler(event, _):
     # Verify that this is a request with IAM credentials
     if iam_user_id(event) is None:
         logger.warning({"message": "User ARN not found in event"})
-        return response("Unauthorized", 401)
+        return response("Unauthorized", 403)
 
     # Extract the request body
     try:

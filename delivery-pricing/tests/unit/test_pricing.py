@@ -122,7 +122,7 @@ def test_handler_no_iam(lambda_module, context, apigateway_event, order):
     retval = lambda_module.handler(event, context)
 
     assert "statusCode" in retval
-    assert retval["statusCode"] == 401
+    assert retval["statusCode"] == 403
     assert "body" in retval
     body = json.loads(retval["body"])
     assert "message" in body
