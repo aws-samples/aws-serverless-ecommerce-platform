@@ -1,19 +1,29 @@
 Service structure
 =================
 
-* `Makefile`(#makefile)
+* [`Makefile`](#makefile)
+  * [`artifacts` target](#artifacts-target)
+  * [`build` target](#build-target)
+  * [`check-deps` target](#check-deps-target)
+  * [`clean` target](#clean-target)
+  * [`deploy` target](#deploy-target)
+  * [`lint` target](#lint-target)
+  * [`package` target](#package-target)
+  * [`teardown` target](#teardown-target)
+  * [`tests-integ` target](#tests-integ-target)
+  * [`tests-unit` target](#tests-unit-target)
 * [`metadata.yaml`](#metadatayaml)
-* [`template.yaml`](#templateyaml)
+* [`template.yaml`](#templateyaml) (Optional)
   * [Capabilities](#capabilities)
   * [API Gateway](#api-gateway)
   * [SSM Parameters](#ssm-parameters)
-* [`resources/openapi.yaml`](#resourcesopenapiyaml)
+* [`resources/openapi.yaml`](#resourcesopenapiyaml) (Optional)
   * [Authorizers](#authorizers)
   * [Lambda integrations](#lambda-integrations)
-* [`resources/events.yaml`](#resourceseventsyaml)
-* [`src/` folder](#src-folder)
-* [`tests/unit/` folder](#testsunit-folder)
-* [`tests/integ/`folder](#testsinteg-folder)
+* [`resources/events.yaml`](#resourceseventsyaml) (Optional)
+* [`src/` folder](#src-folder) (Optional)
+* [`tests/unit/` folder](#testsunit-folder) (Optional)
+* [`tests/integ/`folder](#testsinteg-folder) (Optional)
 
 Each service is represented by a __folder__ at the root of the repository with a __metadata.yaml__ file. Any folder that does not contain this file is not considered as a service folder. This means that you can retrieve the list of services by running the following command:
 
@@ -21,19 +31,83 @@ Each service is represented by a __folder__ at the root of the repository with a
 for metafile in */metadata.yaml; do echo $(dirname $metafile); done
 ```
 
-On top of that, a service also requires a `template.yaml` file, which contains the [CloudFormation](https://aws.amazon.com/cloudformation/) template that define resources for that service.
+On top of that, a service also requires a `Makefile` file, which contains the instructions to build the service.
 
 ## `Makefile`
 
 The __Makefile__ contains the necessary commands to lint, build, package and deploy services. As each service could work in slightly different way, such as using different languages or deployment methodologies, this gives flexibility to each service to define how to deploy it. For convenience, you can find Makefiles for common scenarios in the [shared/makefiles/](../shared/makefiles/) folder. You can also find a template at [shared/makefiles/empty.mk](../shared/makefiles/empty.mk).
 
-Each Makefile should containing the following targets: build, check-deps, clean, deploy, lint, package, teardown, tests-integ and tests-unit.
+Each Makefile should containing the following targets: [artifacts](#artifacts-target), [build](#build-target), [check-deps](#check-deps-target), [clean](#clean-target), [deploy](#deploy-target), [lint](#lint-target), [package](#package-target), [teardown](#teardown-target), [tests-integ](#tests-integ-target) and [tests-unit](#tests-unit-target).
+
+### `artifacts` target
+
+This target is used by the pipeline to deploy resources into the tests, staging and prod environment.
+
+This target must create a zip file at `${service_dir}/build/artifacts.zip` that contains the CloudFormation template and one [template configuration file](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/continuous-delivery-codepipeline-cfn-artifacts.html) per environment.
+
+The zip file must have the following structure:
+* `template.yaml`: CloudFormation template in YAML format.
+* `config.{Environment}.json`: The template configuration files, with one file per environment.
+
+_Note_: if you are using the `tools/build cloudformation` script in the [`build` target](#build-target), it will generate these files in `build/artifacts` during the `build`. You can then use the `tools/artifacts cloudformation` script to create the zip file.
+
+### `build` target
+
+This target builds all the resources necessary to deploy resources to AWS, such as code packages of AWS Lambda functions, CloudFormation templates, OpenAPI documents, etc.
+
+By convention, you should build resources inside the `${service_dir}/build/` folder, to prevent accidentally overwriting files in the service folder. This folder is also present in [.gitignore](../.gitignore).
+
+See also the [`clean` target](#clean-target).
+
+### `check-deps` target
+
+This target verifies that the dependencies of the service (as defined in [`metadata.yaml`](#metadatayaml)) are deployed on AWS. If one or multiple dependencies are missing, this should return an error.
+
+### `clean` target
+
+This target removes all artifacts produced by the [`build` target](#build-target) from the service folder.
+
+If you are using the `tools/clean` script, this deletes the `${service_dir}/build/` folder.
+
+### `deploy` target
+
+This target deploys the service on AWS.
+
+### `lint` target
+
+This target analyzes the resources defined for the service for potential bug or stylistic errors. This is executed _before_ the [`build` target](#build-target) and should therefore check resources in the service folder directly (e.g. `${service_dir}/template.yaml` rather than `${service_dir}/build/template.yaml`).
+
+For example, this could check CloudFormation templates using cfn-lint, check Python code for Lambda functions, but also check that OpenAPI documents match the specifications.
+
+This can also run additional checks by defining custom rules. Some of them are enabled by default when using the `tools/lint cloudformation` script. See [shared/lint/rules/](../shared/lint/rules/).
+
+### `package` target
+
+This target packages artifacts and stores them on AWS for deployment if necessary. For example, this could create a zip file for the code of an AWS Lambda function and store it into an Amazon S3 bucket.
+
+This should also update references within the templates, if any.
+
+See how the [aws cloudformation package](https://docs.aws.amazon.com/cli/latest/reference/cloudformation/package.html) command works to learn more.
+
+### `teardown` target
+
+This target tears down resources on AWS.
+
+### `tests-integ` target
+
+This target runs integration tests against resources deployed on AWS, in the environment specified by the `ENVIRONMENT` variable (defaults to `dev`).
+
+### `tests-unit` target
+
+This target runs unit tests against code in the `${service_dir}/build/` folder.
 
 ## `metadata.yaml`
 
 The __metadata.yaml__ file contains information about the service itself, such as its name, dependencies and feature flags. See the [schema definition](../shared/metadata/schema.yaml) to know what you can use for your service.
 
 ## `template.yaml`
+
+_This file is optional unless you use a [pre-defined Makefile](../shared/makefiles/) starting with "cfn"._
 
 The __template.yaml__ is a CloudFormation template containing the resources that will be deployed as part of the service.
 
@@ -99,6 +173,8 @@ For the [API Gateway mentioned above](#api-gateway), you can add the following r
 ```
 
 ## `resources/openapi.yaml`
+
+_This file is optional._
 
 The __resources/openapi.yaml__ file contains the OpenAPI document for an API Gateway REST API, if you have one in your template. If you don't expose a REST API, you don't need to have this file in your service.
 
@@ -176,6 +252,8 @@ paths:
 
 ## `resources/events.yaml`
 
+_This file is optional._
+
 The __resources/events.yaml__ document contains schemas emitted to the EventBridge event bus by your service using the OpenAPI specification as sets in the [EventBridge documentation](https://docs.aws.amazon.com/eventbridge/latest/userguide/eventbridge-schemas.html#eventbridge-schemas-create). Your schemas should be defined in the [`components.schemas`](https://swagger.io/docs/specification/components/) section of the file.
 
 You can use a convenience schema named `EventBridgeHeader` and defined in [`shared/resources/schemas.yaml`](../shared/resources/schemas.yaml) to set up common EventBridge message properties, such as `id`, `version`, `detail`, etc.
@@ -204,6 +282,8 @@ components:
 
 ## `src/` folder
 
+_This folder is optional unless you use a [pre-defined Makefile](../shared/makefiles/) that doesn't end with "nocode"._
+
 The __src/__ folders contains the source code of your Lambda functions. The code should not be placed directly into this folder but Lambda functions should have dedicated folders within it.
 
 By convention, each Lambda function should have a dedicated folder, with a __main.py__ file containing a function handler named __handler__. However, this is not enforced.
@@ -212,6 +292,8 @@ See the [function code document](function_code.md) for more information for more
 
 ## `tests/unit/` folder
 
+_This folder is optional unless you use a [pre-defined Makefile](../shared/makefiles/) that doesn't end with "nocode"._
+
 The __tests/unit/__ folder should contain unit tests for your Lambda function. By convention, each unit tests should be in a separate folder matching the folder of your Lambda function.
 
 For example, if you have a Lambda function at `src/my_function/`, the unit tests for that function should be stored at `tests/unit/my_function/`. Unit tests are run using [pytest](https://docs.pytest.org/en/latest/).
@@ -219,6 +301,8 @@ For example, if you have a Lambda function at `src/my_function/`, the unit tests
 See [the testing guide](testing.md#unit-tests) for more information about writing unit tests.
 
 ## `tests/integ/` folder
+
+_This file is optional unless you use a [pre-defined Makefile](../shared/makefiles/) starting with "cfn"._
 
 The __tests/integ/__ folder performs integration tests _within the boundaries of your service_ with resources deployed on AWS. Compared to the unit tests, these validate that integration between services are working as expected.
 
