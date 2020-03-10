@@ -13,17 +13,17 @@ Service structure
   * [`tests-integ` target](#tests-integ-target)
   * [`tests-unit` target](#tests-unit-target)
 * [`metadata.yaml`](#metadatayaml)
-* [`template.yaml`](#templateyaml)
+* [`template.yaml`](#templateyaml) (Optional)
   * [Capabilities](#capabilities)
   * [API Gateway](#api-gateway)
   * [SSM Parameters](#ssm-parameters)
-* [`resources/openapi.yaml`](#resourcesopenapiyaml)
+* [`resources/openapi.yaml`](#resourcesopenapiyaml) (Optional)
   * [Authorizers](#authorizers)
   * [Lambda integrations](#lambda-integrations)
-* [`resources/events.yaml`](#resourceseventsyaml)
-* [`src/` folder](#src-folder)
-* [`tests/unit/` folder](#testsunit-folder)
-* [`tests/integ/`folder](#testsinteg-folder)
+* [`resources/events.yaml`](#resourceseventsyaml) (Optional)
+* [`src/` folder](#src-folder) (Optional)
+* [`tests/unit/` folder](#testsunit-folder) (Optional)
+* [`tests/integ/`folder](#testsinteg-folder) (Optional)
 
 Each service is represented by a __folder__ at the root of the repository with a __metadata.yaml__ file. Any folder that does not contain this file is not considered as a service folder. This means that you can retrieve the list of services by running the following command:
 
@@ -107,6 +107,8 @@ The __metadata.yaml__ file contains information about the service itself, such a
 
 ## `template.yaml`
 
+_This file is optional unless you use a [pre-defined Makefile](../shared/makefiles/) starting with "cfn"._
+
 The __template.yaml__ is a CloudFormation template containing the resources that will be deployed as part of the service.
 
 You can make sure that the template conforms to the rules by running the lint command from the [toolbox CLI](toolbox.md). This runs [cfn-lint](https://github.com/aws-cloudformation/cfn-python-lint) with a few additional rules (defined in [shared/lint/rules/](../shared/lint/rules/)):
@@ -171,6 +173,8 @@ For the [API Gateway mentioned above](#api-gateway), you can add the following r
 ```
 
 ## `resources/openapi.yaml`
+
+_This file is optional._
 
 The __resources/openapi.yaml__ file contains the OpenAPI document for an API Gateway REST API, if you have one in your template. If you don't expose a REST API, you don't need to have this file in your service.
 
@@ -248,6 +252,8 @@ paths:
 
 ## `resources/events.yaml`
 
+_This file is optional._
+
 The __resources/events.yaml__ document contains schemas emitted to the EventBridge event bus by your service using the OpenAPI specification as sets in the [EventBridge documentation](https://docs.aws.amazon.com/eventbridge/latest/userguide/eventbridge-schemas.html#eventbridge-schemas-create). Your schemas should be defined in the [`components.schemas`](https://swagger.io/docs/specification/components/) section of the file.
 
 You can use a convenience schema named `EventBridgeHeader` and defined in [`shared/resources/schemas.yaml`](../shared/resources/schemas.yaml) to set up common EventBridge message properties, such as `id`, `version`, `detail`, etc.
@@ -276,6 +282,8 @@ components:
 
 ## `src/` folder
 
+_This folder is optional unless you use a [pre-defined Makefile](../shared/makefiles/) that doesn't end with "nocode"._
+
 The __src/__ folders contains the source code of your Lambda functions. The code should not be placed directly into this folder but Lambda functions should have dedicated folders within it.
 
 By convention, each Lambda function should have a dedicated folder, with a __main.py__ file containing a function handler named __handler__. However, this is not enforced.
@@ -284,6 +292,8 @@ See the [function code document](function_code.md) for more information for more
 
 ## `tests/unit/` folder
 
+_This folder is optional unless you use a [pre-defined Makefile](../shared/makefiles/) that doesn't end with "nocode"._
+
 The __tests/unit/__ folder should contain unit tests for your Lambda function. By convention, each unit tests should be in a separate folder matching the folder of your Lambda function.
 
 For example, if you have a Lambda function at `src/my_function/`, the unit tests for that function should be stored at `tests/unit/my_function/`. Unit tests are run using [pytest](https://docs.pytest.org/en/latest/).
@@ -291,6 +301,8 @@ For example, if you have a Lambda function at `src/my_function/`, the unit tests
 See [the testing guide](testing.md#unit-tests) for more information about writing unit tests.
 
 ## `tests/integ/` folder
+
+_This file is optional unless you use a [pre-defined Makefile](../shared/makefiles/) starting with "cfn"._
 
 The __tests/integ/__ folder performs integration tests _within the boundaries of your service_ with resources deployed on AWS. Compared to the unit tests, these validate that integration between services are working as expected.
 
