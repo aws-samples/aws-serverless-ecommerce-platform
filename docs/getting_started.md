@@ -11,12 +11,11 @@ Additionally, you will need to install __speccy__ for building specific services
 
 ## Deploy the infrastructure on AWS
 
-Deploying the infrastructure with a CI/CD pipeline on AWS will create a new repository in [AWS CodeCommit](https://aws.amazon.com/codecommit/). Please ensure that you have:
+If you want to deploy the entire project into your AWS account in a dev environment, you can run the command `make all` in the [root](../) of this project.
 
-* [Configured the AWS CLI on your machine](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html)
-* [Configured Git to use the AWS credential helper](https://docs.aws.amazon.com/codecommit/latest/userguide/setting-up-https-unixes.html)
+If you want to deploy only a specific service and its dependencies, you can use the command `make deps-${SERVICE}`.
 
-Once this is done, you can run `make all` which will deploy all services in the dev environment. 
+These commands will lint, build, run unit tests, package, deploy and run integration tests on the services.
 
 ### Deploy the production pipeline
 
