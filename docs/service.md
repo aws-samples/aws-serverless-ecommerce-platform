@@ -1,7 +1,17 @@
 Service structure
 =================
 
-* `Makefile`(#makefile)
+* [`Makefile`](#makefile)
+  * [`artifacts` target](#artifacts-target)
+  * [`build` target](#build-target)
+  * [`check-deps` target](#check-deps-target)
+  * [`clean` target](#clean-target)
+  * [`deploy` target](#deploy-target)
+  * [`lint` target](#lint-target)
+  * [`package` target](#package-target)
+  * [`teardown` target](#teardown-target)
+  * [`tests-integ` target](#tests-integ-target)
+  * [`tests-unit` target](#tests-unit-target)
 * [`metadata.yaml`](#metadatayaml)
 * [`template.yaml`](#templateyaml)
   * [Capabilities](#capabilities)
@@ -21,13 +31,75 @@ Each service is represented by a __folder__ at the root of the repository with a
 for metafile in */metadata.yaml; do echo $(dirname $metafile); done
 ```
 
-On top of that, a service also requires a `template.yaml` file, which contains the [CloudFormation](https://aws.amazon.com/cloudformation/) template that define resources for that service.
+On top of that, a service also requires a `Makefile` file, which contains the instructions to build the service.
 
 ## `Makefile`
 
 The __Makefile__ contains the necessary commands to lint, build, package and deploy services. As each service could work in slightly different way, such as using different languages or deployment methodologies, this gives flexibility to each service to define how to deploy it. For convenience, you can find Makefiles for common scenarios in the [shared/makefiles/](../shared/makefiles/) folder. You can also find a template at [shared/makefiles/empty.mk](../shared/makefiles/empty.mk).
 
-Each Makefile should containing the following targets: build, check-deps, clean, deploy, lint, package, teardown, tests-integ and tests-unit.
+Each Makefile should containing the following targets: [artifacts](#artifacts-target), [build](#build-target), [check-deps](#check-deps-target), [clean](#clean-target), [deploy](#deploy-target), [lint](#lint-target), [package](#package-target), [teardown](#teardown-target), [tests-integ](#tests-integ-target) and [tests-unit](#tests-unit-target).
+
+### `artifacts` target
+
+This target is used by the pipeline to deploy resources into the tests, staging and prod environment.
+
+This target must create a zip file at `${service_dir}/build/artifacts.zip` that contains the CloudFormation template and one [template configuration file](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/continuous-delivery-codepipeline-cfn-artifacts.html) per environment.
+
+The zip file must have the following structure:
+* `template.yaml`: CloudFormation template in YAML format.
+* `config.{Environment}.json`: The template configuration files, with one file per environment.
+
+_Note_: if you are using the `tools/build cloudformation` script in the [`build` target](#build-target), it will generate these files in `build/artifacts` during the `build`. You can then use the `tools/artifacts cloudformation` script to create the zip file.
+
+### `build` target
+
+This target builds all the resources necessary to deploy resources to AWS, such as code packages of AWS Lambda functions, CloudFormation templates, OpenAPI documents, etc.
+
+By convention, you should build resources inside the `${service_dir}/build/` folder, to prevent accidentally overwriting files in the service folder. This folder is also present in [.gitignore](../.gitignore).
+
+See also the [`clean` target](#clean-target).
+
+### `check-deps` target
+
+This target verifies that the dependencies of the service (as defined in [`metadata.yaml`](#metadatayaml)) are deployed on AWS. If one or multiple dependencies are missing, this should return an error.
+
+### `clean` target
+
+This target removes all artifacts produced by the [`build` target](#build-target) from the service folder.
+
+If you are using the `tools/clean` script, this deletes the `${service_dir}/build/` folder.
+
+### `deploy` target
+
+This target deploys the service on AWS.
+
+### `lint` target
+
+This target analyzes the resources defined for the service for potential bug or stylistic errors. This is executed _before_ the [`build` target](#build-target) and should therefore check resources in the service folder directly (e.g. `${service_dir}/template.yaml` rather than `${service_dir}/build/template.yaml`).
+
+For example, this could check CloudFormation templates using cfn-lint, check Python code for Lambda functions, but also check that OpenAPI documents match the specifications.
+
+This can also run additional checks by defining custom rules. Some of them are enabled by default when using the `tools/lint cloudformation` script. See [shared/lint/rules/](../shared/lint/rules/).
+
+### `package` target
+
+This target packages artifacts and stores them on AWS for deployment if necessary. For example, this could create a zip file for the code of an AWS Lambda function and store it into an Amazon S3 bucket.
+
+This should also update references within the templates, if any.
+
+See how the [aws cloudformation package](https://docs.aws.amazon.com/cli/latest/reference/cloudformation/package.html) command works to learn more.
+
+### `teardown` target
+
+This target tears down resources on AWS.
+
+### `tests-integ` target
+
+This target runs integration tests against resources deployed on AWS, in the environment specified by the `ENVIRONMENT` variable (defaults to `dev`).
+
+### `tests-unit` target
+
+This target runs unit tests against code in the `${service_dir}/build/` folder.
 
 ## `metadata.yaml`
 
