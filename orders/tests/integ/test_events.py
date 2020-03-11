@@ -44,6 +44,35 @@ def test_table_update(table_name, listener, order):
 
     assert found == True
 
+    # Change the status to cancelled
+    table.update_item(
+        Key={"orderId": order["orderId"]},
+        UpdateExpression="set #s = :s",
+        ExpressionAttributeNames={
+            "#s": "status"
+        },
+        ExpressionAttributeValues={
+            ":s": "CANCELLED"
+        }
+    )
+
+    # Listen for messages on EventBridge through a listener SQS queue
+    messages = listener("orders")
+
+    # Parse messages
+    found = False
+    for message in messages:
+        print("MESSAGE RECEIVED:", message)
+        body = json.loads(message["Body"])
+        if order["orderId"] in body["resources"]:
+            found = True
+            assert body["detail-type"] == "OrderModified"
+            detail = body["detail"]
+            assert "changed" in detail
+            assert "status" in detail["changed"]
+
+    assert found == True
+
     # Delete the item
     table.delete_item(Key={"orderId": order["orderId"]})
 
