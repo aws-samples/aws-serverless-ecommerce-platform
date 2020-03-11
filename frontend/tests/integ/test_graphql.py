@@ -4,7 +4,7 @@ import string
 import os
 import requests
 import boto3
-from fixtures import get_order, get_product # pylint: disable=import-error,no-name-in-module
+from fixtures import get_order, get_product, iam_auth # pylint: disable=import-error,no-name-in-module
 from helpers import get_parameter # pylint: disable=import-error,no-name-in-module
 
 
@@ -33,6 +33,15 @@ def user_pool_id():
     """
 
     return get_parameter("/ecommerce/{Environment}/users/user-pool/id")
+
+
+@pytest.fixture(scope="module")
+def delivery_pricing_api_url():
+    """
+    Delivery Pricing API
+    """
+
+    return get_parameter("/ecommerce/{Environment}/delivery-pricing/api/url")
 
 
 @pytest.fixture
@@ -189,17 +198,28 @@ def product(get_product, products_table_name):
 
 
 @pytest.fixture(scope="function")
-def order_request(get_order, product):
+def order_request(get_order, product, iam_auth, delivery_pricing_api_url):
     """
     Order Request
     """
 
     order = get_order()
 
+    # Grab the correct delivery price from the backend
+    res = requests.post(
+        "{}/backend/pricing".format(delivery_pricing_api_url),
+        auth=iam_auth(delivery_pricing_api_url),
+        json={
+            "products": [product],
+            "address": order["address"]
+        }
+    )
+    delivery_price = res.json()["pricing"]
+
     return {
         "products": [product],
         "address": order["address"],
-        "deliveryPrice": order["deliveryPrice"],
+        "deliveryPrice": delivery_price,
         "paymentToken": order["paymentToken"]
     }
 
