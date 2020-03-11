@@ -449,6 +449,7 @@ def test_handler_created(lambda_module, context, order, order_products, order_me
 
     lambda_module.handler({
         "source": "ecommerce.orders",
+        "resources": [order["orderId"]],
         "detail-type": "OrderCreated",
         "detail": order
     }, context)
@@ -487,6 +488,7 @@ def test_handler_deleted(lambda_module, context, order, order_products, order_me
 
     lambda_module.handler({
         "source": "ecommerce.orders",
+        "resources": [order["orderId"]],
         "detail-type": "OrderDeleted",
         "detail": order
     }, context)

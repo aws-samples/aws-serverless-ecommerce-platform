@@ -54,13 +54,52 @@ def order():
 
 
 @pytest.fixture(scope="module")
-def order_event(order, event_bus_name):
+def order_created(order, event_bus_name):
     return {
         "Time": datetime.datetime.now(),
         "Source": "ecommerce.orders",
         "Resources": [order["orderId"]],
         "DetailType": "OrderCreated",
         "Detail": json.dumps(order),
+        "EventBusName": event_bus_name
+    }
+
+
+@pytest.fixture(scope="module")
+def order_modified_products(order, event_bus_name):
+    new_order = copy.deepcopy(order)
+    new_order["products"] = []
+    new_order["modifiedDate"] = datetime.datetime.now().isoformat()
+
+    return {
+        "Time": datetime.datetime.now(),
+        "Source": "ecommerce.orders",
+        "Resources": [order["orderId"]],
+        "DetailType": "OrderModified",
+        "Detail": json.dumps({
+            "old": order,
+            "new": new_order,
+            "changed": ["products"]
+        }),
+        "EventBusName": event_bus_name
+    }
+
+
+@pytest.fixture(scope="module")
+def order_modified_status(order, event_bus_name):
+    new_order = copy.deepcopy(order)
+    new_order["modifiedDate"] = datetime.datetime.now().isoformat()
+
+    return {
+        "Time": datetime.datetime.now(),
+        "Source": "ecommerce.orders",
+        "Resources": [order["orderId"]],
+        "DetailType": "OrderModified",
+        "Detail": json.dumps({
+            "old": order,
+            "new": new_order,
+            "changed": ["status"]
+        }),
         "EventBusName": event_bus_name
     }
 
@@ -86,20 +125,21 @@ def products(order):
     return products
 
 
-def test_on_order_events(order_event, table_name, order, metadata, products):
+def test_on_order_events(order_created, order_modified_products, order_modified_status, table_name, order, metadata, products):
     """
     Test if received Order Events create resources in DynamoDB
     """
 
-    # Send the event on EventBridge
     eventbridge = boto3.client("events")
-    eventbridge.put_events(Entries=[order_event])
+    table = boto3.resource("dynamodb").Table(table_name)
+
+    # Send the event on EventBridge
+    eventbridge.put_events(Entries=[order_created])
 
     # Wait
-    time.sleep(10)
+    time.sleep(5)
 
     # Check DynamoDB
-    table = boto3.resource("dynamodb").Table(table_name)
     results = table.query(
         KeyConditionExpression=Key("orderId").eq(order["orderId"])
     )
@@ -120,6 +160,34 @@ def test_on_order_events(order_event, table_name, order, metadata, products):
     for product in products:
         assert product["productId"] in product_founds
         assert product == product_founds[product["productId"]]
+
+    # Send modified event on EventBridge
+    eventbridge.put_events(Entries=[order_modified_products])
+
+    # Wait
+    time.sleep(5)
+
+    # Check DynamoDB
+    results = table.query(
+        KeyConditionExpression=Key("orderId").eq(order["orderId"])
+    )
+
+    # Assertions
+    assert len(results.get("Items", [])) == 1
+
+    # Send status modified event on EventBridge
+    eventbridge.put_events(Entries=[order_modified_status])
+
+    # Wait
+    time.sleep(10)
+
+    # Check DynamoDB
+    results = table.query(
+        KeyConditionExpression=Key("orderId").eq(order["orderId"])
+    )
+
+    # Assertions
+    assert len(results.get("Items", [])) == 1
 
     with table.batch_writer() as batch:
         batch.delete_item(Key={
