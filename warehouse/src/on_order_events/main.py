@@ -5,10 +5,10 @@ OrderEventsFunction
 
 import os
 from typing import Dict, List, Optional
-from aws_lambda_powertools.tracing import Tracer
-from aws_lambda_powertools.logging import logger_setup, logger_inject_lambda_context
 import boto3
 from boto3.dynamodb.conditions import Key
+from aws_lambda_powertools.tracing import Tracer
+from aws_lambda_powertools.logging import logger_setup, logger_inject_lambda_context
 
 
 ENVIRONMENT = os.environ["ENVIRONMENT"]
@@ -246,6 +246,10 @@ def on_order_created(order: dict):
         # Skipping
         return
 
+    logger.info({
+        "message": "Saving new packaging request for order {}".format(order_id),
+        "orderId": order_id
+    })
     save_products(order_id, order["products"])
     save_metadata(order_id, order["modifiedDate"])
 
@@ -262,13 +266,39 @@ def on_order_modified(old_order: dict, new_order: dict):
     metadata = get_metadata(order_id)
     # If no metadata, the order is not in the database
     if metadata is None:
+        logger.info({
+            "message": "Saving changes for unknown order {}".format(order_id),
+            "orderId": order_id
+        })
         save_products(order_id, new_order["products"])
         save_metadata(order_id, new_order["modifiedDate"])
     # Accepting modifications only if the order is in the 'NEW' state and
     # the event is newer than the last known state
     elif metadata["status"] == "NEW" and metadata["modifiedDate"] < new_order["modifiedDate"]:
+        logger.info({
+            "message": "Saving changes for order {}".format(order_id),
+            "orderId": order_id
+        })
         update_products(old_order["orderId"], old_order["products"], new_order["products"])
         save_metadata(old_order["orderId"], new_order["modifiedDate"], metadata["status"])
+    elif metadata["modifiedDate"] >= new_order["modifiedDate"]:
+        logger.info({
+            "message": "Will not save changes: latest state for order {} is already in the database".format(order_id),
+            "metadata": metadata,
+            "orderId": order_id
+        })
+    elif metadata["status"] != "NEW":
+        logger.info({
+            "message": "Will not save changes: packaging request for order {} is not NEW".format(order_id),
+            "metadata": metadata,
+            "orderId": order_id
+        })
+    else:
+        logger.warning({
+            "message": "Will not save changes: packaging request for order {} cannot be updated".format(order_id),
+            "metadata": metadata,
+            "orderId": order_id
+        })
 
 
 @tracer.capture_method
@@ -284,8 +314,16 @@ def on_order_deleted(order: dict):
     # If no metadata, the order is not in the database.
     # If the order status is not 'NEW', we cannot cancel the order.
     if metadata is None or metadata["status"] != "NEW":
+        logger.info({
+            "message": "Trying to delete packaging request for inexisting order {}".format(order_id),
+            "orderId": order_id
+        })
         return
 
+    logger.info({
+        "message": "Delete packaging request for order {}".format(order_id),
+        "orderId": order_id
+    })
     delete_products(order_id, order["products"])
     delete_metadata(order_id)
 
@@ -297,12 +335,18 @@ def handler(event, _):
     Lambda function handler for OrderEvents
     """
 
+    logger.info({
+        "message": "Received event {} for order id(s) {}".format(event["detail-type"], event["resources"][0]),
+        "orderId": event["resources"][0],
+        "eventType": event["detail-type"]
+    })
+
     if event["detail-type"] == "OrderCreated":
         on_order_created(event["detail"])
     elif event["detail-type"] == "OrderDeleted":
         on_order_deleted(event["detail"])
     elif event["detail-type"] == "OrderModified":
-        on_order_modified(event["detail"]["old"], event["event"]["new"])
+        on_order_modified(event["detail"]["old"], event["detail"]["new"])
     else:
         logger.warning({
             "message": "Unkown detail-type {}".format(event["detail-type"]),

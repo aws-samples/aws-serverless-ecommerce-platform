@@ -59,6 +59,7 @@ type Order @aws_cognito_user_pools {
     userId: String!
     createdDate: String!
     modifiedDate: String!
+    status: String!
     products: [Product!]!
     address: Address!
     deliveryPrice: Int!

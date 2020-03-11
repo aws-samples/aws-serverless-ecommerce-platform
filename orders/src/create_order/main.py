@@ -168,6 +168,7 @@ def inject_order_fields(order: dict) -> dict:
     now = datetime.datetime.now()
 
     order["orderId"] = str(uuid.uuid4())
+    order["status"] = "NEW"
     order["createdDate"] = now.isoformat()
     order["modifiedDate"] = now.isoformat()
     order["total"] = sum([p["price"]*p.get("quantity", 1) for p in order["products"]]) + order["deliveryPrice"]

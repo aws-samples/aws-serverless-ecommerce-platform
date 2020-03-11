@@ -87,17 +87,27 @@ Resources:
     Properties:
       CodeUri: src/on_order_events/
       Events:
-        Orders:
+        OrdersCreatedOrDeleted:
           Type: CloudWatchEvent
           Properties:
             EventBusName: !Ref EventBusName
             Pattern:
-              # Capture all orders events
+              # Capture Created and Deleted events
               source: [ecommerce.orders]
               detail-type:
                 - OrderCreated
-                - OrderModified
                 - OrderDeleted
+        OrdersModified:
+          Type: CloudWatchEvent
+          Properties:
+            EventBusName: !Ref EventBusName
+            Pattern:
+              # Capture Modified events if the products have changed
+              source: [ecommerce.orders]
+              detail-type:
+                - OrderModified
+              detail:
+                changed: [products]
       EventInvokeConfig:
         # Put failed events on a DLQ
         DestinationConfig:

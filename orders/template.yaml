@@ -184,6 +184,55 @@ Resources:
       LogGroupName: !Sub "/aws/lambda/${TableUpdateFunction}"
       RetentionInDays: !Ref RetentionInDays
 
+  OnEventsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/on_events/
+      Events:
+        DeliveryEvents:
+          Type: CloudWatchEvent
+          Properties:
+            EventBusName: !Ref EventBusName
+            Pattern:
+              source: [ecommerce.delivery]
+              detail-type:
+                - DeliveryCompleted
+                - DeliveryFailed
+        WarehouseEvents:
+          Type: CloudWatchEvent
+          Properties:
+            EventBusName: !Ref EventBusName
+            Pattern:
+              source: [ecommerce.warehouse]
+              detail-type:
+                - PackageCreated
+                - PackagingFailed
+      EventInvokeConfig:
+        # Put failed events on a DLQ
+        DestinationConfig:
+          OnFailure:
+            Type: SQS
+            Destination: !GetAtt DeadLetterQueue.Outputs.QueueArn
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action: dynamodb:UpdateItem
+              Resource:
+                - !GetAtt Table.Arn
+              Condition:
+                # Scope down to only allow changing the status
+                ForAllValues:StringEquals:
+                  dynamodb:Attributes:
+                    - orderId
+                    - status
+
+  OnEventsLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${OnEventsFunction}"
+      RetentionInDays: !Ref RetentionInDays
+
   ###############
   # API GATEWAY #
   ###############

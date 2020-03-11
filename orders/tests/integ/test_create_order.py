@@ -113,10 +113,19 @@ def test_create_order(function_arn, table_name, order_request):
     ddb_response = table.get_item(Key={"orderId": response["order"]["orderId"]})
     assert "Item" in ddb_response
 
+    mandatory_fields = [
+        "orderId", "userId", "createdDate", "modifiedDate", "status",
+        "products", "address", "deliveryPrice", "total"
+    ]
+    for field in mandatory_fields:
+        assert field in ddb_response["Item"]
+
+    assert ddb_response["Item"]["status"] == "NEW"
+
     compare_dict(order_request["order"], ddb_response["Item"])
 
     # Cleanup the table
-    response = table.get_item(Key={"orderId": response["order"]["orderId"]})
+    table.delete_item(Key={"orderId": response["order"]["orderId"]})
 
 
 def test_create_order_fail_products(function_arn, table_name, order_request, get_product):
