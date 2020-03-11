@@ -11,7 +11,13 @@ build:
 	mkdir build/
 	cp -rp src/ build/src/
 	cdk synth > build/template.yaml
-	tsc -p build/src/
+	# Install packages and transpile to Javascript for each Lambda function
+	for function_folder in build/src/* ; do \
+		pushd $$function_folder ; \
+		npm i ; \
+		tsc -p . ; \
+		popd ; \
+	done
 .PHONY: build
 
 check-deps:

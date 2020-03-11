@@ -2,5 +2,8 @@
   "name": "preauth",
   "version": "1.0.0",
   "description": "Pre Authorization Function",
-  "main": "index.js"
+  "main": "index.js",
+  "dependencies": {
+    "@types/node": "^13.9.0"
+  }
 }
