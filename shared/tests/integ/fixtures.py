@@ -111,6 +111,7 @@ def get_order(get_product):
             "userId": user_id or str(uuid.uuid4()),
             "createdDate": now.isoformat(),
             "modifiedDate": now.isoformat(),
+            "status": "NEW",
             "products": products or [
                 get_product() for _ in range(random.randrange(2, 8))
             ],

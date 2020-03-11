@@ -3,7 +3,7 @@ import json
 import uuid
 import pytest
 import boto3
-from fixtures import listener # pylint: disable=import-error
+from fixtures import get_order, get_product, listener # pylint: disable=import-error
 from helpers import get_parameter # pylint: disable=import-error,no-name-in-module
 
 
@@ -17,40 +17,8 @@ def table_name():
 
 
 @pytest.fixture
-def order():
-    now = datetime.datetime.now()
-
-    return {
-        "orderId": str(uuid.uuid4()),
-        "userId": str(uuid.uuid4()),
-        "createdDate": now.isoformat(),
-        "modifiedDate": now.isoformat(),
-        "status": "NEW",
-        "products": [{
-            "productId": str(uuid.uuid4()),
-            "name": "Test Product",
-            "package": {
-                "width": 1000,
-                "length": 900,
-                "height": 800,
-                "weight": 700
-            },
-            "price": 300,
-            "quantity": 4
-        }],
-        "address": {
-            "name": "John Doe",
-            "companyName": "Company Inc.",
-            "streetAddress": "123 Street St",
-            "postCode": "12345",
-            "city": "Town",
-            "state": "State",
-            "country": "SE",
-            "phoneNumber": "+123456789"
-        },
-        "deliveryPrice": 200,
-        "total": 1400
-    }
+def order(get_order):
+    return get_order()
 
 
 def test_table_update(table_name, listener, order):
