@@ -1,0 +1,3 @@
+{
+  "app": "npx ts-node bin/payment-3p.ts"
+}

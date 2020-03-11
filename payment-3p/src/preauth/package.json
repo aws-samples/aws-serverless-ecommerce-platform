@@ -1,0 +1,6 @@
+{
+  "name": "preauth",
+  "version": "1.0.0",
+  "description": "Pre Authorization Function",
+  "main": "index.js"
+}
