@@ -1,8 +1,8 @@
 openapi: "3.0.2"
 info:
-  title: Products API
+  title: Delivery Pricing API
   version: 1.0.0
-  description: Products service API definition
+  description: Delivery Pricing API definition
   license:
     name: MIT-0
     url: https://github.com/aws/mit-0
