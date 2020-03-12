@@ -217,14 +217,17 @@ Resources:
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
-              Action: dynamodb:UpdateItem
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
               Resource:
                 - !GetAtt Table.Arn
               Condition:
-                # Scope down to only allow changing the status
+                # Scope down to only allow fetching/changing the status and products
                 ForAllValues:StringEquals:
                   dynamodb:Attributes:
                     - orderId
+                    - products
                     - status
 
   OnEventsLogGroup:
