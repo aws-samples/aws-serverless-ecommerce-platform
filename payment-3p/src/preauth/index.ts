@@ -5,7 +5,7 @@ const TABLE_NAME = process.env.TABLE_NAME || "TABLE_NAME";
 const client = new DocumentClient();
 
 // Generate a response for API Gateway
-function response(
+export function response(
         body: string | object,
         statusCode: number = 200,
         allowOrigin: string = "*",
@@ -27,7 +27,7 @@ function response(
 }
 
 // Generate a token for the transaction
-async function genToken(client: DocumentClient, cardNumber: string, amount: number) : Promise<string | null> {
+export async function genToken(client: DocumentClient, cardNumber: string, amount: number) : Promise<string | null> {
     var paymentToken = uuidv4();
     try {
         console.log({

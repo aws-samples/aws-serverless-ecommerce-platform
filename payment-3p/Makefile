@@ -22,7 +22,7 @@ build: _install
 	for function_folder in build/src/* ; do \
 		pushd $$function_folder ; \
 		npm i ; \
-		tsc -p . ; \
+		npx tsc -p . ; \
 		popd ; \
 	done
 

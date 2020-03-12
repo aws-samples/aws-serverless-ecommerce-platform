@@ -1,10 +1,9 @@
 module.exports = {
   collectCoverage: true,
   collectCoverageFrom: [
-    "<rootDir>/build/src/**/*.ts",
+    "src/**/*.ts",
     "!**/node_modules/**",
-    "!**/vendor/**",
-    "!**/*.d.ts"
+    "!**/vendor/**"
   ],
   coverageThreshold: {
     "global": {

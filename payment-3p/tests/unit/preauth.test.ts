@@ -1,11 +1,10 @@
-const rewire = require("rewire");
 const AWS = require('aws-sdk');
 const AWSMock = require('aws-sdk-mock');
 import { PutItemInput } from "aws-sdk/clients/dynamodb";
-const fn = rewire('../../build/src/preauth');
+const fn = require('../../src/preauth');
 
 test('response', () => {
-    const retval = fn.__get__("response")("MESSAGE", 400, "ALLOW_ORIGIN", "ALLOW_HEADERS", "ALLOW_METHODS");
+    const retval = fn.response("MESSAGE", 400, "ALLOW_ORIGIN", "ALLOW_HEADERS", "ALLOW_METHODS");
     expect(typeof retval.body).toBe("string");
     const body = JSON.parse(retval.body);
     expect(body).toEqual({
@@ -29,7 +28,7 @@ test('genToken', async () => {
     });
     const client = new AWS.DynamoDB.DocumentClient();
 
-    const retval = await fn.__get__("genToken")(client, "1234567890123456", 200);
+    const retval = await fn.genToken(client, "1234567890123456", 200);
     expect(retval).not.toBe(null);
     expect(typeof retval).toBe("string");
 });
