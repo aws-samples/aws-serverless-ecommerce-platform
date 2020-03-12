@@ -26,7 +26,7 @@ function response(
 }
 
 // Generate a token for the transaction
-async function genToken(cardNumber: number, amount: number) : Promise<string | null> {
+async function genToken(cardNumber: string, amount: number) : Promise<string | null> {
     var paymentToken = uuidv4();
     try {
         await db.put({
@@ -51,8 +51,8 @@ export const handler = async (event: any = {}) : Promise <any> => {
     const body = JSON.parse(event.body);
     if (!body.cardNumber)
         return response("Missing 'cardNumber' in event body.", 400);
-    if (typeof body.cardNumber !== "number")
-        return response("'cardNumber' is not a number.", 400);
+    if (typeof body.cardNumber !== "string")
+        return response("'cardNumber' is not a string.", 400);
     if (!body.amount)
         return response("Missing 'amount' in event body.", 400);
     if (typeof body.amount !== "number")

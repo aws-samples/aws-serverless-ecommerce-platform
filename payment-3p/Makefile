@@ -5,12 +5,16 @@ export SERVICE ?= $(shell basename ${CURDIR})
 export service_dir ?= ${ROOT}/${SERVICE}
 
 artifacts:
-	$(error "Target $@ is not implemented.")
+	@${ROOT}/tools/artifacts cloudformation ${SERVICE}
 
 build:
-	mkdir build/
+	# Copy files to the build folder
+	if [ ! -d build/ ]; then \
+		mkdir build/ ; \
+	fi
 	cp -rp src/ build/src/
 	cdk synth > build/template.yaml
+
 	# Install packages and transpile to Javascript for each Lambda function
 	for function_folder in build/src/* ; do \
 		pushd $$function_folder ; \
@@ -18,6 +22,13 @@ build:
 		tsc -p . ; \
 		popd ; \
 	done
+
+	# Package artifacts
+	if [ ! -d build/artifacts/ ]; then \
+        mkdir build/artifacts/ ; \
+    fi
+
+	${ROOT}/tools/helpers/build_artifacts . build/artifacts/
 .PHONY: build
 
 check-deps:
@@ -30,7 +41,9 @@ deploy:
 	@${ROOT}/tools/deploy cloudformation ${SERVICE}
 
 lint:
-	npm run test
+	# TODO
+	#npm run test
+	@echo "Skipping lint"
 
 package:
 	@${ROOT}/tools/package cloudformation ${SERVICE}
@@ -39,7 +52,7 @@ teardown:
 	@${ROOT}/tools/teardown cloudformation ${SERVICE}
 
 tests-integ:
-	$(error "Target $@ is not implemented.")
+	@echo "Skipping tests-integ"
 
 tests-unit:
-	$(error "Target $@ is not implemented.")
+	@echo "Skipping tests-unit"

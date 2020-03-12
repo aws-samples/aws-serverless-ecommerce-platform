@@ -1,8 +1,11 @@
 import * as cdk from '@aws-cdk/core';
-import * as apigw from '@aws-cdk/aws-apigateway';
-import * as lambda_ from '@aws-cdk/aws-lambda';
 import * as logs from '@aws-cdk/aws-logs';
+import * as sam from '@aws-cdk/aws-sam';
 import * as ssm from '@aws-cdk/aws-ssm';
+
+const API_STAGE_NAME = "prod";
+const FUNCTION_RUNTIME = "nodejs12.x";
+const SERVICE_NAME = "payment-3p";
 
 export class Payment3PStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
@@ -17,45 +20,43 @@ export class Payment3PStack extends cdk.Stack {
     const envVars = {
       ENVIRONMENT: env.valueAsString,
       LOG_LEVEL: logLevel.valueAsString,
-      POWERTOOLS_SERVICE_NAME: "payment-3p",
+      POWERTOOLS_SERVICE_NAME: SERVICE_NAME,
       POWERTOOLS_TRACE_DISABLED: "false"
     };
 
     // Api gateway
-    const api = new apigw.RestApi(this, "Api", {
-      deployOptions: {
-        stageName: "prod",
-        tracingEnabled: true
-      }, 
-      endpointConfiguration: {
-        types: [ apigw.EndpointType.REGIONAL ]
-      }
+    const api = new sam.CfnApi(this, "Api", {
+      endpointConfiguration: "REGIONAL",
+      stageName: API_STAGE_NAME,
+      tracingEnabled: true
     });
     new ssm.StringParameter(this, "ApiUrlParameter", {
-      stringValue: "https://"+api.restApiId+".execute-api."+cdk.Stack.of(this).region+".amazonaws.com/prod"
+      stringValue: "https://"+api.ref+".execute-api."+cdk.Stack.of(this).region+".amazonaws.com/"+API_STAGE_NAME
     });
 
     // Pre Auth function
-    const preAuthFunction = new lambda_.Function(this, "PreAuthFunction", {
-      code: lambda_.Code.fromAsset("src/preauth/"),
+    const preAuthFunction = new sam.CfnFunction(this, "PreAuthFunction", {
+      codeUri: "src/preauth/",
       handler: "index.handler",
-      runtime: lambda_.Runtime.NODEJS_12_X,
-      environment: envVars
-    });
-    new apigw.Method(this, "PreAuthMethod", {
-      httpMethod: "POST",
-      resource: new apigw.Resource(this, "PreAuthResource", {
-        parent: api.root,
-        pathPart: "preauth",
-        defaultCorsPreflightOptions: {
-          allowOrigins: ["*"],
-          allowMethods: ["POST"]
+      runtime: FUNCTION_RUNTIME,
+      environment: {
+        variables: envVars
+      },
+      events: {
+        Api: {
+          type: "Api",
+          properties: {
+            method: "POST",
+            path: "/preauth",
+            restApiId: api.ref
+          }
         }
-      }),
-      integration: new apigw.LambdaIntegration(preAuthFunction)
+      }
     });
     new logs.LogGroup(this, "PreAuthLogGroup", {
-      logGroupName: "/aws/lambda/"+preAuthFunction.functionName
+      logGroupName: "/aws/lambda/"+preAuthFunction.functionName,
+      // TODO: fix this
+      retention: 30 //retentionInDays.valueAsNumber
     });
   }
 }
