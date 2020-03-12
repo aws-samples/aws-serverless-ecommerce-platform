@@ -4,6 +4,7 @@ OnPackageCreated Function
 
 
 import os
+from typing import List, Optional
 import boto3
 from aws_lambda_powertools.tracing import Tracer # pylint: disable=import-error
 from aws_lambda_powertools.logging import logger_setup, logger_inject_lambda_context # pylint: disable=import-error
@@ -20,9 +21,9 @@ tracer = Tracer() # pylint: disable=invalid-name
 
 
 @tracer.capture_method
-def set_status(order_id: str, status: str) -> None:
+def update_order(order_id: str, status: str, products: Optional[List[dict]] = None) -> None:
     """
-    Set the status of the order
+    Update packages in the order
     """
 
     logger.info({
@@ -31,15 +32,36 @@ def set_status(order_id: str, status: str) -> None:
         "status": status
     })
 
+    update_expression = "set #s = :s"
+    attribute_names = {
+        "#s": "status"
+    }
+    attribute_values = {
+        ":s": status
+    }
+
+    if products is not None:
+        product_ids = [p["productId"] for p in products]
+
+        item = table.get_item(
+            Key={"orderId": order_id},
+            AttributesToGet=["products"]
+        )["Item"]
+        new_products = []
+        for product in item["products"]:
+            if product["productId"] in product_ids:
+                new_products.append(product)
+
+        update_expression += ", #p = :p"
+        attribute_names["#p"] = "products"
+        attribute_values[":p"] = products
+
+
     table.update_item(
         Key={"orderId": order_id},
-        UpdateExpression="set #s = :s",
-        ExpressionAttributeNames={
-            "#s": "status"
-        },
-        ExpressionAttributeValues={
-            ":s": status
-        }
+        UpdateExpression=update_expression,
+        ExpressionAttributeNames=attribute_names,
+        ExpressionAttributeValues=attribute_values
     )
 
 
@@ -61,9 +83,9 @@ def handler(event, _):
         })
         if event["source"] == "ecommerce.warehouse":
             if event["detail-type"] == "PackageCreated":
-                set_status(order_id, "PACKAGED")
+                update_order(order_id, "PACKAGED", event["detail"]["products"])
             elif event["detail-type"] == "PackagingFailed":
-                set_status(order_id, "PACKAGING_FAILED")
+                update_order(order_id, "PACKAGING_FAILED")
             else:
                 logger.warning({
                     "message": "Unknown event type {} for order {}".format(event["detail-type"], order_id),
@@ -73,9 +95,9 @@ def handler(event, _):
                 })
         elif event["source"] == "ecommerce.delivery":
             if event["detail-type"] == "DeliveryCompleted":
-                set_status(order_id, "FULFILLED")
+                update_order(order_id, "FULFILLED")
             elif event["detail-type"] == "DeliveryFailed":
-                set_status(order_id, "DELIVERY_FAILED")
+                update_order(order_id, "DELIVERY_FAILED")
             else:
                 logger.warning({
                     "message": "Unknown event type {} for order {}".format(event["detail-type"], order_id),
