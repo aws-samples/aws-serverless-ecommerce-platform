@@ -1,7 +1,8 @@
-const AWS = require('aws-sdk');
-const db = new AWS.DynamoDB.DocumentClient();
-const uuidv4 = require('uuid/v4');
-const TABLE_NAME = process.env.TABLE_NAME;
+import { DocumentClient } from 'aws-sdk/clients/dynamodb';
+import { v4 as uuidv4 } from 'uuid';
+const TABLE_NAME = process.env.TABLE_NAME || "TABLE_NAME";
+
+const client = new DocumentClient();
 
 // Generate a response for API Gateway
 function response(
@@ -26,10 +27,17 @@ function response(
 }
 
 // Generate a token for the transaction
-async function genToken(cardNumber: string, amount: number) : Promise<string | null> {
+async function genToken(client: DocumentClient, cardNumber: string, amount: number) : Promise<string | null> {
     var paymentToken = uuidv4();
     try {
-        await db.put({
+        console.log({
+            TableName: TABLE_NAME,
+            Item: {
+                paymentToken: paymentToken,
+                amount: amount
+            }
+        });
+        await client.put({
             TableName: TABLE_NAME,
             Item: {
                 paymentToken: paymentToken,
@@ -59,7 +67,7 @@ export const handler = async (event: any = {}) : Promise <any> => {
         return response("'amount' is not a number.", 400);
 
     // Generate the token
-    var paymentToken = await genToken(body.cardNumber, body.amount);
+    var paymentToken = await genToken(client, body.cardNumber, body.amount);
 
     // Send a response
     if (paymentToken === null) {

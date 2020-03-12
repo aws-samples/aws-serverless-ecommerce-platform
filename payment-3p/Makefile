@@ -4,10 +4,13 @@ export ROOT ?= $(shell dirname ${CURDIR})
 export SERVICE ?= $(shell basename ${CURDIR})
 export service_dir ?= ${ROOT}/${SERVICE}
 
+_install:
+	npm install
+
 artifacts:
 	@${ROOT}/tools/artifacts cloudformation ${SERVICE}
 
-build:
+build: _install
 	# Copy files to the build folder
 	if [ ! -d build/ ]; then \
 		mkdir build/ ; \
@@ -40,10 +43,8 @@ clean:
 deploy:
 	@${ROOT}/tools/deploy cloudformation ${SERVICE}
 
-lint:
-	# TODO
-	#npm run test
-	@echo "Skipping lint"
+lint: _install
+	npm run tests-cdk
 
 package:
 	@${ROOT}/tools/package cloudformation ${SERVICE}
@@ -55,4 +56,4 @@ tests-integ:
 	@echo "Skipping tests-integ"
 
 tests-unit:
-	@echo "Skipping tests-unit"
+	npm run tests-unit

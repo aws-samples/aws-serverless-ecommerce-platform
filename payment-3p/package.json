@@ -7,16 +7,25 @@
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
-    "test": "jest",
+    "tests-cdk": "jest --projects cdk.jest.config.js",
+    "tests-unit": "jest --projects unit.jest.config.js",
     "cdk": "cdk"
   },
   "devDependencies": {
     "@aws-cdk/assert": "1.27.0",
+    "@types/chai": "^4.2.10",
     "@types/jest": "^24.0.22",
-    "@types/node": "10.17.5",
-    "jest": "^24.9.0",
-    "ts-jest": "^24.1.0",
+    "@types/node": "^10.17.5",
+    "@types/rewire": "^2.5.28",
     "aws-cdk": "1.27.0",
+    "aws-sdk-mock": "^5.1.0",
+    "babel": "^6.23.0",
+    "babel-jest": "^25.1.0",
+    "babel-plugin-rewire": "^1.2.0",
+    "chai": "^4.2.0",
+    "jest": "^24.9.0",
+    "rewire": "^5.0.0",
+    "ts-jest": "^24.1.0",
     "ts-node": "^8.1.0",
     "typescript": "~3.7.2"
   },
@@ -26,5 +35,7 @@
     "@aws-cdk/aws-ssm": "^1.27.0",
     "@aws-cdk/core": "1.27.0",
     "source-map-support": "^0.5.16"
-  }
+  },
+  "repository": "https://github.com/aws-samples/aws-serverless-ecommerce-platform",
+  "license": "MIT-0"
 }
