@@ -4,6 +4,8 @@ export ROOT ?= $(shell dirname ${CURDIR})
 export SERVICE ?= $(shell basename ${CURDIR})
 export service_dir ?= ${ROOT}/${SERVICE}
 
+export AWS_SDK_LOAD_CONFIG = true
+
 _install:
 	npm install
 
@@ -53,7 +55,7 @@ teardown:
 	@${ROOT}/tools/teardown cloudformation ${SERVICE}
 
 tests-integ:
-	@echo "Skipping tests-integ"
+	npm run tests-integ
 
 tests-unit:
 	npm run tests-unit

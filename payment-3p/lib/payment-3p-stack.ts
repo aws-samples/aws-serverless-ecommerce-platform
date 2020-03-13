@@ -24,13 +24,21 @@ export class Payment3PStack extends cdk.Stack {
       tracingEnabled: true
     });
     new ssm.StringParameter(this, "ApiUrlParameter", {
+      parameterName: "/ecommerce/"+env.valueAsString+"/payment-3p/api/url",
+      simpleName: false,
       stringValue: "https://"+api.ref+".execute-api."+cdk.Stack.of(this).region+".amazonaws.com/"+API_STAGE_NAME
     });
 
     // DynamoDB table
     const table = new dynamodb.Table(this, "Table", {
       partitionKey: { name: "paymentToken", type: dynamodb.AttributeType.STRING },
-      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.DESTROY
+    });
+    new ssm.StringParameter(this, "TableNameParameter", {
+      parameterName: "/ecommerce/"+env.valueAsString+"/payment-3p/table/name",
+      simpleName: false,
+      stringValue: table.tableName
     });
 
     // Function environment variables

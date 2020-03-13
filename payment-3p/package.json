@@ -9,6 +9,7 @@
     "watch": "tsc -w",
     "tests-cdk": "jest --projects cdk.jest.config.js",
     "tests-unit": "jest --projects unit.jest.config.js",
+    "tests-integ": "jest --projects integ.jest.config.js",
     "cdk": "cdk"
   },
   "devDependencies": {
@@ -19,6 +20,7 @@
     "@types/uuid": "^7.0.0",
     "aws-cdk": "1.27.0",
     "aws-sdk-mock": "^5.1.0",
+    "axios": "^0.19.2",
     "babel": "^6.23.0",
     "babel-jest": "^25.1.0",
     "chai": "^4.2.0",
