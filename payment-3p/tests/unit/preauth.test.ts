@@ -61,6 +61,7 @@ test('handler', async () => {
     };
     const response = await fn.handler(event, {});
 
+    expect(fn.genToken).toBeCalled();
     expect(response.statusCode).toBe(200);
     expect(response.body).not.toBe(undefined);
     const body = JSON.parse(response.body);
@@ -78,6 +79,7 @@ test('handler with missing body', async () => {
     };
     const response = await fn.handler(event, {});
 
+    expect(fn.genToken).not.toBeCalled();
     expect(response.statusCode).toBe(400);
     expect(response.body).not.toBe(undefined);
     const body = JSON.parse(response.body);
@@ -98,6 +100,7 @@ test('handler with missing cardNumber', async () => {
     };
     const response = await fn.handler(event, {});
 
+    expect(fn.genToken).not.toBeCalled();
     expect(response.statusCode).toBe(400);
     expect(response.body).not.toBe(undefined);
     const body = JSON.parse(response.body);
@@ -120,6 +123,7 @@ test('handler with wrong cardNumber type', async () => {
     };
     const response = await fn.handler(event, {});
 
+    expect(fn.genToken).not.toBeCalled();
     expect(response.statusCode).toBe(400);
     expect(response.body).not.toBe(undefined);
     const body = JSON.parse(response.body);
@@ -142,6 +146,7 @@ test('handler with cardNumber too short', async () => {
     };
     const response = await fn.handler(event, {});
 
+    expect(fn.genToken).not.toBeCalled();
     expect(response.statusCode).toBe(400);
     expect(response.body).not.toBe(undefined);
     const body = JSON.parse(response.body);
@@ -163,6 +168,7 @@ test('handler with missing amount', async () => {
     };
     const response = await fn.handler(event, {});
 
+    expect(fn.genToken).not.toBeCalled();
     expect(response.statusCode).toBe(400);
     expect(response.body).not.toBe(undefined);
     const body = JSON.parse(response.body);
@@ -185,6 +191,7 @@ test('handler with wrong amount type', async () => {
     };
     const response = await fn.handler(event, {});
 
+    expect(fn.genToken).not.toBeCalled();
     expect(response.statusCode).toBe(400);
     expect(response.body).not.toBe(undefined);
     const body = JSON.parse(response.body);
@@ -194,7 +201,30 @@ test('handler with wrong amount type', async () => {
     fn.genToken = genToken;
 });
 
-test('handler without paymentToken', async () => {
+test('handler with negative amount', async () => {
+    const genToken = fn.genToken;
+    fn.genToken = jest.fn();
+    fn.genToken.mockReturnValue(Promise.resolve("TOKEN"));
+
+    const event = {
+        body: JSON.stringify({
+            cardNumber: "1234567890123456",
+            amount: -200
+        })
+    };
+    const response = await fn.handler(event, {});
+
+    expect(fn.genToken).not.toBeCalled();
+    expect(response.statusCode).toBe(400);
+    expect(response.body).not.toBe(undefined);
+    const body = JSON.parse(response.body);
+    expect(typeof body.message).toBe("string");
+    expect(body.message).toContain("amount");
+
+    fn.genToken = genToken;
+});
+
+test('handler with genToken error', async () => {
     const genToken = fn.genToken;
     fn.genToken = jest.fn();
     fn.genToken.mockReturnValue(Promise.resolve(null));
@@ -207,6 +237,7 @@ test('handler without paymentToken', async () => {
     };
     const response = await fn.handler(event, {});
 
+    expect(fn.genToken).toBeCalled();
     expect(response.statusCode).toBe(500);
     expect(response.body).not.toBe(undefined);
     const body = JSON.parse(response.body);

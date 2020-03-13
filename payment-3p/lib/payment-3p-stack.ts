@@ -50,6 +50,38 @@ export class Payment3PStack extends cdk.Stack {
       POWERTOOLS_TRACE_DISABLED: "false"
     };
 
+    // Check function
+    const checkFunction = new sam.CfnFunction(this, "PreAuthFunction", {
+      codeUri: "src/check/",
+      handler: "index.handler",
+      runtime: FUNCTION_RUNTIME,
+      environment: {
+        variables: envVars
+      },
+      events: {
+        Api: {
+          type: "Api",
+          properties: {
+            method: "POST",
+            path: "/check",
+            restApiId: api.ref
+          }
+        }
+      },
+      policies: [{
+        statement: {
+          Effect: "Allow",
+          Action: "dynamodb:GetItem",
+          Resource: table.tableArn
+        }
+      }]
+    });
+    new logs.LogGroup(this, "PreAuthLogGroup", {
+      logGroupName: "/aws/lambda/"+preAuthFunction.ref,
+      // TODO: fix this
+      retention: 30 //retentionInDays.valueAsNumber
+    });
+
     // Pre Auth function
     const preAuthFunction = new sam.CfnFunction(this, "PreAuthFunction", {
       codeUri: "src/preauth/",
@@ -74,7 +106,6 @@ export class Payment3PStack extends cdk.Stack {
           Action: "dynamodb:PutItem",
           Resource: table.tableArn
         }
-
       }]
     });
     new logs.LogGroup(this, "PreAuthLogGroup", {

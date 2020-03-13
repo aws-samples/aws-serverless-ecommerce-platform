@@ -1,7 +1,5 @@
 import { DocumentClient } from 'aws-sdk/clients/dynamodb';
-import { v4 as uuidv4 } from 'uuid';
 const TABLE_NAME = process.env.TABLE_NAME || "TABLE_NAME";
-
 const client = new DocumentClient();
 
 // Generate a response for API Gateway
@@ -26,20 +24,18 @@ export function response(
     }
 }
 
-// Generate a token for the transaction
-export async function genToken(client: DocumentClient, cardNumber: string, amount: number) : Promise<string | null> {
-    var paymentToken = uuidv4();
+// Check if the token is valid
+export async function checkToken(client : DocumentClient, paymentToken: string, amount: number) : Promise<boolean | null> {
     try {
-        await client.put({
+        const response = await client.get({
             TableName: TABLE_NAME,
-            Item: {
-                paymentToken: paymentToken,
-                amount: amount
-            }
+            Key: { paymentToken }
         }).promise();
-        return paymentToken;
+        if (!response.Item)
+            return false;
+        return response.Item.amount >= amount;
     } catch (dbError) {
-        console.log({"message": "Error storing payment token in database", "errormsg": dbError});
+        console.log({"message": "Error retrieving the paymentToken from the database", "errormsg": dbError});
         return null;
     }
 }
@@ -52,26 +48,22 @@ export const handler = async (event: any = {}) : Promise <any> => {
     const body = JSON.parse(event.body);
 
     // Validate body
-    if (!body.cardNumber)
-        return response("Missing 'cardNumber' in request body.", 400);
-    if (typeof body.cardNumber !== "string")
-        return response("'cardNumber' is not a string.", 400);
-    if (body.cardNumber.length !== 16)
-        return response("'cardNumber' is not 16 characters long.", 400);
+    if (!body.paymentToken)
+        return response("Missing 'paymentToken' in request body.", 400);
+    if (typeof body.paymentToken !== "string")
+        return response("'paymentToken' is not a string.", 400);
     if (!body.amount)
         return response("Missing 'amount' in request body.", 400);
     if (typeof body.amount !== "number")
         return response("'amount' is not a number.", 400);
     if (body.amount < 0)
-        return response("'amount' should be a positive number.", 400)
+        return response("'amount' should be a positive number.", 400);
 
-    // Generate the token
-    var paymentToken = await exports.genToken(client, body.cardNumber, body.amount);
-
-    // Send a response
-    if (paymentToken === null) {
-        return response("Failed to generate a token", 500);
+    // Check token
+    const result = await exports.checkToken(client, body.paymentToken, body.amount);
+    if (result === null) {
+        return response("Internal error", 500);
     } else {
-        return response({"paymentToken": paymentToken});
+        return response({"ok": result});
     }
 }
