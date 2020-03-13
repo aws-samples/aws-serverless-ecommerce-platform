@@ -30,13 +30,6 @@ export function response(
 export async function genToken(client: DocumentClient, cardNumber: string, amount: number) : Promise<string | null> {
     var paymentToken = uuidv4();
     try {
-        console.log({
-            TableName: TABLE_NAME,
-            Item: {
-                paymentToken: paymentToken,
-                amount: amount
-            }
-        });
         await client.put({
             TableName: TABLE_NAME,
             Item: {
@@ -61,13 +54,15 @@ export const handler = async (event: any = {}) : Promise <any> => {
         return response("Missing 'cardNumber' in event body.", 400);
     if (typeof body.cardNumber !== "string")
         return response("'cardNumber' is not a string.", 400);
+    if (body.cardNumber.length !== 16)
+        return response("'cardNumber' is not 16 characters long.", 400);
     if (!body.amount)
         return response("Missing 'amount' in event body.", 400);
     if (typeof body.amount !== "number")
         return response("'amount' is not a number.", 400);
 
     // Generate the token
-    var paymentToken = await genToken(client, body.cardNumber, body.amount);
+    var paymentToken = await exports.genToken(client, body.cardNumber, body.amount);
 
     // Send a response
     if (paymentToken === null) {

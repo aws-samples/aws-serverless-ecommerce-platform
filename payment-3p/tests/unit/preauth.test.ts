@@ -19,7 +19,6 @@ test('response', () => {
 });
 
 test('genToken', async () => {
-    AWSMock.setSDKInstance(AWS);
     AWSMock.mock("DynamoDB.DocumentClient", "put", (params: PutItemInput, callback: Function) => {
         expect(params.TableName).toBe("TABLE_NAME");
         expect(params.Item.amount).toBe(200);
@@ -29,6 +28,190 @@ test('genToken', async () => {
     const client = new AWS.DynamoDB.DocumentClient();
 
     const retval = await fn.genToken(client, "1234567890123456", 200);
+    AWSMock.restore("DynamoDB.DocumentClient");
+
     expect(retval).not.toBe(null);
     expect(typeof retval).toBe("string");
+});
+
+test('genToken with DynamoDB error', async () => {
+    AWSMock.mock("DynamoDB.DocumentClient", "put", (params: PutItemInput, callback: Function) => {
+        expect(params.TableName).toBe("TABLE_NAME");
+        expect(params.Item.amount).toBe(200);
+        expect(typeof params.Item.paymentToken).toBe("string");
+        callback(new Error(), null);
+    });
+    const client = new AWS.DynamoDB.DocumentClient();
+    const retval = await fn.genToken(client, "1234567890123456", 200);
+    AWSMock.restore("DynamoDB.DocumentClient");
+
+    expect(retval).toBe(null);
+});
+
+test('handler', async () => {
+    const genToken = fn.genToken;
+    fn.genToken = jest.fn();
+    fn.genToken.mockReturnValue(Promise.resolve("TOKEN"));
+
+    const event = {
+        body: JSON.stringify({
+            cardNumber: "1234567890123456",
+            amount: 200
+        })
+    };
+    const response = await fn.handler(event, {});
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body).not.toBe(undefined);
+    const body = JSON.parse(response.body);
+    expect(body.paymentToken).toBe("TOKEN");
+
+    fn.genToken = genToken;
+});
+
+test('handler with missing body', async () => {
+    const genToken = fn.genToken;
+    fn.genToken = jest.fn();
+    fn.genToken.mockReturnValue(Promise.resolve("TOKEN"));
+
+    const event = {
+    };
+    const response = await fn.handler(event, {});
+
+    expect(response.statusCode).toBe(400);
+    expect(response.body).not.toBe(undefined);
+    const body = JSON.parse(response.body);
+    expect(typeof body.message).toBe("string");
+
+    fn.genToken = genToken;
+});
+
+test('handler with missing cardNumber', async () => {
+    const genToken = fn.genToken;
+    fn.genToken = jest.fn();
+    fn.genToken.mockReturnValue(Promise.resolve("TOKEN"));
+
+    const event = {
+        body: JSON.stringify({
+            amount: 200
+        })
+    };
+    const response = await fn.handler(event, {});
+
+    expect(response.statusCode).toBe(400);
+    expect(response.body).not.toBe(undefined);
+    const body = JSON.parse(response.body);
+    expect(typeof body.message).toBe("string");
+    expect(body.message).toContain("cardNumber");
+
+    fn.genToken = genToken;
+});
+
+test('handler with wrong cardNumber type', async () => {
+    const genToken = fn.genToken;
+    fn.genToken = jest.fn();
+    fn.genToken.mockReturnValue(Promise.resolve("TOKEN"));
+
+    const event = {
+        body: JSON.stringify({
+            cardNumber: 1234567890123456,
+            amount: 200
+        })
+    };
+    const response = await fn.handler(event, {});
+
+    expect(response.statusCode).toBe(400);
+    expect(response.body).not.toBe(undefined);
+    const body = JSON.parse(response.body);
+    expect(typeof body.message).toBe("string");
+    expect(body.message).toContain("cardNumber");
+
+    fn.genToken = genToken;
+});
+
+test('handler with cardNumber too short', async () => {
+    const genToken = fn.genToken;
+    fn.genToken = jest.fn();
+    fn.genToken.mockReturnValue(Promise.resolve("TOKEN"));
+
+    const event = {
+        body: JSON.stringify({
+            cardNumber: "123456789012345",
+            amount: 200
+        })
+    };
+    const response = await fn.handler(event, {});
+
+    expect(response.statusCode).toBe(400);
+    expect(response.body).not.toBe(undefined);
+    const body = JSON.parse(response.body);
+    expect(typeof body.message).toBe("string");
+    expect(body.message).toContain("cardNumber");
+
+    fn.genToken = genToken;
+});
+
+test('handler with missing amount', async () => {
+    const genToken = fn.genToken;
+    fn.genToken = jest.fn();
+    fn.genToken.mockReturnValue(Promise.resolve("TOKEN"));
+
+    const event = {
+        body: JSON.stringify({
+            cardNumber: "1234567890123456"
+        })
+    };
+    const response = await fn.handler(event, {});
+
+    expect(response.statusCode).toBe(400);
+    expect(response.body).not.toBe(undefined);
+    const body = JSON.parse(response.body);
+    expect(typeof body.message).toBe("string");
+    expect(body.message).toContain("amount");
+
+    fn.genToken = genToken;
+});
+
+test('handler with wrong amount type', async () => {
+    const genToken = fn.genToken;
+    fn.genToken = jest.fn();
+    fn.genToken.mockReturnValue(Promise.resolve("TOKEN"));
+
+    const event = {
+        body: JSON.stringify({
+            cardNumber: "1234567890123456",
+            amount: "200"
+        })
+    };
+    const response = await fn.handler(event, {});
+
+    expect(response.statusCode).toBe(400);
+    expect(response.body).not.toBe(undefined);
+    const body = JSON.parse(response.body);
+    expect(typeof body.message).toBe("string");
+    expect(body.message).toContain("amount");
+
+    fn.genToken = genToken;
+});
+
+test('handler without paymentToken', async () => {
+    const genToken = fn.genToken;
+    fn.genToken = jest.fn();
+    fn.genToken.mockReturnValue(Promise.resolve(null));
+
+    const event = {
+        body: JSON.stringify({
+            cardNumber: "1234567890123456",
+            amount: 200
+        })
+    };
+    const response = await fn.handler(event, {});
+
+    expect(response.statusCode).toBe(500);
+    expect(response.body).not.toBe(undefined);
+    const body = JSON.parse(response.body);
+    expect(typeof body.message).toBe("string");
+    expect(body.message).toContain("token");
+
+    fn.genToken = genToken;
 });
