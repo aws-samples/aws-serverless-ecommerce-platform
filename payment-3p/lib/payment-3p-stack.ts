@@ -113,5 +113,40 @@ export class Payment3PStack extends cdk.Stack {
       // TODO: fix this
       retention: 30 //retentionInDays.valueAsNumber
     });
+
+    // updateAmountFunction function
+    const updateAmountFunction = new sam.CfnFunction(this, "UpdateAmountFunction", {
+      codeUri: "src/updateAmount/",
+      handler: "index.handler",
+      runtime: FUNCTION_RUNTIME,
+      environment: {
+        variables: envVars
+      },
+      events: {
+        Api: {
+          type: "Api",
+          properties: {
+            method: "POST",
+            path: "/updateAmount",
+            restApiId: api.ref
+          }
+        }
+      },
+      policies: [{
+        statement: {
+          Effect: "Allow",
+          Action: [
+            "dynamodb:GetItem",
+            "dynamodb:PutItem"
+          ],
+          Resource: table.tableArn
+        }
+      }]
+    });
+    new logs.LogGroup(this, "UpdateAmountLogGroup", {
+      logGroupName: "/aws/lambda/"+updateAmountFunction.ref,
+      // TODO: fix this
+      retention: 30 //retentionInDays.valueAsNumber
+    });
   }
 }

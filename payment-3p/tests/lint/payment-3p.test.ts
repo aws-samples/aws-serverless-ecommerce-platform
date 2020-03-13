@@ -18,6 +18,19 @@ test("Has Functions", () => {
   const stack = new Payment3P.Payment3PStack(app, "MyTestStack");
 
   expectCDK(stack).to(haveResourceLike("AWS::Serverless::Function", {
+    "CodeUri": "src/check/"
+  }));
+  expectCDK(stack).to(haveResourceLike("AWS::Serverless::Function", {
     "CodeUri": "src/preauth/"
   }));
+  expectCDK(stack).to(haveResourceLike("AWS::Serverless::Function", {
+    "CodeUri": "src/updateAmount/"
+  }));
+});
+
+test("Has Table", () => {
+  const app = new cdk.App();
+  const stack = new Payment3P.Payment3PStack(app, "MyTestStack");
+
+  expectCDK(stack).to(haveResourceLike("AWS::DynamoDB::Table", {}));
 });
