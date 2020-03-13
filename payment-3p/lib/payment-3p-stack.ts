@@ -51,7 +51,7 @@ export class Payment3PStack extends cdk.Stack {
     };
 
     // Check function
-    const checkFunction = new sam.CfnFunction(this, "PreAuthFunction", {
+    const checkFunction = new sam.CfnFunction(this, "CheckFunction", {
       codeUri: "src/check/",
       handler: "index.handler",
       runtime: FUNCTION_RUNTIME,
@@ -76,8 +76,8 @@ export class Payment3PStack extends cdk.Stack {
         }
       }]
     });
-    new logs.LogGroup(this, "PreAuthLogGroup", {
-      logGroupName: "/aws/lambda/"+preAuthFunction.ref,
+    new logs.LogGroup(this, "CheckLogGroup", {
+      logGroupName: "/aws/lambda/"+checkFunction.ref,
       // TODO: fix this
       retention: 30 //retentionInDays.valueAsNumber
     });

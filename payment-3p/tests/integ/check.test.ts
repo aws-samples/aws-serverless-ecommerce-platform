@@ -1,10 +1,12 @@
 const AWS = require('aws-sdk');
 const axios = require('axios');
+import { v4 as uuidv4 } from 'uuid';
+import { SSL_OP_EPHEMERAL_RSA } from 'constants';
 const env = process.env.ENVIRONMENT || "dev";
 
 AWS.config.credentials = new AWS.SharedIniFileCredentials();
 
-test('preauth', async () => {
+test('check', async () => {
     const ssm = new AWS.SSM();
     const dynamodb = new AWS.DynamoDB.DocumentClient();
 
@@ -15,31 +17,29 @@ test('preauth', async () => {
         Name: "/ecommerce/"+env+"/payment-3p/table/name"
     }).promise()).Parameter.Value;
 
-    const response = await axios.post(apiUrl+"/preauth", {
-        cardNumber: "1234567890123456",
-        amount: 30000
-    });
-    expect(response.status).toBe(200);
-    expect(typeof response.data.paymentToken).toBe("string");
-    expect(response.data.message).toBe(undefined);
+    const item = {
+        paymentToken: uuidv4(),
+        amount: 3000
+    };
 
-    const paymentToken = response.data.paymentToken;
-    const ddbResponse = await dynamodb.get({
+    await dynamodb.put({
         TableName: tableName,
-        Key: { paymentToken }
+        Item: item
     }).promise();
 
-    expect(ddbResponse.Item).not.toBe(undefined);
-    expect(ddbResponse.Item.paymentToken).toBe(paymentToken);
-    expect(ddbResponse.Item.amount).toBe(30000);
+    const response = await axios.post(apiUrl+"/check", item);
+
+    expect(response.status).toBe(200);
+    expect(typeof response.data.ok).toBe("boolean");
+    expect(response.data.ok).toBe(true);
 
     await dynamodb.delete({
         TableName: tableName,
-        Key: { paymentToken }
+        Key: { paymentToken: item.paymentToken }
     }).promise();
 });
 
-test('preauth without cardNumber', async () => {
+test('check without paymentToken', async () => {
     const ssm = new AWS.SSM();
     const dynamodb = new AWS.DynamoDB.DocumentClient();
 
@@ -50,20 +50,25 @@ test('preauth without cardNumber', async () => {
         Name: "/ecommerce/"+env+"/payment-3p/table/name"
     }).promise()).Parameter.Value;
 
-    await axios.post(apiUrl+"/preauth", {
-        amount: 30000
+    const item = {
+        paymentToken: uuidv4(),
+        amount: 3000
+    };
+
+    await axios.post(apiUrl+"/check", {
+        amount: item.amount
     }).then((response: any) => {
         expect(response).toBe(undefined);
     }, (error : any) => {
         expect(error.response.status).toBe(400);
         expect(typeof error.response.data.message).toBe("string");
-        expect(error.response.data.message).toContain("cardNumber");
+        expect(error.response.data.message).toContain("paymentToken");
     });
 });
 
-test('preauth without amount', async () => {
+test('check without amount', async () => {
     const ssm = new AWS.SSM();
-    const dynamodb =  new AWS.DynamoDB.DocumentClient();
+    const dynamodb = new AWS.DynamoDB.DocumentClient();
 
     const apiUrl = (await ssm.getParameter({
         Name: "/ecommerce/"+env+"/payment-3p/api/url"
@@ -72,8 +77,13 @@ test('preauth without amount', async () => {
         Name: "/ecommerce/"+env+"/payment-3p/table/name"
     }).promise()).Parameter.Value;
 
-    await axios.post(apiUrl+"/preauth", {
-        cardNumber: "1234567890123456"
+    const item = {
+        paymentToken: uuidv4(),
+        amount: 3000
+    };
+
+    await axios.post(apiUrl+"/check", {
+        paymentToken: item.paymentToken
     }).then((response: any) => {
         expect(response).toBe(undefined);
     }, (error : any) => {
