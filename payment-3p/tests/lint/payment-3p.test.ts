@@ -24,6 +24,9 @@ test("Has Functions", () => {
     "CodeUri": "src/preauth/"
   }));
   expectCDK(stack).to(haveResourceLike("AWS::Serverless::Function", {
+    "CodeUri": "src/processPayment/"
+  }));
+  expectCDK(stack).to(haveResourceLike("AWS::Serverless::Function", {
     "CodeUri": "src/updateAmount/"
   }));
 });

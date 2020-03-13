@@ -8,6 +8,53 @@ info:
     url: https://github.com/aws/mit-0
 
 paths:
+  /check:
+    post:
+      description: |
+        Check if a paymentToken and amount are correct
+      operationId: postCheck
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - paymentToken
+                - amount
+              properties:
+                paymentToken:
+                  type: string
+                  example: "63fa7809-a708-461f-99e8-13c48bbb5dbb"
+                amount:
+                  type: integer
+                  example: 12345
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - message
+                properties:
+                  message:
+                    type: string
+                    example: Something went wrong
+
   /preauth:
     post:
       description: |
@@ -43,6 +90,98 @@ paths:
                   paymentToken:
                     type: string
                     example: 4cad467c-2292-4c35-bbf8-bfae02b658b8
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - message
+                properties:
+                  message:
+                    type: string
+                    example: Something went wrong
+
+  /processPayment:
+    post:
+      description: |
+        Process a payment.
+      operationId: postProcessPayment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - paymentToken
+              properties:
+                paymentToken:
+                  type: string
+                  example: "63fa7809-a708-461f-99e8-13c48bbb5dbb"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - message
+                properties:
+                  message:
+                    type: string
+                    example: Something went wrong
+
+  /updateAmount:
+    post:
+      description: |
+        Update the amount for the paymentToken.
+
+        This only works if the amount is smaller than the current authorized amount.
+      operationId: postUpdateAmount
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - paymentToken
+                - amount
+              properties:
+                paymentToken:
+                  type: string
+                  example: "63fa7809-a708-461f-99e8-13c48bbb5dbb"
+                amount:
+                  type: integer
+                  example: 12345
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
         default:
           description: Error
           content:
