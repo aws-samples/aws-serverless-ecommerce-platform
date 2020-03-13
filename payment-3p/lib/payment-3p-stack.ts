@@ -2,6 +2,7 @@ import * as cdk from '@aws-cdk/core';
 import * as logs from '@aws-cdk/aws-logs';
 import * as sam from '@aws-cdk/aws-sam';
 import * as ssm from '@aws-cdk/aws-ssm';
+import * as dynamodb from '@aws-cdk/aws-dynamodb';
 
 const API_STAGE_NAME = "prod";
 const FUNCTION_RUNTIME = "nodejs12.x";
@@ -16,15 +17,7 @@ export class Payment3PStack extends cdk.Stack {
     const logLevel = new cdk.CfnParameter(this, "LogLevel", { default: "INFO", type: "String" });
     const retentionInDays = new cdk.CfnParameter(this, "RetentionInDays", { default: 30, type: "Number" });
 
-    // Function environment variables
-    const envVars = {
-      ENVIRONMENT: env.valueAsString,
-      LOG_LEVEL: logLevel.valueAsString,
-      POWERTOOLS_SERVICE_NAME: SERVICE_NAME,
-      POWERTOOLS_TRACE_DISABLED: "false"
-    };
-
-    // Api gateway
+    // Api Gateway
     const api = new sam.CfnApi(this, "Api", {
       endpointConfiguration: "REGIONAL",
       stageName: API_STAGE_NAME,
@@ -33,6 +26,21 @@ export class Payment3PStack extends cdk.Stack {
     new ssm.StringParameter(this, "ApiUrlParameter", {
       stringValue: "https://"+api.ref+".execute-api."+cdk.Stack.of(this).region+".amazonaws.com/"+API_STAGE_NAME
     });
+
+    // DynamoDB table
+    const table = new dynamodb.Table(this, "Table", {
+      partitionKey: { name: "paymentToken", type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST
+    });
+
+    // Function environment variables
+    const envVars = {
+      TABLE_NAME: table.tableName,
+      ENVIRONMENT: env.valueAsString,
+      LOG_LEVEL: logLevel.valueAsString,
+      POWERTOOLS_SERVICE_NAME: SERVICE_NAME,
+      POWERTOOLS_TRACE_DISABLED: "false"
+    };
 
     // Pre Auth function
     const preAuthFunction = new sam.CfnFunction(this, "PreAuthFunction", {
@@ -51,10 +59,18 @@ export class Payment3PStack extends cdk.Stack {
             restApiId: api.ref
           }
         }
-      }
+      },
+      policies: [{
+        statement: {
+          Effect: "Allow",
+          Action: "dynamodb:PutItem",
+          Resource: table.tableArn
+        }
+
+      }]
     });
     new logs.LogGroup(this, "PreAuthLogGroup", {
-      logGroupName: "/aws/lambda/"+preAuthFunction.functionName,
+      logGroupName: "/aws/lambda/"+preAuthFunction.ref,
       // TODO: fix this
       retention: 30 //retentionInDays.valueAsNumber
     });

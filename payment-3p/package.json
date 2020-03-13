@@ -28,6 +28,7 @@
     "typescript": "~3.7.2"
   },
   "dependencies": {
+    "@aws-cdk/aws-dynamodb": "^1.27.0",
     "@aws-cdk/aws-logs": "^1.27.0",
     "@aws-cdk/aws-sam": "^1.27.0",
     "@aws-cdk/aws-ssm": "^1.27.0",
