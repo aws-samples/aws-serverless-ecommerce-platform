@@ -24,11 +24,11 @@ def payment_token():
 
 
 @pytest.fixture
-def amount():
+def total():
     return 3000
 
 
-def test_validate_payment_token(lambda_module, payment_token, amount):
+def test_validate_payment_token(lambda_module, payment_token, total):
     """
     Test validate_payment_token()
     """
@@ -37,7 +37,7 @@ def test_validate_payment_token(lambda_module, payment_token, amount):
 
     with requests_mock.Mocker() as m:
         m.post(url, text=json.dumps({"ok": True}))
-        ok = lambda_module.validate_payment_token(payment_token, amount)
+        ok = lambda_module.validate_payment_token(payment_token, total)
 
     assert m.called
     assert m.call_count == 1
@@ -46,7 +46,7 @@ def test_validate_payment_token(lambda_module, payment_token, amount):
     assert ok == True
 
 
-def test_validate_payment_false(lambda_module, payment_token, amount):
+def test_validate_payment_false(lambda_module, payment_token, total):
     """
     Test validate_payment_token() with a not ok result
     """
@@ -55,7 +55,7 @@ def test_validate_payment_false(lambda_module, payment_token, amount):
 
     with requests_mock.Mocker() as m:
         m.post(url, text=json.dumps({"ok": False}))
-        ok = lambda_module.validate_payment_token(payment_token, amount)
+        ok = lambda_module.validate_payment_token(payment_token, total)
 
     assert m.called
     assert m.call_count == 1
@@ -64,7 +64,7 @@ def test_validate_payment_false(lambda_module, payment_token, amount):
     assert ok == False
 
 
-def test_validate_payment_fault(lambda_module, payment_token, amount):
+def test_validate_payment_fault(lambda_module, payment_token, total):
     """
     Test validate_payment_token() with a faulty result
     """
@@ -73,7 +73,7 @@ def test_validate_payment_fault(lambda_module, payment_token, amount):
 
     with requests_mock.Mocker() as m:
         m.post(url, text=json.dumps({"message": "Something went wrong"}))
-        ok = lambda_module.validate_payment_token(payment_token, amount)
+        ok = lambda_module.validate_payment_token(payment_token, total)
 
     assert m.called
     assert m.call_count == 1
@@ -82,14 +82,14 @@ def test_validate_payment_fault(lambda_module, payment_token, amount):
     assert ok == False
 
 
-def test_handler(monkeypatch, lambda_module, context, apigateway_event, payment_token, amount):
+def test_handler(monkeypatch, lambda_module, context, apigateway_event, payment_token, total):
     """
     Test handler()
     """
 
     def validate_payment_token(pt: str, a: int) -> bool:
         assert pt == payment_token
-        assert a == amount
+        assert a == total
         return True
 
     monkeypatch.setattr(lambda_module, "validate_payment_token", validate_payment_token)
@@ -98,7 +98,7 @@ def test_handler(monkeypatch, lambda_module, context, apigateway_event, payment_
         iam="USER_ARN",
         body=json.dumps({
             "paymentToken": payment_token,
-            "amount": amount
+            "total": total
         })
     )
 
@@ -111,12 +111,12 @@ def test_handler(monkeypatch, lambda_module, context, apigateway_event, payment_
     assert body["ok"] == True
 
 
-def test_handler_no_iam(monkeypatch, lambda_module, context, apigateway_event, payment_token, amount):
+def test_handler_no_iam(monkeypatch, lambda_module, context, apigateway_event, payment_token, total):
     """
     Test handler() without IAM
     """
 
-    def validate_payment_token(payment_token: str, amount: int) -> bool:
+    def validate_payment_token(payment_token: str, total: int) -> bool:
         # This should never be called
         assert False
         return True
@@ -126,7 +126,7 @@ def test_handler_no_iam(monkeypatch, lambda_module, context, apigateway_event, p
     event = apigateway_event(
         body=json.dumps({
             "paymentToken": payment_token,
-            "amount": amount
+            "total": total
         })
     )
 
@@ -140,12 +140,12 @@ def test_handler_no_iam(monkeypatch, lambda_module, context, apigateway_event, p
     assert isinstance(body["message"], str)
 
 
-def test_handler_wrong_body(monkeypatch, lambda_module, context, apigateway_event, payment_token, amount):
+def test_handler_wrong_body(monkeypatch, lambda_module, context, apigateway_event, payment_token, total):
     """
     Test handler() with a faulty body
     """
 
-    def validate_payment_token(payment_token: str, amount: int) -> bool:
+    def validate_payment_token(payment_token: str, total: int) -> bool:
         # This should never be called
         assert False
         return True
@@ -156,7 +156,7 @@ def test_handler_wrong_body(monkeypatch, lambda_module, context, apigateway_even
         iam="USER_ARN",
         body=json.dumps({
             "paymentToken": payment_token,
-            "amount": amount
+            "total": total
         })+"{"
     )
 
@@ -171,12 +171,12 @@ def test_handler_wrong_body(monkeypatch, lambda_module, context, apigateway_even
     assert "JSON" in body["message"]
 
 
-def test_handler_missing_payment_token(monkeypatch, lambda_module, context, apigateway_event, payment_token, amount):
+def test_handler_missing_payment_token(monkeypatch, lambda_module, context, apigateway_event, payment_token, total):
     """
     Test handler() with a missing paymentToken
     """
 
-    def validate_payment_token(payment_token: str, amount: int) -> bool:
+    def validate_payment_token(payment_token: str, total: int) -> bool:
         # This should never be called
         assert False
         return True
@@ -186,7 +186,7 @@ def test_handler_missing_payment_token(monkeypatch, lambda_module, context, apig
     event = apigateway_event(
         iam="USER_ARN",
         body=json.dumps({
-            "amount": amount
+            "total": total
         })
     )
 
@@ -201,12 +201,12 @@ def test_handler_missing_payment_token(monkeypatch, lambda_module, context, apig
     assert "paymentToken" in body["message"]
 
 
-def test_handler_missing_amount(monkeypatch, lambda_module, context, apigateway_event, payment_token, amount):
+def test_handler_missing_total(monkeypatch, lambda_module, context, apigateway_event, payment_token, total):
     """
-    Test handler() with a missing amount
+    Test handler() with a missing total
     """
 
-    def validate_payment_token(payment_token: str, amount: int) -> bool:
+    def validate_payment_token(payment_token: str, total: int) -> bool:
         # This should never be called
         assert False
         return True
@@ -228,4 +228,4 @@ def test_handler_missing_amount(monkeypatch, lambda_module, context, apigateway_
     assert "ok" not in body
     assert "message" in body
     assert isinstance(body["message"], str)
-    assert "amount" in body["message"]
+    assert "total" in body["message"]

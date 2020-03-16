@@ -2,4 +2,5 @@ name: payment
 dependencies:
   - payment-3p
 parameters:
+  EventBusName: /ecommerce/{Environment}/platform/event-bus/name
   Payment3PApiUrl: /ecommerce/{Environment}/payment-3p/api/url

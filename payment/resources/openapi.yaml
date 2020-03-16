@@ -24,12 +24,12 @@ paths:
               type: object
               required:
                 - paymentToken
-                - amount
+                - total
               properties:
                 paymentToken:
                   type: string
                   example: "63fa7809-a708-461f-99e8-13c48bbb5dbb"
-                amount:
+                total:
                   type: integer
                   example: 12345
       responses:

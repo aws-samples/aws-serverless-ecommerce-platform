@@ -19,15 +19,15 @@ tracer = Tracer() # pylint: disable=invalid-name
 
 
 @tracer.capture_method
-def validate_payment_token(payment_token: str, amount: int) -> bool:
+def validate_payment_token(payment_token: str, total: int) -> bool:
     """
-    Validate a payment token for a given amount
+    Validate a payment token for a given total
     """
 
     # Send the request to the 3p service
     res = requests.post(API_URL+"/check", json={
         "paymentToken": payment_token,
-        "amount": amount
+        "total": total
     })
 
     body = res.json()
@@ -59,7 +59,7 @@ def handler(event, _):
         logger.warning("Exception caught: %s", exc)
         return response("Failed to parse JSON body", 400)
 
-    for key in ["paymentToken", "amount"]:
+    for key in ["paymentToken", "total"]:
         if key not in body:
             logger.warning({
                 "message": "Missing '{}' in request body.".format(key),
@@ -67,8 +67,8 @@ def handler(event, _):
             })
             return response("Missing '{}' in request body.".format(key), 400)
 
-    ok = validate_payment_token(body["paymentToken"], body["amount"])
+    valid = validate_payment_token(body["paymentToken"], body["total"])
 
     return response({
-        "ok": ok
+        "ok": valid
     })
