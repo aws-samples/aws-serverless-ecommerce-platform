@@ -28,10 +28,12 @@ jobs:
         with:
           node-version: 12
       - name: install dependencies
+        shell: bash
         run: |
           sudo apt-get install -y jq
           python -m pip install --upgrade pip
           make requirements npm-install
       - name: lint and unit tests
+        shell: bash
         run: |
           make ci
