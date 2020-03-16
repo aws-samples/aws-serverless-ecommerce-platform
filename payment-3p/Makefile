@@ -13,16 +13,13 @@ artifacts:
 	@${ROOT}/tools/artifacts cloudformation ${SERVICE}
 
 build: _install
+ifeq ($(GITHUB_RUN_ID), "")
 	# Copy files to the build folder
 	if [ ! -d build/ ]; then \
 		mkdir build/ ; \
 	fi
 	cp -rp src/ build/src/
-	if [ -z "$$GITHUB_RUN_ID" ]; then \
-		npx cdk synth --verbose > build/template.yaml ; \
-	else \
-		echo "Github Workflows detected, skipping 'cdk synth'" ; \
-	fi
+	npx cdk synth --verbose > build/template.yaml
 
 	# Install packages and transpile to Javascript for each Lambda function
 	for function_folder in build/src/* ; do \
@@ -38,6 +35,9 @@ build: _install
     fi
 
 	${ROOT}/tools/helpers/build_artifacts . build/artifacts/
+else
+	@echo "GitHub Actions environment detected. Skipping build."
+endif
 .PHONY: build
 
 check-deps:
