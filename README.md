@@ -22,6 +22,7 @@ To install the necessary tools and deploy this in your own AWS account, see the 
 | [delivery](delivery/) | Manages shipping and tracking packages. |
 | [delivery-pricing](delivery-pricing/) | Pricing calculator for deliveries. |
 | payment | Manages payment collection and refunds. |
+| [payment-3p](payment-3p/) | Simulates a third party payment system. |
 
 ## Frontend service
 

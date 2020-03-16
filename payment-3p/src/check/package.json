@@ -1,0 +1,15 @@
+{
+  "name": "check",
+  "version": "1.0.0",
+  "description": "Check Function",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aws-samples/aws-serverless-ecommerce-platform.git"
+  },
+  "license": "MIT-0",
+  "dependencies": {
+    "@types/node": "^13.9.1",
+    "aws-sdk": "^2.639.0"
+  }
+}
