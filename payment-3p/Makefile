@@ -18,7 +18,11 @@ build: _install
 		mkdir build/ ; \
 	fi
 	cp -rp src/ build/src/
-	npx cdk synth --verbose > build/template.yaml || { cat build/template.yaml ; exit 1 ; }
+	if [ -z "$$GITHUB_RUN_ID" ]; then \
+		npx cdk synth --verbose > build/template.yaml ; \
+	else \
+		echo "Github Workflows detected, skipping 'cdk synth'" ; \
+	fi
 
 	# Install packages and transpile to Javascript for each Lambda function
 	for function_folder in build/src/* ; do \
