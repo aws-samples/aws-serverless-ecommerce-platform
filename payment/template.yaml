@@ -1,0 +1,93 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: 'AWS::Serverless-2016-10-31'
+
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    Description: Environment name
+  LogLevel:
+    Type: String
+    Default: INFO
+  RetentionInDays:
+    Type: Number
+    Default: 30
+    Description: CloudWatch Logs retention period for Lambda functions
+  Payment3PApiUrl:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: 3rd Party Payment API Gateway URL
+
+
+Globals:
+  Function:
+    Runtime: python3.8
+    Handler: main.handler
+    Timeout: 30
+    Tracing: Active
+    Environment:
+      Variables:
+        ENVIRONMENT: !Ref Environment
+        3P_API_URL: !Ref Payment3PApiUrl
+        POWERTOOLS_SERVICE_NAME: payment
+        POWERTOOLS_TRACE_DISABLED: "false"
+        LOG_LEVEL: !Ref LogLevel
+
+Resources:
+  #############
+  # FUNCTIONS #
+  #############
+  ValidateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/validate/
+      Events:
+        BackendApi:
+          Type: Api
+          Properties:
+            Path: /backend/validate
+            Method: POST
+            RestApiId: !Ref Api
+
+  ValidateLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ValidateFunction}"
+      RetentionInDays: !Ref RetentionInDays
+
+  ###############
+  # API GATEWAY #
+  ###############
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      DefinitionBody:
+        Fn::Transform:
+          Name: "AWS::Include"
+          Parameters:
+            Location: "resources/openapi.yaml"
+      EndpointConfiguration: REGIONAL
+      StageName: prod
+      TracingEnabled: true
+
+  ApiUrlParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /ecommerce/${Environment}/payment/api/url
+      Type: String
+      Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com/prod"
+
+  ApiArnParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /ecommerce/${Environment}/payment/api/arn
+      Type: String
+      Value: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${Api}/prod"
+
+  #####################
+  # DEAD LETTER QUEUE #
+  #####################
+  DeadLetterQueue:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ../../shared/templates/dlq.yaml

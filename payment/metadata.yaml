@@ -1,0 +1,5 @@
+name: payment
+dependencies:
+  - payment-3p
+parameters:
+  Payment3PApiUrl: /ecommerce/{Environment}/payment-3p/api/url
