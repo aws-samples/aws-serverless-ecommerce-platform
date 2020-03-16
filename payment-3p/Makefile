@@ -13,7 +13,6 @@ artifacts:
 	@${ROOT}/tools/artifacts cloudformation ${SERVICE}
 
 build: _install
-ifeq ($(GITHUB_RUN_ID), "")
 	# Copy files to the build folder
 	if [ ! -d build/ ]; then \
 		mkdir build/ ; \
@@ -23,10 +22,10 @@ ifeq ($(GITHUB_RUN_ID), "")
 
 	# Install packages and transpile to Javascript for each Lambda function
 	for function_folder in build/src/* ; do \
-		pushd $$function_folder ; \
+		cd $$function_folder ; \
 		npm i ; \
 		npx tsc -p . ; \
-		popd ; \
+		cd ${CURDIR} ; \
 	done
 
 	# Package artifacts
@@ -35,9 +34,6 @@ ifeq ($(GITHUB_RUN_ID), "")
     fi
 
 	${ROOT}/tools/helpers/build_artifacts . build/artifacts/
-else
-	@echo "GitHub Actions environment detected. Skipping build."
-endif
 .PHONY: build
 
 check-deps:
