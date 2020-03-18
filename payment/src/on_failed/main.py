@@ -5,7 +5,7 @@ OnFailed Function
 
 import os
 import boto3
-# import requests
+import requests
 from aws_lambda_powertools.tracing import Tracer # pylint: disable=import-error
 from aws_lambda_powertools.logging import logger_setup, logger_inject_lambda_context # pylint: disable=import-error
 
@@ -51,13 +51,12 @@ def cancel_payment(payment_token: str) -> None:
     Cancel the payment request
     """
 
-    # TODO
-    # response = requests.post(API_URL+"/cancelPayment", json={
-    #     "paymentToken": payment_token
-    # })
+    response = requests.post(API_URL+"/cancelPayment", json={
+        "paymentToken": payment_token
+    })
 
-    # if not response.json().get("ok", False):
-    #     raise Exception("Failed to process payment: {}".format(response.json().get("message", "No error message")))
+    if not response.json().get("ok", False):
+        raise Exception("Failed to process payment: {}".format(response.json().get("message", "No error message")))
 
 
 @logger_inject_lambda_context

@@ -190,17 +190,16 @@ def test_on_failed_warehouse(payment_3p_api_url, eventbridge, event_bus_name, ta
     assert "Item" not in res
 
     # Check 3rd party system
-    # TODO: need cancelPayment
-    # res_3p = requests.post(payment_3p_api_url+"/check", json={
-    #     "paymentToken": payment_token,
-    #     "amount": total
-    # })
-    # assert res_3p.json()["ok"] == False
-    # res_3p = requests.post(payment_3p_api_url+"/check", json={
-    #     "paymentToken": payment_token,
-    #     "amount": 1
-    # })
-    # assert res_3p.json()["ok"] == False
+    res_3p = requests.post(payment_3p_api_url+"/check", json={
+        "paymentToken": payment_token,
+        "amount": total
+    })
+    assert res_3p.json()["ok"] == False
+    res_3p = requests.post(payment_3p_api_url+"/check", json={
+        "paymentToken": payment_token,
+        "amount": 1
+    })
+    assert res_3p.json()["ok"] == False
 
 def test_on_failed_delivery(payment_3p_api_url, eventbridge, event_bus_name, table, order):
     """
@@ -248,17 +247,16 @@ def test_on_failed_delivery(payment_3p_api_url, eventbridge, event_bus_name, tab
     assert "Item" not in res
 
     # Check 3rd party system
-    # TODO: need cancelPayment
-    # res_3p = requests.post(payment_3p_api_url+"/check", json={
-    #     "paymentToken": payment_token,
-    #     "amount": total
-    # })
-    # assert res_3p.json()["ok"] == False
-    # res_3p = requests.post(payment_3p_api_url+"/check", json={
-    #     "paymentToken": payment_token,
-    #     "amount": 1
-    # })
-    # assert res_3p.json()["ok"] == False
+    res_3p = requests.post(payment_3p_api_url+"/check", json={
+        "paymentToken": payment_token,
+        "amount": total
+    })
+    assert res_3p.json()["ok"] == False
+    res_3p = requests.post(payment_3p_api_url+"/check", json={
+        "paymentToken": payment_token,
+        "amount": 1
+    })
+    assert res_3p.json()["ok"] == False
 
 def test_on_completed(payment_3p_api_url, eventbridge, event_bus_name, table, order):
     """

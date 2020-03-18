@@ -47,10 +47,9 @@ def test_backend_validate(payment_3p_api_url, payment_api_url, iam_auth):
     assert body["ok"] == True
 
     # Cleanup
-    # TODO: need cancelPayment
-    # requests.post(payment_3p_api_url+"/cancelPayment", json={
-    #     "paymentToken": payment_token
-    # })
+    requests.post(payment_3p_api_url+"/cancelPayment", json={
+        "paymentToken": payment_token
+    })
 
 
 def test_backend_validate_non_existent(payment_3p_api_url, payment_api_url, iam_auth):
@@ -110,10 +109,9 @@ def test_backend_validate_smaller_total(payment_3p_api_url, payment_api_url, iam
     assert body["ok"] == True
 
     # Cleanup
-    # TODO: need cancelPayment
-    # requests.post(payment_3p_api_url+"/cancelPayment", json={
-    #     "paymentToken": payment_token
-    # })
+    requests.post(payment_3p_api_url+"/cancelPayment", json={
+        "paymentToken": payment_token
+    })
 
 
 def test_backend_validate_higher_total(payment_3p_api_url, payment_api_url, iam_auth):
@@ -148,10 +146,9 @@ def test_backend_validate_higher_total(payment_3p_api_url, payment_api_url, iam_
     assert body["ok"] == False
 
     # Cleanup
-    # TODO: need cancelPayment
-    # requests.post(payment_3p_api_url+"/cancelPayment", json={
-    #     "paymentToken": payment_token
-    # })
+    requests.post(payment_3p_api_url+"/cancelPayment", json={
+        "paymentToken": payment_token
+    })
 
 
 def test_backend_validate_no_iam(payment_3p_api_url, payment_api_url):
@@ -184,10 +181,9 @@ def test_backend_validate_no_iam(payment_3p_api_url, payment_api_url):
     assert "message" in body
 
     # Cleanup
-    # TODO: need cancelPayment
-    # requests.post(payment_3p_api_url+"/cancelPayment", json={
-    #     "paymentToken": payment_token
-    # })
+    requests.post(payment_3p_api_url+"/cancelPayment", json={
+        "paymentToken": payment_token
+    })
 
 
 def test_backend_validate_no_total(payment_3p_api_url, payment_api_url, iam_auth):
@@ -221,10 +217,9 @@ def test_backend_validate_no_total(payment_3p_api_url, payment_api_url, iam_auth
     assert "total" in body["message"]
 
     # Cleanup
-    # TODO: need cancelPayment
-    # requests.post(payment_3p_api_url+"/cancelPayment", json={
-    #     "paymentToken": payment_token
-    # })
+    requests.post(payment_3p_api_url+"/cancelPayment", json={
+        "paymentToken": payment_token
+    })
 
 
 def test_backend_validate_no_payment_token(payment_3p_api_url, payment_api_url, iam_auth):
@@ -257,8 +252,7 @@ def test_backend_validate_no_payment_token(payment_3p_api_url, payment_api_url, 
     assert "message" in body
     assert "paymentToken" in body["message"]
 
-    # Cleanup
-    # TODO: need cancelPayment
-    # requests.post(payment_3p_api_url+"/cancelPayment", json={
-    #     "paymentToken": payment_token
-    # })
+    # Cleanup cancelPayment
+    requests.post(payment_3p_api_url+"/cancelPayment", json={
+        "paymentToken": payment_token
+    })

@@ -100,11 +100,10 @@ def test_cancel_payment(lambda_module, payment_token):
 
         lambda_module.cancel_payment(payment_token)
 
-    # TODO
-    # assert m.called
-    # assert m.call_count == 1
-    # assert m.request_history[0].method == "POST"
-    # assert m.request_history[0].url == url
+    assert m.called
+    assert m.call_count == 1
+    assert m.request_history[0].method == "POST"
+    assert m.request_history[0].url == url
 
 
 def test_handler(monkeypatch, lambda_module, context, order_id, payment_token):
