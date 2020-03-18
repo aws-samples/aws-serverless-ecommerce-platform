@@ -1,0 +1,261 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: 'AWS::Serverless-2016-10-31'
+
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    Description: Environment name
+  LogLevel:
+    Type: String
+    Default: INFO
+  RetentionInDays:
+    Type: Number
+    Default: 30
+    Description: CloudWatch Logs retention period for Lambda functions
+  EventBusName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: EventBridge Event Bus Name
+  Payment3PApiUrl:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: 3rd Party Payment API Gateway URL
+
+
+Globals:
+  Function:
+    Runtime: python3.8
+    Handler: main.handler
+    Timeout: 30
+    Tracing: Active
+    Environment:
+      Variables:
+        ENVIRONMENT: !Ref Environment
+        TABLE_NAME: !Ref Table
+        API_URL: !Ref Payment3PApiUrl
+        POWERTOOLS_SERVICE_NAME: payment
+        POWERTOOLS_TRACE_DISABLED: "false"
+        LOG_LEVEL: !Ref LogLevel
+
+Resources:
+  #########
+  # TABLE #
+  #########
+  Table:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: orderId
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: orderId
+          KeyType: HASH
+
+  TableParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /ecommerce/${Environment}/payment/table/name
+      Type: String
+      Value: !Ref Table
+
+  #############
+  # FUNCTIONS #
+  #############
+  OnCompletedFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/on_completed/
+      Events:
+        DeliveryCompleted:
+          Type: CloudWatchEvent
+          Properties:
+            EventBusName: !Ref EventBusName
+            Pattern:
+              source: [ecommerce.delivery]
+              detail-type:
+                - DeliveryCompleted
+      EventInvokeConfig:
+        DestinationConfig:
+          OnFailure:
+            Type: SQS
+            Destination: !GetAtt DeadLetterQueue.Outputs.QueueArn
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:DeleteItem
+                - dynamodb:GetItem
+              Resource:
+                - !GetAtt Table.Arn
+
+  OnCompletedLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${OnCompletedFunction}"
+      RetentionInDays: !Ref RetentionInDays
+
+  OnCreatedFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/on_created/
+      Events:
+        OrderCreated:
+          Type: CloudWatchEvent
+          Properties:
+            EventBusName: !Ref EventBusName
+            Pattern:
+              source: [ecommerce.orders]
+              detail-type:
+                - OrderCreated
+      EventInvokeConfig:
+        DestinationConfig:
+          OnFailure:
+            Type: SQS
+            Destination: !GetAtt DeadLetterQueue.Outputs.QueueArn          
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action: dynamodb:PutItem
+              Resource:
+                - !GetAtt Table.Arn
+
+  OnCreatedLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${OnCreatedFunction}"
+      RetentionInDays: !Ref RetentionInDays
+
+  OnFailedFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/on_failed/
+      Events:
+        PackagingFailed:
+          Type: CloudWatchEvent
+          Properties:
+            EventBusName: !Ref EventBusName
+            Pattern:
+              source: [ecommerce.warehouse]
+              detail-type:
+                - PackagingFailed
+        DeliveryFailed:
+          Type: CloudWatchEvent
+          Properties:
+            EventBusName: !Ref EventBusName
+            Pattern:
+              source: [ecommerce.delivery]
+              detail-type:
+                - DeliveryFailed
+      EventInvokeConfig:
+        DestinationConfig:
+          OnFailure:
+            Type: SQS
+            Destination: !GetAtt DeadLetterQueue.Outputs.QueueArn
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:DeleteItem
+                - dynamodb:GetItem
+              Resource:
+                - !GetAtt Table.Arn
+
+  OnFailedLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${OnFailedFunction}"
+      RetentionInDays: !Ref RetentionInDays
+
+  OnModifiedFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/on_modified/
+      Events:
+        OrderModified:
+          Type: CloudWatchEvent
+          Properties:
+            EventBusName: !Ref EventBusName
+            Pattern:
+              source: [ecommerce.orders]
+              detail-type:
+                - OrderModified
+              detail:
+                changed:
+                  - total
+      EventInvokeConfig:
+        DestinationConfig:
+          OnFailure:
+            Type: SQS
+            Destination: !GetAtt DeadLetterQueue.Outputs.QueueArn
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action: dynamodb:GetItem
+              Resource:
+                - !GetAtt Table.Arn
+  
+  OnModifiedLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${OnModifiedFunction}"
+      RetentionInDays: !Ref RetentionInDays
+
+  ValidateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/validate/
+      Events:
+        BackendApi:
+          Type: Api
+          Properties:
+            Path: /backend/validate
+            Method: POST
+            RestApiId: !Ref Api
+
+  ValidateLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ValidateFunction}"
+      RetentionInDays: !Ref RetentionInDays
+
+  ###############
+  # API GATEWAY #
+  ###############
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      DefinitionBody:
+        Fn::Transform:
+          Name: "AWS::Include"
+          Parameters:
+            Location: "resources/openapi.yaml"
+      EndpointConfiguration: REGIONAL
+      StageName: prod
+      TracingEnabled: true
+
+  ApiUrlParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /ecommerce/${Environment}/payment/api/url
+      Type: String
+      Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com/prod"
+
+  ApiArnParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /ecommerce/${Environment}/payment/api/arn
+      Type: String
+      Value: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${Api}/prod"
+
+  #####################
+  # DEAD LETTER QUEUE #
+  #####################
+  DeadLetterQueue:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ../../shared/templates/dlq.yaml

@@ -114,6 +114,41 @@ export class Payment3PStack extends cdk.Stack {
       retention: 30 //retentionInDays.valueAsNumber
     });
 
+    // cancelPayment function
+    const cancelPaymentFunction = new sam.CfnFunction(this, "CancelPaymentFunction", {
+      codeUri: "src/cancelPayment/",
+      handler: "index.handler",
+      runtime: FUNCTION_RUNTIME,
+      environment: {
+        variables: envVars
+      },
+      events: {
+        Api: {
+          type: "Api",
+          properties: {
+            method: "POST",
+            path: "/cancelPayment",
+            restApiId: api.ref
+          }
+        }
+      },
+      policies: [{
+        statement: {
+          Effect: "Allow",
+          Action: [
+            "dynamodb:GetItem",
+            "dynamodb:DeleteItem"
+          ],
+          Resource: table.tableArn
+        }
+      }]
+    });
+    new logs.LogGroup(this, "CancelPaymentLogGroup", {
+      logGroupName: "/aws/lambda/"+cancelPaymentFunction.ref,
+      // TODO: fix this
+      retention: 30 //retentionInDays.valueAsNumber
+    });
+
     // processPayment function
     const processPaymentFunction = new sam.CfnFunction(this, "ProcessPaymentFunction", {
       codeUri: "src/processPayment/",

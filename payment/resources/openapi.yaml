@@ -1,0 +1,60 @@
+openapi: "3.0.2"
+info:
+  title: Payment API
+  version: 1.0.0
+  description: Payment service API definition
+  license:
+    name: MIT-0
+    url: https://github.com/aws/mit-0
+
+paths:
+  /backend/validate:
+    post:
+      description: |
+        Validates a paymentToken.
+
+        __Remark__: This is an internal API that requires valid IAM credentials
+        and signature.
+      operationId: backendValidate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - paymentToken
+                - total
+              properties:
+                paymentToken:
+                  type: string
+                  example: "63fa7809-a708-461f-99e8-13c48bbb5dbb"
+                total:
+                  type: integer
+                  example: 12345
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "../../shared/resources/schemas.yaml#/Message"
+      x-amazon-apigateway-auth:
+        type: AWS_IAM
+      x-amazon-apigateway-integration:
+        httpMethod: "POST"
+        type: aws_proxy
+        uri:
+          Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ValidateFunction.Arn}/invocations"

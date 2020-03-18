@@ -272,7 +272,7 @@ Resources:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: ../../shared/templates/dlq.yaml
-      
+
   ############
   # LISTENER #
   ############
