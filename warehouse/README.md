@@ -17,4 +17,4 @@ See [resources/events.yaml](resources/events.yaml) for a list of available event
 
 ## SSM Parameters
 
-_None at the moment._
+* `/ecommerce/{Environment}/warehouse/api/url`: URL for the API Gateway

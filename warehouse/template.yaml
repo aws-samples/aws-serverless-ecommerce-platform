@@ -53,6 +53,8 @@ Resources:
           AttributeType: S
         - AttributeName: productId
           AttributeType: S
+        - AttributeName: newDate
+          AttributeType: S
       BillingMode: PAY_PER_REQUEST
       KeySchema:
         - AttributeName: orderId
@@ -65,6 +67,14 @@ Resources:
             - AttributeName: productId
               KeyType: HASH
             - AttributeName: orderId
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: orderId-new
+          KeySchema:
+            - AttributeName: orderId
+              KeyType: HASH
+            - AttributeName: newDate
               KeyType: RANGE
           Projection:
             ProjectionType: ALL
@@ -159,6 +169,28 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/${TableUpdateFunction}"
       RetentionInDays: !Ref RetentionInDays
+
+  ###############
+  # API GATEWAY #
+  ###############
+  # Api:
+  #   Type: AWS::Serverless::Api
+  #   Properties:
+  #     DefinitionBody:
+  #       Fn::Transform:
+  #         Name: "AWS::Include"
+  #         Parameters:
+  #           Location: "resources/openapi.yaml"
+  #     EndpointConfiguration: REGIONAL
+  #     StageName: prod
+  #     TracingEnabled: true
+
+  # ApiUrlParameter:
+  #   Type: AWS::SSM::Parameter
+  #   Properties:
+  #     Name: !Sub /ecommerce/${Environment}/warehouse/api/url
+  #     Type: String
+  #     Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com/prod"
 
   #####################
   # DEAD LETTER QUEUE #
