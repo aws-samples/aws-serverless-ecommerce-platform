@@ -10,7 +10,7 @@ from aws_lambda_powertools.logging import logger_setup, logger_inject_lambda_con
 from ecom.apigateway import iam_user_id, response # pylint: disable=import-error
 
 
-API_URL = os.environ["3P_API_URL"]
+API_URL = os.environ["API_URL"]
 ENVIRONMENT = os.environ["ENVIRONMENT"]
 
 
@@ -27,7 +27,7 @@ def validate_payment_token(payment_token: str, total: int) -> bool:
     # Send the request to the 3p service
     res = requests.post(API_URL+"/check", json={
         "paymentToken": payment_token,
-        "total": total
+        "amount": total
     })
 
     body = res.json()

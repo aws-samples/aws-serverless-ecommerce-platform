@@ -23,7 +23,7 @@ ccend = \033[0m
 # Run pipeline on services
 all:
 	@for service_line in $(shell tools/services --graph --env-only); do \
-		${MAKE} ${MAKEOPTS} $$(echo all-$$service_line | sed 's/,/ all-/g') QUIET=true ; \
+		${MAKE} ${MAKEOPTS} $$(echo all-$$service_line | sed 's/,/ all-/g') QUIET=true || exit 1 ; \
 	done
 all-%: 
 	@${MAKE} lint-$*
@@ -46,7 +46,7 @@ ci-%:
 # All but for dependencies
 deps-%:
 	@for service_line in $(shell tools/services --graph --env-only --deps-of $*); do \
-		${MAKE} ${MAKEOPTS} $$(echo all-$$service_line | sed 's/,/ all-/g') QUIET=true ; \
+		${MAKE} ${MAKEOPTS} $$(echo all-$$service_line | sed 's/,/ all-/g') QUIET=true || exit 1 ; \
 	done
 
 # Artifacts services
@@ -93,7 +93,7 @@ package-%:
 # Teardown services
 teardown:
 	@for service_line in $(shell tools/services --graph --reverse --env-only); do \
-		${MAKE} ${MAKEOPTS} $$(echo teardown-$$service_line | sed 's/,/ teardown-/g') QUIET=true ; \
+		${MAKE} ${MAKEOPTS} $$(echo teardown-$$service_line | sed 's/,/ teardown-/g') QUIET=true || exit 1 ; \
 	done
 teardown-%:
 	@echo "[*] $(ccblue)teardown $*$(ccend)"

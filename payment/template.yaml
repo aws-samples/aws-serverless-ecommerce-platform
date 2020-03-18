@@ -32,7 +32,7 @@ Globals:
       Variables:
         ENVIRONMENT: !Ref Environment
         TABLE_NAME: !Ref Table
-        3P_API_URL: !Ref Payment3PApiUrl
+        API_URL: !Ref Payment3PApiUrl
         POWERTOOLS_SERVICE_NAME: payment
         POWERTOOLS_TRACE_DISABLED: "false"
         LOG_LEVEL: !Ref LogLevel
@@ -51,6 +51,13 @@ Resources:
       KeySchema:
         - AttributeName: orderId
           KeyType: HASH
+
+  TableParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /ecommerce/${Environment}/payment/table/name
+      Type: String
+      Value: !Ref Table
 
   #############
   # FUNCTIONS #

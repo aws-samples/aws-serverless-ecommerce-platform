@@ -11,7 +11,7 @@ lambda_module = pytest.fixture(scope="module", params=[{
     "module_name": "main",
     "environ": {
         "ENVIRONMENT": "test",
-        "3P_API_URL": "mock://3P_API_URL",
+        "API_URL": "mock://API_URL",
         "POWERTOOLS_TRACE_DISABLED": "true"
     }
 }])(lambda_module)
@@ -33,7 +33,7 @@ def test_validate_payment_token(lambda_module, payment_token, total):
     Test validate_payment_token()
     """
 
-    url = "mock://3P_API_URL/check"
+    url = "mock://API_URL/check"
 
     with requests_mock.Mocker() as m:
         m.post(url, text=json.dumps({"ok": True}))
@@ -51,7 +51,7 @@ def test_validate_payment_false(lambda_module, payment_token, total):
     Test validate_payment_token() with a not ok result
     """
 
-    url = "mock://3P_API_URL/check"
+    url = "mock://API_URL/check"
 
     with requests_mock.Mocker() as m:
         m.post(url, text=json.dumps({"ok": False}))
@@ -69,7 +69,7 @@ def test_validate_payment_fault(lambda_module, payment_token, total):
     Test validate_payment_token() with a faulty result
     """
 
-    url = "mock://3P_API_URL/check"
+    url = "mock://API_URL/check"
 
     with requests_mock.Mocker() as m:
         m.post(url, text=json.dumps({"message": "Something went wrong"}))

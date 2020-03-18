@@ -10,7 +10,7 @@ from aws_lambda_powertools.tracing import Tracer # pylint: disable=import-error
 from aws_lambda_powertools.logging import logger_setup, logger_inject_lambda_context # pylint: disable=import-error
 
 
-API_URL = os.environ["3P_API_URL"]
+API_URL = os.environ["API_URL"]
 ENVIRONMENT = os.environ["ENVIRONMENT"]
 TABLE_NAME = os.environ["TABLE_NAME"]
 
