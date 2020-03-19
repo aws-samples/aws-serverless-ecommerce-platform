@@ -6,6 +6,7 @@ type Response @aws_auth(cognito_groups: ["admin", "delivery", "warehouse"]) {
 
 type PackagingRequest {
     orderId: String!
+    status: String!
     products: [PackagingRequestProduct!]!
 }
 
@@ -14,21 +15,16 @@ type PackagingRequestProduct {
     quantity: Int!
 }
 
-type PaginatedPackagingRequestIds @aws_auth(cognito_groups: ["admin", "warehouse"]) {
+type PaginatedPackagingRequestIds {
     packagingRequestIds: [String!]!
     nextToken: String
-}
-
-type PackagingRequestResponse @aws_auth(cognito_groups: ["admin", "warehouse"]) {
-    message: String
-    packagingRequest: PackagingRequest
 }
 
 type Query {
     # Warehouse queries
     getNewPackagingRequestIds(nextToken: String): PaginatedPackagingRequestIds!
     @aws_auth(cognito_groups: ["admin", "warehouse"])
-    getPackagingRequest(orderId: String!): PackagingRequestResponse!
+    getPackagingRequest(orderId: String!): PackagingRequest!
     @aws_auth(cognito_groups: ["admin", "warehouse"])
 }
 

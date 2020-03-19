@@ -6,6 +6,7 @@ import uuid
 import pytest
 import requests
 import boto3
+from fixtures import get_order, get_product # pylint: disable=import-error,no-name-in-module
 from helpers import get_parameter # pylint: disable=import-error,no-name-in-module
 
 
@@ -166,7 +167,8 @@ def test_get_new_packaging_request_ids(jwt_token, api_url, warehouse_table_name)
         "orderId": str(uuid.uuid4()),
         "productId": "__metadata",
         "modifiedDate": datetime.datetime.now().isoformat(),
-        "newDate": datetime.datetime.now().isoformat()
+        "newDate": datetime.datetime.now().isoformat(),
+        "status": "NEW"
     }
 
     print(order_metadata)
@@ -232,4 +234,98 @@ def test_get_new_packaging_request_ids(jwt_token, api_url, warehouse_table_name)
         "productId": order_metadata["productId"]
     })
 
-    
+
+def test_get_new_packaging_request_ids_no_iam(api_url):
+    """
+    Test getNewPackagingRequestIds without IAM permission
+    """
+
+    query = """
+    query {
+        getNewPackagingRequestIds {
+            nextToken
+            packagingRequestIds
+        }
+    }
+    """
+
+    response = requests.post(api_url, json={"query": query})
+    data = response.json()
+    assert data.get("data", None) is None
+    assert len(data["errors"]) > 0
+
+
+def test_get_packaging_request(jwt_token, api_url, warehouse_table_name, get_order):
+    """
+    Test getPackagingRequest
+    """
+
+    # Create an order
+    order = get_order()
+    order_metadata = {
+        "orderId": order["orderId"],
+        "productId": "__metadata",
+        "modifiedDate": order["modifiedDate"],
+        "newDate": order["modifiedDate"],
+        "status": "NEW"
+    }
+
+    # Seed the table
+    table = boto3.resource("dynamodb").Table(warehouse_table_name) # pylint: disable=no-member
+    with table.batch_writer() as batch:
+        batch.put_item(Item=order_metadata)
+        for product in order["products"]:
+            batch.put_item(Item={
+                "orderId": order["orderId"],
+                "productId": product["productId"],
+                "quantity": product.get("quantity", 1)
+            })
+
+    # Perform the query
+    query = """
+    query ($orderId: String!) {
+        getPackagingRequest(orderId: $orderId) {
+            orderId
+            status
+            products {
+                productId
+                quantity
+            }
+        }
+    }
+    """
+
+    response = requests.post(api_url,
+        headers={"Authorization": jwt_token},
+        json={
+            "query": query,
+            "variables": {"orderId": order["orderId"]}
+        }
+    )
+    data = response.json()
+    print(data)
+
+    assert "data" in data
+    assert data["data"] is not None
+    assert "getPackagingRequest" in data["data"]
+    pr = data["data"]["getPackagingRequest"]
+    assert pr["orderId"] == order["orderId"]
+    assert pr["status"] == order["status"]
+    assert len(pr["products"]) == len(order["products"])
+
+    products = {p["productId"]: p for p in pr["products"]}
+    for product in order["products"]:
+        assert product["productId"] in products.keys()
+        assert products[product["productId"]]["quantity"] == product.get("quantity", 1)
+
+    # Cleanup
+    with table.batch_writer() as batch:
+        batch.delete_item(Key={
+            "orderId": order["orderId"],
+            "productId": "__metadata"
+        })
+        for product in order["products"]:
+            batch.delete_item(Key={
+                "orderId": order["orderId"],
+                "productId": product["productId"]
+            })

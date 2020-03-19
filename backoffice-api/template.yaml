@@ -87,7 +87,7 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - dynamodb:GetItem
+                  - dynamodb:Query
                 Resource:
                   - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${WarehouseTableName}"
               - Effect: Allow
@@ -108,7 +108,7 @@ Resources:
         AwsRegion: !Ref AWS::Region
         TableName: !Ref WarehouseTableName
 
-  GetNewPackagingRequestsResolver:
+  GetNewPackagingRequestIdsResolver:
     Type: AWS::AppSync::Resolver
     DependsOn: Schema
     Properties:
@@ -137,6 +137,48 @@ Resources:
             #end
           ]
         }
+
+  GetPackagingRequestResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: Schema
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      DataSourceName: !GetAtt WarehouseDataSource.Name
+      FieldName: getPackagingRequest
+      TypeName: Query
+      RequestMappingTemplate: |
+        {
+          "version": "2017-02-28",
+          "operation": "Query",
+          "query": {
+            "expression": "orderId = :orderId",
+            "expressionValues": {
+              ":orderId": $util.dynamodb.toDynamoDBJson($ctx.args.orderId)
+            }
+          }
+        }
+      ResponseMappingTemplate: |
+        ## Could not find the packaging request
+        #if( $ctx.result.items.isEmpty() )
+          #return($util.error("Packaging request not found."))
+        #end
+
+        #set($packagingRequest = {
+          "orderId": $ctx.args.orderId,
+          "products": []
+        })
+        #foreach($item in $ctx.result.items)
+          #if($item.productId == "__metadata")
+            $util.qr($packagingRequest.put("status", $item.status))
+          #else
+            $util.qr($packagingRequest.products.add({
+              "productId": $item.productId,
+              "quantity": $item.quantity
+            }))
+          #end
+        #end
+        $util.toJson($packagingRequest)
+
 
   ############
   # PRODUCTS #
