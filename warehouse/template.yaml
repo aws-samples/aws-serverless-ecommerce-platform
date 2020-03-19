@@ -170,28 +170,6 @@ Resources:
       LogGroupName: !Sub "/aws/lambda/${TableUpdateFunction}"
       RetentionInDays: !Ref RetentionInDays
 
-  ###############
-  # API GATEWAY #
-  ###############
-  # Api:
-  #   Type: AWS::Serverless::Api
-  #   Properties:
-  #     DefinitionBody:
-  #       Fn::Transform:
-  #         Name: "AWS::Include"
-  #         Parameters:
-  #           Location: "resources/openapi.yaml"
-  #     EndpointConfiguration: REGIONAL
-  #     StageName: prod
-  #     TracingEnabled: true
-
-  # ApiUrlParameter:
-  #   Type: AWS::SSM::Parameter
-  #   Properties:
-  #     Name: !Sub /ecommerce/${Environment}/warehouse/api/url
-  #     Type: String
-  #     Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com/prod"
-
   #####################
   # DEAD LETTER QUEUE #
   #####################
