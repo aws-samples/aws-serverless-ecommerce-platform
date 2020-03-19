@@ -1,0 +1,147 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: 'AWS::Serverless-2016-10-31'
+
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    Description: Environment name
+  QueryLimit:
+    Type: Number
+    Default: 20
+    Description: Maximum number of items to return from a single query
+  DeliveryTableName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Delivery Table Name
+  ProductsTableName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Products Table Name
+  WarehouseTableName:
+      Type: AWS::SSM::Parameter::Value<String>
+      Description: Warehouse Table Name
+  UserPoolId:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Cognito User Pool ID
+
+Resources:
+  ###############
+  # GRAPHQL API #
+  ###############
+  Api:
+    Type: AWS::AppSync::GraphQLApi
+    Properties:
+      Name: !Sub "ecommerce-${Environment}-backoffice-api"
+      AuthenticationType: AMAZON_COGNITO_USER_POOLS
+      UserPoolConfig:
+        # AppIdClientRegex: !Sub "ecommerce-${Environment}-backoffice-api.*"
+        AwsRegion: !Ref AWS::Region
+        DefaultAction: DENY
+        UserPoolId: !Ref UserPoolId
+      XrayEnabled: true
+
+  ApiArnParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /ecommerce/${Environment}/backoffice-api/api/arn
+      Type: String
+      Value: !GetAtt Api.Arn
+
+  ApiIdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /ecommerce/${Environment}/backoffice-api/api/id
+      Type: String
+      Value: !GetAtt Api.ApiId
+
+  ApiUrlParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /ecommerce/${Environment}/backoffice-api/api/url
+      Type: String
+      Value: !GetAtt Api.GraphQLUrl
+
+  Schema:
+    Type: AWS::AppSync::GraphQLSchema
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      DefinitionS3Location: "resources/api.graphql"
+
+  #############
+  # WAREHOUSE #
+  #############
+  WarehouseRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: appsync.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: OrdersTableAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${WarehouseTableName}"
+              - Effect: Allow
+                Action:
+                  - dynamodb:Scan
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${WarehouseTableName}"
+                  - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${WarehouseTableName}/index/orderId-new"
+
+  WarehouseDataSource:
+    Type: AWS::AppSync::DataSource
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      Name: WarehouseTable
+      Type: AMAZON_DYNAMODB
+      ServiceRoleArn: !GetAtt WarehouseRole.Arn
+      DynamoDBConfig:
+        AwsRegion: !Ref AWS::Region
+        TableName: !Ref WarehouseTableName
+
+  GetNewPackagingRequestsResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: Schema
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      DataSourceName: !GetAtt WarehouseDataSource.Name
+      FieldName: getNewPackagingRequestIds
+      TypeName: Query
+      RequestMappingTemplate: !Sub |
+        {
+          "version": "2017-02-28",
+          "operation": "Scan",
+          #if( $ctx.args.nextToken )
+            "nextToken": "$ctx.args.nextToken",
+          #end
+          "limit": ${QueryLimit},
+          "index": "orderId-new"
+        }
+      ResponseMappingTemplate: |
+        {
+          #if( $ctx.result.nextToken )
+            "nextToken": "$ctx.result.nextToken",
+          #end
+          "packagingRequestIds": [
+            #foreach($item in $ctx.result.items)
+              $utils.toJson($item.orderId),
+            #end
+          ]
+        }
+
+  ############
+  # PRODUCTS #
+  ############
+
+  #############
+  # WAREHOUSE #
+  #############

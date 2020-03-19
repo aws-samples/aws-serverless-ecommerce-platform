@@ -1,0 +1,11 @@
+name: backoffice-api
+dependencies:
+  - delivery
+  - products
+  - users
+  - warehouse
+parameters:
+  DeliveryTableName: /ecommerce/{Environment}/delivery/table/name
+  ProductsTableName: /ecommerce/{Environment}/products/table/name
+  UserPoolId: /ecommerce/{Environment}/users/user-pool/id
+  WarehouseTableName: /ecommerce/{Environment}/warehouse/table/name

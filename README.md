@@ -28,6 +28,7 @@ To install the necessary tools and deploy this in your own AWS account, see the 
 
 |  Services  | Description                               |
 |------------|-------------------------------------------|
+| [backoffice-api](backoffice-api/) | User-facing layer for the back-office. |
 | [frontend-api](frontend-api/) | User-facing layer for interacting with the services. |
 
 ## Infrastructure services

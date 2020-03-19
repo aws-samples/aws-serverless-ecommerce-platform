@@ -1,0 +1,41 @@
+type Response @aws_auth(cognito_groups: ["admin", "delivery", "warehouse"]) {
+    success: Boolean!
+    message: String!
+    errors: [String!]
+}
+
+type PackagingRequest {
+    orderId: String!
+    products: [PackagingRequestProduct!]!
+}
+
+type PackagingRequestProduct {
+    productId: String!
+    quantity: Int!
+}
+
+type PaginatedPackagingRequestIds @aws_auth(cognito_groups: ["admin", "warehouse"]) {
+    packagingRequestIds: [String!]!
+    nextToken: String
+}
+
+type PackagingRequestResponse @aws_auth(cognito_groups: ["admin", "warehouse"]) {
+    message: String
+    packagingRequest: PackagingRequest
+}
+
+type Query {
+    # Warehouse queries
+    getNewPackagingRequestIds(nextToken: String): PaginatedPackagingRequestIds!
+    @aws_auth(cognito_groups: ["admin", "warehouse"])
+    getPackagingRequest(orderId: String!): PackagingRequestResponse!
+    @aws_auth(cognito_groups: ["admin", "warehouse"])
+}
+
+type Mutation {
+    # Warehouse mutations
+    startPackaging(orderId: String!): Response!
+    @aws_auth(cognito_groups: ["admin", "warehouse"])
+    completePackaging(orderId: String!, productIds: [String!]!): Response!
+    @aws_auth(cognito_groups: ["admin", "warehouse"])
+}
