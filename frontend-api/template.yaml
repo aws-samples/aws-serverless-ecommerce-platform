@@ -32,12 +32,12 @@ Resources:
   Api:
     Type: AWS::AppSync::GraphQLApi
     Properties:
-      Name: !Sub "ecommerce-${Environment}-frontend"
+      Name: !Sub "ecommerce-${Environment}-frontend-api"
       AuthenticationType: API_KEY
       AdditionalAuthenticationProviders:
         - AuthenticationType: AMAZON_COGNITO_USER_POOLS
           UserPoolConfig:
-            # AppIdClientRegex: !Sub "ecommerce-${Environment}-frontend.*"
+            # AppIdClientRegex: !Sub "ecommerce-${Environment}-frontend-api.*"
             AwsRegion: !Ref AWS::Region
             UserPoolId: !Ref UserPoolId
       XrayEnabled: true
@@ -45,21 +45,21 @@ Resources:
   ApiArnParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: !Sub /ecommerce/${Environment}/frontend/api/arn
+      Name: !Sub /ecommerce/${Environment}/frontend-api/api/arn
       Type: String
       Value: !GetAtt Api.Arn
 
   ApiIdParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: !Sub /ecommerce/${Environment}/frontend/api/id
+      Name: !Sub /ecommerce/${Environment}/frontend-api/api/id
       Type: String
       Value: !GetAtt Api.ApiId
 
   ApiUrlParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: !Sub /ecommerce/${Environment}/frontend/api/url
+      Name: !Sub /ecommerce/${Environment}/frontend-api/api/url
       Type: String
       Value: !GetAtt Api.GraphQLUrl
 

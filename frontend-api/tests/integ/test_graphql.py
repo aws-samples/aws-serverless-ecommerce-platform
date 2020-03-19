@@ -50,7 +50,7 @@ def api_id():
     Frontend GraphQL API ID
     """
 
-    return get_parameter("/ecommerce/{Environment}/frontend/api/id")
+    return get_parameter("/ecommerce/{Environment}/frontend-api/api/id")
 
 
 @pytest.fixture
@@ -59,7 +59,7 @@ def api_url():
     Frontend GraphQL API URL
     """
 
-    return get_parameter("/ecommerce/{Environment}/frontend/api/url")
+    return get_parameter("/ecommerce/{Environment}/frontend-api/api/url")
 
 
 @pytest.fixture
@@ -110,7 +110,7 @@ def client_id(user_pool_id):
     # Create a Cognito User Pool Client
     response = cognito.create_user_pool_client(
         UserPoolId=user_pool_id,
-        ClientName="ecommerce-{}-frontend-test".format(os.environ["ECOM_ENVIRONMENT"]),
+        ClientName="ecommerce-{}-frontend-api-test".format(os.environ["ECOM_ENVIRONMENT"]),
         GenerateSecret=False,
         ExplicitAuthFlows=["ADMIN_NO_SRP_AUTH"]
     )
