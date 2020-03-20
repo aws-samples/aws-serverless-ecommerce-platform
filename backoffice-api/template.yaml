@@ -154,7 +154,7 @@ Resources:
           "query": {
             "expression": "orderId = :orderId",
             "expressionValues": {
-              ":orderId": $util.dynamodb.toDynamoDBJson($ctx.args.orderId)
+              ":orderId": $util.dynamodb.toDynamoDBJson($ctx.args.input.orderId)
             }
           }
         }
@@ -165,7 +165,7 @@ Resources:
         #end
 
         #set($packagingRequest = {
-          "orderId": $ctx.args.orderId,
+          "orderId": $ctx.args.input.orderId,
           "products": []
         })
         #foreach($item in $ctx.result.items)
@@ -193,7 +193,7 @@ Resources:
           "version": "2017-02-28",
           "operation": "PutItem",
           "key": {
-            "orderId": $util.dynamodb.toDynamoDBJson($ctx.args.orderId),
+            "orderId": $util.dynamodb.toDynamoDBJson($ctx.args.input.orderId),
             "productId": $util.dynamodb.toDynamoDBJson("__metadata")
           },
           "attributeValues": {

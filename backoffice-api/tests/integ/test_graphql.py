@@ -283,8 +283,8 @@ def test_get_packaging_request(jwt_token, api_url, warehouse_table_name, get_ord
 
     # Perform the query
     query = """
-    query ($orderId: String!) {
-        getPackagingRequest(orderId: $orderId) {
+    query ($input: PackagingInput!) {
+        getPackagingRequest(input: $input) {
             orderId
             status
             products {
@@ -299,7 +299,7 @@ def test_get_packaging_request(jwt_token, api_url, warehouse_table_name, get_ord
         headers={"Authorization": jwt_token},
         json={
             "query": query,
-            "variables": {"orderId": order["orderId"]}
+            "variables": {"input": {"orderId": order["orderId"]}}
         }
     )
     data = response.json()
@@ -352,8 +352,8 @@ def test_start_packaging(jwt_token, api_url, warehouse_table_name):
 
     # Make request
     query = """
-    mutation ($orderId: String!) {
-        startPackaging(orderId: $orderId) {
+    mutation ($input: PackagingInput!) {
+        startPackaging(input: $input) {
             success
         }
     }
@@ -365,7 +365,7 @@ def test_start_packaging(jwt_token, api_url, warehouse_table_name):
         json={
             "query": query,
             "variables": {
-                "orderId": order_metadata["orderId"]
+                "input": {"orderId": order_metadata["orderId"]}
             }
         })
     data = response.json()

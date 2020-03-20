@@ -18,18 +18,30 @@ type PaginatedPackagingRequestIds {
     nextToken: String
 }
 
+input PackagingInput {
+    orderId: String!
+}
+
+input UpdatePackagingProductInput {
+    orderId: String!
+    productId: String!
+    quantity: Int!
+}
+
 type Query {
     # Warehouse queries
     getNewPackagingRequestIds(nextToken: String): PaginatedPackagingRequestIds!
     @aws_auth(cognito_groups: ["admin", "warehouse"])
-    getPackagingRequest(orderId: String!): PackagingRequest!
+    getPackagingRequest(input: PackagingInput!): PackagingRequest!
     @aws_auth(cognito_groups: ["admin", "warehouse"])
 }
 
 type Mutation {
     # Warehouse mutations
-    startPackaging(orderId: String!): Response!
+    startPackaging(input: PackagingInput!): Response!
     @aws_auth(cognito_groups: ["admin", "warehouse"])
-    completePackaging(orderId: String!, productIds: [String!]!): Response!
+    updatePackagingProduct(input: UpdatePackagingProductInput!): Response!
+    @aws_auth(cognito_groups: ["admin", "warehouse"])
+    completePackaging(input: PackagingInput!): Response!
     @aws_auth(cognito_groups: ["admin", "warehouse"])
 }
