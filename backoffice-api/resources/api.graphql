@@ -1,7 +1,5 @@
-type Response @aws_auth(cognito_groups: ["admin", "delivery", "warehouse"]) {
+type Response {
     success: Boolean!
-    message: String!
-    errors: [String!]
 }
 
 type PackagingRequest {

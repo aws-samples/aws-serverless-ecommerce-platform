@@ -87,6 +87,7 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
+                  - dynamodb:PutItem
                   - dynamodb:Query
                 Resource:
                   - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${WarehouseTableName}"
@@ -179,6 +180,40 @@ Resources:
         #end
         $util.toJson($packagingRequest)
 
+  StartPackagingResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: Schema
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      DataSourceName: !GetAtt WarehouseDataSource.Name
+      FieldName: startPackaging
+      TypeName: Mutation
+      RequestMappingTemplate: |
+        {
+          "version": "2017-02-28",
+          "operation": "PutItem",
+          "key": {
+            "orderId": $util.dynamodb.toDynamoDBJson($ctx.args.orderId),
+            "productId": $util.dynamodb.toDynamoDBJson("__metadata")
+          },
+          "attributeValues": {
+            "status": $util.dynamodb.toDynamoDBJson("IN_PROGRESS"),
+            "modifiedDate": $util.dynamodb.toDynamoDBJson($util.time.nowISO8601())
+          },
+          "condition": {
+            "expression": "(attribute_exists(newDate)) and (#status = :status)",
+            "expressionNames": {
+              "#status": "status"
+            },
+            "expressionValues": {
+              ":status": $util.dynamodb.toDynamoDBJson("NEW")
+            }
+          }
+        }
+      ResponseMappingTemplate: |
+        {
+          "success": true
+        }
 
   ############
   # PRODUCTS #
