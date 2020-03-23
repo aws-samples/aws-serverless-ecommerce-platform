@@ -20,6 +20,15 @@ def warehouse_table_name():
 
 
 @pytest.fixture(scope="module")
+def delivery_table_name():
+    """
+    Delivery DynamoDB table name
+    """
+
+    return get_parameter("/ecommerce/{Environment}/delivery/table/name")
+
+
+@pytest.fixture(scope="module")
 def user_pool_id():
     """
     Cognito User Pool ID
@@ -449,3 +458,146 @@ def test_complete_packaging(jwt_token, api_url, warehouse_table_name):
         "orderId": order_metadata["orderId"],
         "productId": order_metadata["productId"]
     })
+
+
+def test_get_new_deliveries(jwt_token, api_url, delivery_table_name, get_order):
+    """
+    Test getNewDeliveries
+    """
+
+    order = get_order()
+    delivery = {
+        "orderId": order["orderId"],
+        "address": order["address"],
+        "isNew": "true",
+        "status": "NEW"
+    }
+    print(delivery)
+
+    # Seed the database
+    table = boto3.resource("dynamodb").Table(delivery_table_name) # pylint: disable=no-member
+    table.put_item(Item=delivery)
+
+    # Make requests
+    headers = {"Authorization": jwt_token}
+    def get_deliveries(next_token=None):
+        if next_token:
+            req_data = {
+                "query": """
+                query ($nextToken: String!) {
+                    getNewDeliveries(nextToken: $nextToken) {
+                        nextToken
+                        packagingRequestIds
+                    }
+                }
+                """,
+                "variables": {
+                    "nextToken": next_token
+                }
+            }
+        else:
+            req_data = {
+                "query": """
+                query {
+                    getNewDeliveries {
+                        nextToken
+                        deliveries {
+                            orderId
+                            address {
+                                name
+                                streetAddress
+                                city
+                                country
+                            }
+                        }
+                    }
+                }
+                """
+            }
+
+        response = requests.post(api_url, json=req_data, headers=headers)
+        data = response.json()
+
+        print(data)
+
+        assert "data" in data
+        assert data["data"] is not None
+        assert "getNewDeliveries" in data["data"]
+        return data["data"]["getNewDeliveries"]
+
+    found = False
+    deliveries = get_deliveries()
+    for delivery in deliveries["deliveries"]:
+        if delivery["orderId"] == order["orderId"]:
+            found = True
+    while found == False and deliveries.get("nextToken", None) is not None:
+        deliveries = get_deliveries(deliveries["nextToken"])
+        for delivery in deliveries["deliveries"]:
+            if delivery["orderId"] == order["orderId"]:
+                found = True
+
+    assert found == True
+
+    # Clean database
+    table.delete_item(Key={
+        "orderId": order["orderId"]
+    })
+
+
+def test_get_delivery(jwt_token, api_url, delivery_table_name, get_order):
+    """
+    Test getDelivery
+    """
+
+    order = get_order()
+    delivery = {
+        "orderId": order["orderId"],
+        "address": order["address"],
+        "isNew": "true",
+        "status": "NEW"
+    }
+    print(delivery)
+
+    # Seed the database
+    table = boto3.resource("dynamodb").Table(delivery_table_name) # pylint: disable=no-member
+    table.put_item(Item=delivery)
+
+    # Make request
+    query = """
+    query($input: DeliveryInput!) {
+        getDelivery(input: $input) {
+            orderId
+            address {
+                name
+                streetAddress
+                city
+                country
+            }
+        }
+    }
+    """
+
+    res = requests.post(
+        api_url,
+        headers={"Authorization": jwt_token},
+        json={
+            "query": query,
+            "variables": {
+                "input": {
+                    "orderId": order["orderId"]
+                }
+            }
+        }
+    )
+
+    data = res.json()
+    print(data)
+    assert "data" in data
+    assert data["data"] is not None
+    assert "getDelivery" in data["data"]
+    assert "orderId" in data["data"]["getDelivery"]
+    assert data["data"]["getDelivery"]["orderId"] == order["orderId"]
+    assert data["data"]["getDelivery"]["address"]["name"] == order["address"]["name"]
+    assert data["data"]["getDelivery"]["address"]["streetAddress"] == order["address"]["streetAddress"]
+    assert data["data"]["getDelivery"]["address"]["city"] == order["address"]["city"]
+    assert data["data"]["getDelivery"]["address"]["country"] == order["address"]["country"]
