@@ -390,3 +390,62 @@ def test_start_packaging(jwt_token, api_url, warehouse_table_name):
         "orderId": order_metadata["orderId"],
         "productId": order_metadata["productId"]
     })
+
+
+def test_complete_packaging(jwt_token, api_url, warehouse_table_name):
+    """
+    Test completePackaging
+    """
+
+    order_metadata = {
+        "orderId": str(uuid.uuid4()),
+        "productId": "__metadata",
+        "modifiedDate": datetime.datetime.now().isoformat(),
+        "status": "IN_PROGRESS"
+    }
+
+    print(order_metadata)
+
+    # Seed the database
+    table = boto3.resource("dynamodb").Table(warehouse_table_name) # pylint: disable=no-member
+    table.put_item(Item=order_metadata)
+
+    # Make request
+    query = """
+    mutation ($input: PackagingInput!) {
+        completePackaging(input: $input) {
+            success
+        }
+    }
+    """
+
+    response = requests.post(
+        api_url, 
+        headers={"Authorization": jwt_token},
+        json={
+            "query": query,
+            "variables": {
+                "input": {"orderId": order_metadata["orderId"]}
+            }
+        })
+    data = response.json()
+    print(data)
+    assert "data" in data
+    assert data["data"] is not None
+    assert "completePackaging" in data["data"]
+    assert "success" in data["data"]["completePackaging"]
+    assert data["data"]["completePackaging"]["success"] == True
+
+    ddb_res = table.get_item(Key={
+        "orderId": order_metadata["orderId"],
+        "productId": order_metadata["productId"]
+    })
+    assert "Item" in ddb_res
+    assert "status" in ddb_res["Item"]
+    assert ddb_res["Item"]["status"] == "COMPLETED"
+
+    # Cleanup
+    table.delete_item(Key={
+        "orderId": order_metadata["orderId"],
+        "productId": order_metadata["productId"]
+    })

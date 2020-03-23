@@ -7,6 +7,10 @@ Parameters:
     Type: String
     Default: dev
     Description: Environment name
+  RetentionInDays:
+    Type: Number
+    Default: 30
+    Description: CloudWatch Logs retention period for Lambda functions
   QueryLimit:
     Type: Number
     Default: 20
@@ -24,6 +28,7 @@ Parameters:
     Type: AWS::SSM::Parameter::Value<String>
     Description: Cognito User Pool ID
 
+
 Resources:
   ###############
   # GRAPHQL API #
@@ -33,12 +38,42 @@ Resources:
     Properties:
       Name: !Sub "ecommerce-${Environment}-backoffice-api"
       AuthenticationType: AMAZON_COGNITO_USER_POOLS
+      LogConfig:
+        CloudWatchLogsRoleArn: !GetAtt ApiLoggingRole.Arn
+        FieldLogLevel: ALL
       UserPoolConfig:
         # AppIdClientRegex: !Sub "ecommerce-${Environment}-backoffice-api.*"
         AwsRegion: !Ref AWS::Region
         DefaultAction: DENY
         UserPoolId: !Ref UserPoolId
       XrayEnabled: true
+
+  ApiLoggingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: appsync.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: CloudWatchLogsAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+
+  ApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/appsync/apis/${Api.ApiId}"
+      RetentionInDays: !Ref RetentionInDays
 
   ApiArnParameter:
     Type: AWS::SSM::Parameter
@@ -81,7 +116,7 @@ Resources:
               Service: appsync.amazonaws.com
             Action: sts:AssumeRole
       Policies:
-        - PolicyName: OrdersTableAccess
+        - PolicyName: WarehouseTableAccess
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
@@ -89,6 +124,7 @@ Resources:
                 Action:
                   - dynamodb:PutItem
                   - dynamodb:Query
+                  - dynamodb:UpdateItem
                 Resource:
                   - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${WarehouseTableName}"
               - Effect: Allow
@@ -190,23 +226,75 @@ Resources:
       TypeName: Mutation
       RequestMappingTemplate: |
         {
-          "version": "2017-02-28",
-          "operation": "PutItem",
+          "version": "2018-05-29",
+          "operation": "UpdateItem",
           "key": {
             "orderId": $util.dynamodb.toDynamoDBJson($ctx.args.input.orderId),
             "productId": $util.dynamodb.toDynamoDBJson("__metadata")
           },
-          "attributeValues": {
-            "status": $util.dynamodb.toDynamoDBJson("IN_PROGRESS"),
-            "modifiedDate": $util.dynamodb.toDynamoDBJson($util.time.nowISO8601())
+          "update": {
+            "expression": "SET #status = :status REMOVE #newDate",
+            "expressionNames": {
+              "#status": "status",
+              "#newDate": "newDate"
+            },
+            "expressionValues": {
+              ":status": {"S": "IN_PROGRESS"}
+            }
           },
           "condition": {
-            "expression": "(attribute_exists(newDate)) and (#status = :status)",
+            "expression": "#oldStatus = :oldStatus",
+            "expressionNames": {
+              "#oldStatus": "status"
+            },
+            "expressionValues": {
+              ":oldStatus": {"S": "NEW"}
+            },
+            "conditionalCheckFailedHandler": {
+              "strategy": "Reject"
+            }
+          }
+        }
+      ResponseMappingTemplate: |
+        {
+          "success": true
+        }
+
+  CompletePackagingResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: Schema
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      DataSourceName: !GetAtt WarehouseDataSource.Name
+      FieldName: completePackaging
+      TypeName: Mutation
+      RequestMappingTemplate: |
+        {
+          "version" : "2018-05-29",
+          "operation" : "UpdateItem",
+          "key": {
+            "orderId": $util.dynamodb.toDynamoDBJson($ctx.args.input.orderId),
+            "productId": $util.dynamodb.toDynamoDBJson("__metadata")
+          },
+          "update": {
+            "expression": "SET #status = :status",
             "expressionNames": {
               "#status": "status"
             },
             "expressionValues": {
-              ":status": $util.dynamodb.toDynamoDBJson("NEW")
+              ":status": $util.dynamodb.toDynamoDBJson("COMPLETED")
+            }
+          },
+          "condition": {
+            "expression": "#oldStatus = :oldStatus",
+            "expressionNames": {
+              "#oldStatus": "status"
+            },
+            "expressionValues": {
+              ":oldStatus": {"S": "IN_PROGRESS"}
+            },
+            "conditionalCheckFailedHandler": {
+              "strategy": "Reject"
             }
           }
         }
@@ -216,9 +304,9 @@ Resources:
         }
 
   ############
-  # PRODUCTS #
+  # DELIVERY #
   ############
 
-  #############
-  # WAREHOUSE #
-  #############
+  ############
+  # PRODUCTS #
+  ############
