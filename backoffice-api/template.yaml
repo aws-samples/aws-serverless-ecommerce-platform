@@ -306,6 +306,219 @@ Resources:
   ############
   # DELIVERY #
   ############
+  DeliveryRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: appsync.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: DeliveryTableAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:Scan
+                  - dynamodb:UpdateItem
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DeliveryTableName}"
+
+  DeliveryDataSource:
+    Type: AWS::AppSync::DataSource
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      Name: DeliveryTable
+      Type: AMAZON_DYNAMODB
+      ServiceRoleArn: !GetAtt DeliveryRole.Arn
+      DynamoDBConfig:
+        AwsRegion: !Ref AWS::Region
+        TableName: !Ref DeliveryTableName
+
+  GetNewDeliveriesResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: Schema
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      DataSourceName: !GetAtt DeliveryDataSource.Name
+      FieldName: getNewDeliveries
+      TypeName: Query
+      RequestMappingTemplate: !Sub |
+        {
+          "version": "2017-02-28",
+          "operation": "Scan",
+          #if( $ctx.args.nextToken )
+            "nextToken": "$ctx.args.nextToken",
+          #end
+          "limit": ${QueryLimit},
+          "index": "orderId-new"
+        }
+      ResponseMappingTemplate: |
+        {
+          #if( $ctx.result.nextToken )
+            "nextToken": "$ctx.result.nextToken",
+          #end
+          "deliveries": [
+            #foreach($item in $ctx.result.items)
+              {
+                "orderId": $utils.toJson($item.orderId),
+                "address": $utils.toJson($item.address),
+              },
+            #end
+          ]
+        }
+
+  GetDeliveryResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: Schema
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      DataSourceName: !GetAtt DeliveryDataSource.Name
+      FieldName: getDelivery
+      TypeName: Query
+      RequestMappingTemplate: |
+        {
+          "version": "2017-02-28",
+          "operation": "GetItem",
+          "key": {
+            "orderId": $util.dynamodb.toDynamoDBJson($ctx.args.input.orderId)
+          }
+        }
+      ResponseMappingTemplate: |
+        $utils.toJson($ctx.result)
+
+  StartDeliveryResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: Schema
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      DataSourceName: !GetAtt DeliveryDataSource.Name
+      FieldName: startDelivery
+      TypeName: Mutation
+      RequestMappingTemplate: |
+        {
+          "version": "2018-05-29",
+          "operation": "UpdateItem",
+          "key": {
+            "orderId": $util.dynamodb.toDynamoDBJson($ctx.args.input.orderId)
+          },
+          "update": {
+            "expression": "SET #status = :status REMOVE #isNew",
+            "expressionNames": {
+              "#status": "status",
+              "#isNew": "isNew"
+            },
+            "expressionValues": {
+              ":status": {"S": "IN_PROGRESS"}
+            }
+          },
+          "condition": {
+            "expression": "#oldStatus = :oldStatus",
+            "expressionNames": {
+              "#oldStatus": "status"
+            },
+            "expressionValues": {
+              ":oldStatus": {"S": "NEW"}
+            },
+            "conditionalCheckFailedHandler": {
+              "strategy": "Reject"
+            }
+          }
+        }
+      ResponseMappingTemplate: |
+        {
+          "success": true
+        }
+
+  FailDeliveryResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: Schema
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      DataSourceName: !GetAtt DeliveryDataSource.Name
+      FieldName: failDelivery
+      TypeName: Mutation
+      RequestMappingTemplate: |
+        {
+          "version": "2018-05-29",
+          "operation": "UpdateItem",
+          "key": {
+            "orderId": $util.dynamodb.toDynamoDBJson($ctx.args.input.orderId)
+          },
+          "update": {
+            "expression": "SET #status = :status",
+            "expressionNames": {
+              "#status": "status"
+            },
+            "expressionValues": {
+              ":status": {"S": "FAILED"}
+            }
+          },
+          "condition": {
+            "expression": "#oldStatus = :oldStatus",
+            "expressionNames": {
+              "#oldStatus": "status"
+            },
+            "expressionValues": {
+              ":oldStatus": {"S": "IN_PROGRESS"}
+            },
+            "conditionalCheckFailedHandler": {
+              "strategy": "Reject"
+            }
+          }
+        }
+      ResponseMappingTemplate: |
+        {
+          "success": true
+        }
+
+  CompleteDeliveryResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: Schema
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      DataSourceName: !GetAtt DeliveryDataSource.Name
+      FieldName: completeDelivery
+      TypeName: Mutation
+      RequestMappingTemplate: |
+        {
+          "version": "2018-05-29",
+          "operation": "UpdateItem",
+          "key": {
+            "orderId": $util.dynamodb.toDynamoDBJson($ctx.args.input.orderId)
+          },
+          "update": {
+            "expression": "SET #status = :status",
+            "expressionNames": {
+              "#status": "status"
+            },
+            "expressionValues": {
+              ":status": {"S": "COMPLETED"}
+            }
+          },
+          "condition": {
+            "expression": "#oldStatus = :oldStatus",
+            "expressionNames": {
+              "#oldStatus": "status"
+            },
+            "expressionValues": {
+              ":oldStatus": {"S": "IN_PROGRESS"}
+            },
+            "conditionalCheckFailedHandler": {
+              "strategy": "Reject"
+            }
+          }
+        }
+      ResponseMappingTemplate: |
+        {
+          "success": true
+        }
 
   ############
   # PRODUCTS #

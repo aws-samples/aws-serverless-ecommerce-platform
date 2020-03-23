@@ -85,6 +85,8 @@ def save_shipping_request(order: dict) -> None:
     # We only care about the order ID (partition key) and address
     table.put_item(Item={
         "orderId": order["orderId"],
+        # Used for the GSI
+        "isNew": "true",
         "status": "NEW",
         "address": order["address"]
     })

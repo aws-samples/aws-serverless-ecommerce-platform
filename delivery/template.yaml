@@ -55,10 +55,21 @@ Resources:
       AttributeDefinitions:
         - AttributeName: orderId
           AttributeType: S
+        - AttributeName: isNew
+          AttributeType: S
       BillingMode: PAY_PER_REQUEST
       KeySchema:
         - AttributeName: orderId
           KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: orderId-new
+          KeySchema:
+            - AttributeName: orderId
+              KeyType: HASH
+            - AttributeName: isNew
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES
   

@@ -1,6 +1,10 @@
+# Generic
+
 type Response {
     success: Boolean!
 }
+
+# Warehouse
 
 type PackagingRequest {
     orderId: String!
@@ -16,6 +20,32 @@ type PackagingRequestProduct {
 type PaginatedPackagingRequestIds {
     packagingRequestIds: [String!]!
     nextToken: String
+}
+
+# Delivery
+type Address {
+    name: String!
+    companyName: String
+    streetAddress: String!
+    postCode: String
+    city: String!
+    state: String
+    country: String!
+    phoneNumber: String!
+}
+
+type Delivery {
+    orderId: String!
+    address: Address!
+}
+
+type PaginatedDeliveries {
+    deliveries: [Delivery!]!
+    nextToken: String
+}
+
+input DeliveryInput {
+    orderId: String!
 }
 
 input PackagingInput {
@@ -34,6 +64,12 @@ type Query {
     @aws_auth(cognito_groups: ["admin", "warehouse"])
     getPackagingRequest(input: PackagingInput!): PackagingRequest!
     @aws_auth(cognito_groups: ["admin", "warehouse"])
+
+    # Delivery queries
+    getNewDeliveries(nextToken: String): PaginatedDeliveries!
+    @aws_auth(cognito_groups: ["admin", "delivery"])
+    getDelivery(input: DeliveryInput!): Delivery!
+    @aws_auth(cognito_groups: ["admin", "warehouse"])
 }
 
 type Mutation {
@@ -43,5 +79,13 @@ type Mutation {
     updatePackagingProduct(input: UpdatePackagingProductInput!): Response!
     @aws_auth(cognito_groups: ["admin", "warehouse"])
     completePackaging(input: PackagingInput!): Response!
+    @aws_auth(cognito_groups: ["admin", "warehouse"])
+
+    # Delivery mutations
+    startDelivery(input: DeliveryInput!): Response!
+    @aws_auth(cognito_groups: ["admin", "warehouse"])
+    failDelivery(input: DeliveryInput!): Response!
+    @aws_auth(cognito_groups: ["admin", "warehouse"])
+    completeDelivery(input: DeliveryInput!): Response!
     @aws_auth(cognito_groups: ["admin", "warehouse"])
 }
