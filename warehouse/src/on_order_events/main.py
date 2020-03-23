@@ -7,8 +7,8 @@ import os
 from typing import Dict, List, Optional
 import boto3
 from boto3.dynamodb.conditions import Key
-from aws_lambda_powertools.tracing import Tracer
-from aws_lambda_powertools.logging import logger_setup, logger_inject_lambda_context
+from aws_lambda_powertools.tracing import Tracer # pylint: disable=import-error
+from aws_lambda_powertools.logging import logger_setup, logger_inject_lambda_context # pylint: disable=import-error
 
 
 ENVIRONMENT = os.environ["ENVIRONMENT"]
@@ -175,6 +175,11 @@ def save_metadata(order_id: str, modified_date: str, status: str = "NEW") -> Non
         "modifiedDate": modified_date,
         "status": status
     }
+
+    # Inject newDate for new requests
+    # This allow to make a sparse projects in DynamoDB using a Local Secondary Index.
+    if status == "NEW":
+        item["newDate"] = modified_date
 
     table.put_item(Item=item)
 

@@ -61,6 +61,12 @@ Resources:
       Type: String
       Value: !GetAtt UserPool.Arn
 
+  AdminGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: admin
+      UserPoolId: !Ref UserPool
+
   #############
   # FUNCTIONS #
   #############

@@ -1,0 +1,312 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: 'AWS::Serverless-2016-10-31'
+
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    Description: Environment name
+  RetentionInDays:
+    Type: Number
+    Default: 30
+    Description: CloudWatch Logs retention period for Lambda functions
+  QueryLimit:
+    Type: Number
+    Default: 20
+    Description: Maximum number of items to return from a single query
+  DeliveryTableName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Delivery Table Name
+  ProductsTableName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Products Table Name
+  WarehouseTableName:
+      Type: AWS::SSM::Parameter::Value<String>
+      Description: Warehouse Table Name
+  UserPoolId:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Cognito User Pool ID
+
+
+Resources:
+  ###############
+  # GRAPHQL API #
+  ###############
+  Api:
+    Type: AWS::AppSync::GraphQLApi
+    Properties:
+      Name: !Sub "ecommerce-${Environment}-backoffice-api"
+      AuthenticationType: AMAZON_COGNITO_USER_POOLS
+      LogConfig:
+        CloudWatchLogsRoleArn: !GetAtt ApiLoggingRole.Arn
+        FieldLogLevel: ALL
+      UserPoolConfig:
+        # AppIdClientRegex: !Sub "ecommerce-${Environment}-backoffice-api.*"
+        AwsRegion: !Ref AWS::Region
+        DefaultAction: DENY
+        UserPoolId: !Ref UserPoolId
+      XrayEnabled: true
+
+  ApiLoggingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: appsync.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: CloudWatchLogsAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+
+  ApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/appsync/apis/${Api.ApiId}"
+      RetentionInDays: !Ref RetentionInDays
+
+  ApiArnParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /ecommerce/${Environment}/backoffice-api/api/arn
+      Type: String
+      Value: !GetAtt Api.Arn
+
+  ApiIdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /ecommerce/${Environment}/backoffice-api/api/id
+      Type: String
+      Value: !GetAtt Api.ApiId
+
+  ApiUrlParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /ecommerce/${Environment}/backoffice-api/api/url
+      Type: String
+      Value: !GetAtt Api.GraphQLUrl
+
+  Schema:
+    Type: AWS::AppSync::GraphQLSchema
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      DefinitionS3Location: "resources/api.graphql"
+
+  #############
+  # WAREHOUSE #
+  #############
+  WarehouseRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: appsync.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: WarehouseTableAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:Query
+                  - dynamodb:UpdateItem
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${WarehouseTableName}"
+              - Effect: Allow
+                Action:
+                  - dynamodb:Scan
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${WarehouseTableName}"
+                  - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${WarehouseTableName}/index/orderId-new"
+
+  WarehouseDataSource:
+    Type: AWS::AppSync::DataSource
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      Name: WarehouseTable
+      Type: AMAZON_DYNAMODB
+      ServiceRoleArn: !GetAtt WarehouseRole.Arn
+      DynamoDBConfig:
+        AwsRegion: !Ref AWS::Region
+        TableName: !Ref WarehouseTableName
+
+  GetNewPackagingRequestIdsResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: Schema
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      DataSourceName: !GetAtt WarehouseDataSource.Name
+      FieldName: getNewPackagingRequestIds
+      TypeName: Query
+      RequestMappingTemplate: !Sub |
+        {
+          "version": "2017-02-28",
+          "operation": "Scan",
+          #if( $ctx.args.nextToken )
+            "nextToken": "$ctx.args.nextToken",
+          #end
+          "limit": ${QueryLimit},
+          "index": "orderId-new"
+        }
+      ResponseMappingTemplate: |
+        {
+          #if( $ctx.result.nextToken )
+            "nextToken": "$ctx.result.nextToken",
+          #end
+          "packagingRequestIds": [
+            #foreach($item in $ctx.result.items)
+              $utils.toJson($item.orderId),
+            #end
+          ]
+        }
+
+  GetPackagingRequestResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: Schema
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      DataSourceName: !GetAtt WarehouseDataSource.Name
+      FieldName: getPackagingRequest
+      TypeName: Query
+      RequestMappingTemplate: |
+        {
+          "version": "2017-02-28",
+          "operation": "Query",
+          "query": {
+            "expression": "orderId = :orderId",
+            "expressionValues": {
+              ":orderId": $util.dynamodb.toDynamoDBJson($ctx.args.input.orderId)
+            }
+          }
+        }
+      ResponseMappingTemplate: |
+        ## Could not find the packaging request
+        #if( $ctx.result.items.isEmpty() )
+          #return($util.error("Packaging request not found."))
+        #end
+
+        #set($packagingRequest = {
+          "orderId": $ctx.args.input.orderId,
+          "products": []
+        })
+        #foreach($item in $ctx.result.items)
+          #if($item.productId == "__metadata")
+            $util.qr($packagingRequest.put("status", $item.status))
+          #else
+            $util.qr($packagingRequest.products.add({
+              "productId": $item.productId,
+              "quantity": $item.quantity
+            }))
+          #end
+        #end
+        $util.toJson($packagingRequest)
+
+  StartPackagingResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: Schema
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      DataSourceName: !GetAtt WarehouseDataSource.Name
+      FieldName: startPackaging
+      TypeName: Mutation
+      RequestMappingTemplate: |
+        {
+          "version": "2018-05-29",
+          "operation": "UpdateItem",
+          "key": {
+            "orderId": $util.dynamodb.toDynamoDBJson($ctx.args.input.orderId),
+            "productId": $util.dynamodb.toDynamoDBJson("__metadata")
+          },
+          "update": {
+            "expression": "SET #status = :status REMOVE #newDate",
+            "expressionNames": {
+              "#status": "status",
+              "#newDate": "newDate"
+            },
+            "expressionValues": {
+              ":status": {"S": "IN_PROGRESS"}
+            }
+          },
+          "condition": {
+            "expression": "#oldStatus = :oldStatus",
+            "expressionNames": {
+              "#oldStatus": "status"
+            },
+            "expressionValues": {
+              ":oldStatus": {"S": "NEW"}
+            },
+            "conditionalCheckFailedHandler": {
+              "strategy": "Reject"
+            }
+          }
+        }
+      ResponseMappingTemplate: |
+        {
+          "success": true
+        }
+
+  CompletePackagingResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: Schema
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      DataSourceName: !GetAtt WarehouseDataSource.Name
+      FieldName: completePackaging
+      TypeName: Mutation
+      RequestMappingTemplate: |
+        {
+          "version" : "2018-05-29",
+          "operation" : "UpdateItem",
+          "key": {
+            "orderId": $util.dynamodb.toDynamoDBJson($ctx.args.input.orderId),
+            "productId": $util.dynamodb.toDynamoDBJson("__metadata")
+          },
+          "update": {
+            "expression": "SET #status = :status",
+            "expressionNames": {
+              "#status": "status"
+            },
+            "expressionValues": {
+              ":status": $util.dynamodb.toDynamoDBJson("COMPLETED")
+            }
+          },
+          "condition": {
+            "expression": "#oldStatus = :oldStatus",
+            "expressionNames": {
+              "#oldStatus": "status"
+            },
+            "expressionValues": {
+              ":oldStatus": {"S": "IN_PROGRESS"}
+            },
+            "conditionalCheckFailedHandler": {
+              "strategy": "Reject"
+            }
+          }
+        }
+      ResponseMappingTemplate: |
+        {
+          "success": true
+        }
+
+  ############
+  # DELIVERY #
+  ############
+
+  ############
+  # PRODUCTS #
+  ############

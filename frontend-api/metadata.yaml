@@ -1,4 +1,4 @@
-name: frontend
+name: frontend-api
 dependencies:
   - orders
   - products

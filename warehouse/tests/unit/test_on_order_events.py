@@ -206,10 +206,13 @@ def test_save_metadata(lambda_module, order_metadata):
     Test save_metadata()
     """
 
+    item = copy.deepcopy(order_metadata)
+    item["newDate"] = order_metadata["modifiedDate"]
+
     table = mock_table(
         lambda_module.table, "put_item",
         ["orderId", "productId"],
-        items=order_metadata
+        items=item
     )
 
     lambda_module.save_metadata(
@@ -302,6 +305,8 @@ def test_on_order_created(lambda_module, order, order_products, order_metadata):
             for product in order_products
         ]
     )
+    order_metadata = copy.deepcopy(order_metadata)
+    order_metadata["newDate"] = order_metadata["modifiedDate"]
     mock_table(
         table, "put_item", ["orderId", "productId"],
         table_name=lambda_module.table.name,
@@ -347,6 +352,8 @@ def test_on_order_modified_new(lambda_module, order, order_products, order_metad
             for product in order_products
         ]
     )
+    order_metadata = copy.deepcopy(order_metadata)
+    order_metadata["newDate"] = order_metadata["modifiedDate"]
     mock_table(
         table, "put_item", ["orderId", "productId"],
         table_name=lambda_module.table.name,
@@ -441,6 +448,8 @@ def test_handler_created(lambda_module, context, order, order_products, order_me
             for product in order_products
         ]
     )
+    order_metadata = copy.deepcopy(order_metadata)
+    order_metadata["newDate"] = order_metadata["modifiedDate"]
     mock_table(
         table, "put_item", ["orderId", "productId"],
         table_name=lambda_module.table.name,

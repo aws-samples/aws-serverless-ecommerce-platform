@@ -53,6 +53,8 @@ Resources:
           AttributeType: S
         - AttributeName: productId
           AttributeType: S
+        - AttributeName: newDate
+          AttributeType: S
       BillingMode: PAY_PER_REQUEST
       KeySchema:
         - AttributeName: orderId
@@ -65,6 +67,14 @@ Resources:
             - AttributeName: productId
               KeyType: HASH
             - AttributeName: orderId
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: orderId-new
+          KeySchema:
+            - AttributeName: orderId
+              KeyType: HASH
+            - AttributeName: newDate
               KeyType: RANGE
           Projection:
             ProjectionType: ALL

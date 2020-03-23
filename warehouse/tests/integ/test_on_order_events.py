@@ -6,7 +6,7 @@ import uuid
 import boto3
 from boto3.dynamodb.conditions import Key
 import pytest
-from helpers import get_parameter # pylint: disable=import-error
+from helpers import get_parameter # pylint: disable=import-error,no-name-in-module
 
 
 METADATA_KEY = "__metadata"
@@ -110,7 +110,8 @@ def metadata(order):
         "status": "NEW",
         "orderId": order["orderId"],
         "productId": METADATA_KEY,
-        "modifiedDate": order["modifiedDate"]
+        "modifiedDate": order["modifiedDate"],
+        "newDate": order["modifiedDate"]
     }
 
 @pytest.fixture(scope="module")
@@ -131,7 +132,7 @@ def test_on_order_events(order_created, order_modified_products, order_modified_
     """
 
     eventbridge = boto3.client("events")
-    table = boto3.resource("dynamodb").Table(table_name)
+    table = boto3.resource("dynamodb").Table(table_name) #pylint: disable=no-member
 
     # Send the event on EventBridge
     eventbridge.put_events(Entries=[order_created])
