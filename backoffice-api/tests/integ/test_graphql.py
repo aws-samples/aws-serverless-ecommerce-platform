@@ -601,3 +601,190 @@ def test_get_delivery(jwt_token, api_url, delivery_table_name, get_order):
     assert data["data"]["getDelivery"]["address"]["streetAddress"] == order["address"]["streetAddress"]
     assert data["data"]["getDelivery"]["address"]["city"] == order["address"]["city"]
     assert data["data"]["getDelivery"]["address"]["country"] == order["address"]["country"]
+
+    # Cleanup
+    table.delete_item(Key={
+        "orderId": order["orderId"]
+    })
+
+
+def test_start_delivery(jwt_token, api_url, delivery_table_name, get_order):
+    """
+    Test startDelivery
+    """
+
+    order = get_order()
+    delivery = {
+        "orderId": order["orderId"],
+        "address": order["address"],
+        "isNew": "true",
+        "status": "NEW"
+    }
+    print(delivery)
+
+    # Seed the database
+    table = boto3.resource("dynamodb").Table(delivery_table_name) # pylint: disable=no-member
+    table.put_item(Item=delivery)
+
+    # Make request
+    query = """
+    mutation ($input: DeliveryInput!) {
+        startDelivery(input: $input) {
+            success
+        }
+    }
+    """
+
+    res = requests.post(
+        api_url,
+        headers={"Authorization": jwt_token},
+        json={
+            "query": query,
+            "variables": {
+                "input": {
+                    "orderId": order["orderId"]
+                }
+            }
+        }
+    )
+    data = res.json()
+    print(data)
+
+    assert "data" in data
+    assert data["data"] is not None
+    assert "startDelivery" in data["data"]
+    assert "success" in data["data"]["startDelivery"]
+    assert data["data"]["startDelivery"]["success"] == True
+
+    ddb_res = table.get_item(Key={
+        "orderId": order["orderId"]
+    })
+    assert "Item" in ddb_res
+    assert "status" in ddb_res["Item"]
+    assert ddb_res["Item"]["status"] == "IN_PROGRESS"
+    assert "isNew" not in ddb_res["Item"]
+
+    # Cleanup
+    table.delete_item(Key={
+        "orderId": order["orderId"]
+    })
+
+
+def test_fail_delivery(jwt_token, api_url, delivery_table_name, get_order):
+    """
+    Test failDelivery
+    """
+
+    order = get_order()
+    delivery = {
+        "orderId": order["orderId"],
+        "address": order["address"],
+        "status": "IN_PROGRESS"
+    }
+    print(delivery)
+
+    # Seed the database
+    table = boto3.resource("dynamodb").Table(delivery_table_name) # pylint: disable=no-member
+    table.put_item(Item=delivery)
+
+    # Make request
+    query = """
+    mutation ($input: DeliveryInput!) {
+        failDelivery(input: $input) {
+            success
+        }
+    }
+    """
+
+    res = requests.post(
+        api_url,
+        headers={"Authorization": jwt_token},
+        json={
+            "query": query,
+            "variables": {
+                "input": {
+                    "orderId": order["orderId"]
+                }
+            }
+        }
+    )
+    data = res.json()
+    print(data)
+
+    assert "data" in data
+    assert data["data"] is not None
+    assert "failDelivery" in data["data"]
+    assert "success" in data["data"]["failDelivery"]
+    assert data["data"]["failDelivery"]["success"] == True
+
+    ddb_res = table.get_item(Key={
+        "orderId": order["orderId"]
+    })
+    assert "Item" in ddb_res
+    assert "status" in ddb_res["Item"]
+    assert ddb_res["Item"]["status"] == "FAILED"
+
+    # Cleanup
+    table.delete_item(Key={
+        "orderId": order["orderId"]
+    })
+
+
+def test_complete_delivery(jwt_token, api_url, delivery_table_name, get_order):
+    """
+    Test failDelivery
+    """
+
+    order = get_order()
+    delivery = {
+        "orderId": order["orderId"],
+        "address": order["address"],
+        "status": "IN_PROGRESS"
+    }
+    print(delivery)
+
+    # Seed the database
+    table = boto3.resource("dynamodb").Table(delivery_table_name) # pylint: disable=no-member
+    table.put_item(Item=delivery)
+
+    # Make request
+    query = """
+    mutation ($input: DeliveryInput!) {
+        completeDelivery(input: $input) {
+            success
+        }
+    }
+    """
+
+    res = requests.post(
+        api_url,
+        headers={"Authorization": jwt_token},
+        json={
+            "query": query,
+            "variables": {
+                "input": {
+                    "orderId": order["orderId"]
+                }
+            }
+        }
+    )
+    data = res.json()
+    print(data)
+
+    assert "data" in data
+    assert data["data"] is not None
+    assert "completeDelivery" in data["data"]
+    assert "success" in data["data"]["completeDelivery"]
+    assert data["data"]["completeDelivery"]["success"] == True
+
+    ddb_res = table.get_item(Key={
+        "orderId": order["orderId"]
+    })
+    assert "Item" in ddb_res
+    assert "status" in ddb_res["Item"]
+    assert ddb_res["Item"]["status"] == "COMPLETED"
+
+    # Cleanup
+    table.delete_item(Key={
+        "orderId": order["orderId"]
+    })
