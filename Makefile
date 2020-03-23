@@ -111,6 +111,10 @@ tests-unit-%:
 	@echo "[*] $(ccblue)tests-unit $*$(ccend)"
 	@${MAKE} -C $* tests-unit
 
+# End-to-end tests
+tests-e2e:
+	@tools/tests-e2e
+
 #################
 # SETUP TARGETS #
 #################

@@ -62,13 +62,13 @@ type Query {
     # Warehouse queries
     getNewPackagingRequestIds(nextToken: String): PaginatedPackagingRequestIds!
     @aws_auth(cognito_groups: ["admin", "warehouse"])
-    getPackagingRequest(input: PackagingInput!): PackagingRequest!
+    getPackagingRequest(input: PackagingInput!): PackagingRequest
     @aws_auth(cognito_groups: ["admin", "warehouse"])
 
     # Delivery queries
     getNewDeliveries(nextToken: String): PaginatedDeliveries!
     @aws_auth(cognito_groups: ["admin", "delivery"])
-    getDelivery(input: DeliveryInput!): Delivery!
+    getDelivery(input: DeliveryInput!): Delivery
     @aws_auth(cognito_groups: ["admin", "warehouse"])
 }
 

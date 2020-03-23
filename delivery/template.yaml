@@ -105,7 +105,7 @@ Resources:
             Type: SQS
             Destination: !GetAtt DeadLetterQueue.Outputs.QueueArn
       Policies:
-        - DynamoDBReadPolicy:
+        - DynamoDBCrudPolicy:
             TableName: !Ref Table
         # Orders API Gateway
         - Version: "2012-10-17"

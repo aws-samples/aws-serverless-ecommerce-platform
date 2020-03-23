@@ -1,0 +1,50 @@
+#!/bin/bash
+
+set -e
+
+ROOT=${ROOT:-$(pwd)}
+
+tests_dir=${ROOT}/shared/tests/e2e
+
+display_usage () {
+    echo "Usage: $0 TYPE SERVICE"
+}
+
+
+# Check for quiet mode
+if [ ! -z $QUIET ]; then
+    export OUTPUT_FILE=$(mktemp)
+    exec 5>&1 6>&2 1>$OUTPUT_FILE 2>&1
+fi
+
+cleanup () {
+    CODE=$?
+    if [ ! -z $QUIET ]; then
+        if [ ! $CODE -eq 0 ]; then
+            cat $OUTPUT_FILE >&5
+        fi
+        rm $OUTPUT_FILE
+    fi
+}
+trap cleanup EXIT
+
+# End-to-end tests
+tests_e2e () {
+    # Skip tests on environment where we shouldn't run tests
+    yq -r ' .'${ENVIRONMENT}'.flags["can-test"] | if . == null then true else . end ' $ROOT/environments.yaml | grep -q true || {
+        echo "The environment $ENVIRONMENT does not support tests. Skipping"
+        exit 0
+    }
+
+    if [ -z $PYTHONPATH ]; then
+        PYTHONPATH=$ROOT/shared/tests/integ
+    else
+        PYTHONPATH=$PYTHONPATH:$ROOT/shared/tests/integ
+    fi
+
+    ECOM_ENVIRONMENT=${ENVIRONMENT} \
+    PYTHONPATH=${PYTHONPATH} \
+    pytest $tests_dir
+}
+
+tests_e2e

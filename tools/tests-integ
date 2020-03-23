@@ -42,7 +42,7 @@ cleanup () {
 }
 trap cleanup EXIT
 
-# Unit tests for cloudformation
+# Integration tests for cloudformation
 tests_cloudformation () {
     # Checks if this service skips tests
     yq -r ' .flags["skip-tests"] | if . == null then false else . end ' $service_dir/metadata.yaml | grep -q true && {
