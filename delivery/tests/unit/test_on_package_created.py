@@ -48,6 +48,7 @@ def event(order):
 def ddb_item(order):
     return {
         "orderId": order["orderId"],
+        "isNew": "true",
         "status": "NEW",
         "address": order["address"]
     }
@@ -119,6 +120,7 @@ def test_save_shipping_request_in_progress(lambda_module, order, ddb_item):
 
     # Mock boto3
     ddb_item = copy.deepcopy(ddb_item)
+    del ddb_item["isNew"]
     ddb_item["status"] = "IN_PROGRESS"
     table = mock_table(
         lambda_module.table, "get_item",
