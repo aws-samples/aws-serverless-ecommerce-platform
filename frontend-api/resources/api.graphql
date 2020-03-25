@@ -28,6 +28,10 @@ input AddressInput @aws_cognito_user_pools {
 
 # Delivery inputs/types
 
+type DeliveryPricingResponse @aws_cognito_user_pools {
+    pricing: Int!
+}
+
 type Delivery @aws_cognito_user_pools(cognito_groups: ["admin", "delivery"]) {
     orderId: String!
     address: Address!
@@ -36,6 +40,11 @@ type Delivery @aws_cognito_user_pools(cognito_groups: ["admin", "delivery"]) {
 type PaginatedDeliveries @aws_cognito_user_pools(cognito_groups: ["admin", "delivery"]) {
     deliveries: [Delivery!]!
     nextToken: String
+}
+
+input DeliveryPricingInput @aws_cognito_user_pools {
+    products: [ProductInput!]!
+    address: AddressInput!
 }
 
 input DeliveryInput @aws_cognito_user_pools(cognito_groups: ["admin", "delivery"]) {
@@ -154,6 +163,8 @@ input UpdatePackagingProductInput @aws_cognito_user_pools(cognito_groups: ["admi
 
 type Query {
     # Delivery queries
+    getDeliveryPricing(input: DeliveryPricingInput!): DeliveryPricingResponse!
+    @aws_cognito_user_pools
     getNewDeliveries(nextToken: String): PaginatedDeliveries!
     @aws_cognito_user_pools(cognito_groups: ["admin", "delivery"])
     getDelivery(input: DeliveryInput!): Delivery

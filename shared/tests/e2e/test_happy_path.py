@@ -153,54 +153,59 @@ def jwt_token(user_pool_id, user_id, client_id, email, password):
     return response["AuthenticationResult"]["IdToken"]
 
 
-@pytest.fixture
-def order_request(get_order, iam_auth, delivery_pricing_api_url, products_table, payment_3p_api_url):
+def test_happy_path(get_order, products_table, jwt_token, frontend_api_url, payment_3p_api_url):
+    """
+    Test an order journey with a happy path
+    """
+
+    # Generate an order request
     order = get_order()
+    order_request = {
+        "products": order["products"],
+        "address": order["address"]
+    }
+    del order
 
     # Seed the products table
     # TODO: use backoffice API instead
     with products_table.batch_writer() as batch:
-        for product in order["products"]:
+        for product in order_request["products"]:
             batch.put_item(Item=product)
 
-    # Grab the correct delivery price from the backend
-    # TODO: this is not user-reachable, implement a query in the frontend API
+    # Get the delivery price
+    query = """
+    query($input: DeliveryPricingInput!) {
+      getDeliveryPricing(input: $input) {
+        pricing
+      }
+    }
+    """
+    variables = {
+        "input": {
+            "products": order_request["products"],
+            "address": order_request["address"]
+        }
+    }
     res = requests.post(
-        "{}/backend/pricing".format(delivery_pricing_api_url),
-        auth=iam_auth(delivery_pricing_api_url),
+        frontend_api_url,
+        headers={"Authorization": jwt_token},
         json={
-            "products": order["products"],
-            "address": order["address"]
+            "query": query,
+            "variables": variables
         }
     )
-    delivery_price = res.json()["pricing"]
+    body = res.json()
+    print("GET DELIVERY PRICING", body)
+    assert "pricing" in body["data"]["getDeliveryPricing"]
+    order_request["deliveryPrice"] = body["data"]["getDeliveryPricing"]["pricing"]
 
     # Get the paymentToken
-    total = delivery_price + sum([p["price"]*p.get("quantity", 1) for p in order["products"]])
+    total = order_request["deliveryPrice"] + sum([p["price"]*p.get("quantity", 1) for p in order_request["products"]])
     res = requests.post(payment_3p_api_url+"/preauth", json={
         "cardNumber": "1234567890123456",
-        "amount": order["total"]
+        "amount": total
     })
-    payment_token = res.json()["paymentToken"]
-
-    yield {
-        "products": order["products"],
-        "address": order["address"],
-        "deliveryPrice": delivery_price,
-        "paymentToken": payment_token
-    }
-
-    # Remove products from the products table
-    # TODO: use backoffice API instead
-    with products_table.batch_writer() as batch:
-        for product in order["products"]:
-            batch.delete_item(Key={"productId": product["productId"]})
-
-
-def test_happy_path(order_request, jwt_token, frontend_api_url):
-    """
-    Test an order journey with a happy path
-    """
+    order_request["paymentToken"] = res.json()["paymentToken"]
 
     # Create the order
     query = """
@@ -458,3 +463,9 @@ def test_happy_path(order_request, jwt_token, frontend_api_url):
     body = res.json()
     print("CHECK ORDER", body)
     assert body["data"]["getOrder"]["status"] == "FULFILLED"
+
+    # Remove products from the products table
+    # TODO: use backoffice API instead
+    with products_table.batch_writer() as batch:
+        for product in order_request["products"]:
+            batch.delete_item(Key={"productId": product["productId"]})

@@ -78,3 +78,10 @@ Resources:
       Name: !Sub /ecommerce/${Environment}/delivery-pricing/api/url
       Type: String
       Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com/prod"
+
+  ApiDomainParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /ecommerce/${Environment}/delivery-pricing/api/domain
+      Type: String
+      Value: !Sub "${Api}.execute-api.${AWS::Region}.amazonaws.com"

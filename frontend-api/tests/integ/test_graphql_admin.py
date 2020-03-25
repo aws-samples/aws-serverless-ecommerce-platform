@@ -484,10 +484,18 @@ def test_get_new_deliveries(jwt_token, api_url, delivery_table_name, get_order):
         if next_token:
             req_data = {
                 "query": """
-                query ($nextToken: String!) {
+                query ($nextToken: String) {
                     getNewDeliveries(nextToken: $nextToken) {
                         nextToken
-                        packagingRequestIds
+                        deliveries {
+                            orderId
+                            address {
+                                name
+                                streetAddress
+                                city
+                                country
+                            }
+                        }
                     }
                 }
                 """,

@@ -20,4 +20,5 @@ _This service does not emit events._
 This service defines the following SSM parameters:
 
 * `/ecommerce/{Environment}/delivery-pricing/api/arn`: ARN for the API Gateway
+* `/ecommerce/{Environment}/delivery-pricing/api/domain`: Domain name for the API Gateway
 * `/ecommerce/{Environment}/delivery-pricing/api/url`: URL for the API Gateway
