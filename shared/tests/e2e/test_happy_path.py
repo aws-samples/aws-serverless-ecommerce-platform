@@ -22,11 +22,6 @@ def products_table():
 
 
 @pytest.fixture
-def backoffice_api_url():
-    return get_parameter("/ecommerce/{Environment}/backoffice-api/api/url")
-
-
-@pytest.fixture
 def delivery_pricing_api_url():
     return get_parameter("/ecommerce/{Environment}/delivery-pricing/api/url")
 
@@ -202,7 +197,7 @@ def order_request(get_order, iam_auth, delivery_pricing_api_url, products_table,
             batch.delete_item(Key={"productId": product["productId"]})
 
 
-def test_happy_path(order_request, jwt_token, frontend_api_url, backoffice_api_url):
+def test_happy_path(order_request, jwt_token, frontend_api_url):
     """
     Test an order journey with a happy path
     """
@@ -259,7 +254,7 @@ def test_happy_path(order_request, jwt_token, frontend_api_url, backoffice_api_u
         }
     }
     res = requests.post(
-        backoffice_api_url,
+        frontend_api_url,
         headers={"Authorization": jwt_token},
         json={
             "query": query,
@@ -288,7 +283,7 @@ def test_happy_path(order_request, jwt_token, frontend_api_url, backoffice_api_u
         }
     }
     res = requests.post(
-        backoffice_api_url,
+        frontend_api_url,
         headers={"Authorization": jwt_token},
         json={
             "query": query,
@@ -313,7 +308,7 @@ def test_happy_path(order_request, jwt_token, frontend_api_url, backoffice_api_u
         }
     }
     res = requests.post(
-        backoffice_api_url,
+        frontend_api_url,
         headers={"Authorization": jwt_token},
         json={
             "query": query,
@@ -375,7 +370,7 @@ def test_happy_path(order_request, jwt_token, frontend_api_url, backoffice_api_u
         }
     }
     res = requests.post(
-        backoffice_api_url,
+        frontend_api_url,
         headers={"Authorization": jwt_token},
         json={
             "query": query,
@@ -401,7 +396,7 @@ def test_happy_path(order_request, jwt_token, frontend_api_url, backoffice_api_u
         }
     }
     res = requests.post(
-        backoffice_api_url,
+        frontend_api_url,
         headers={"Authorization": jwt_token},
         json={
             "query": query,
@@ -426,7 +421,7 @@ def test_happy_path(order_request, jwt_token, frontend_api_url, backoffice_api_u
         }
     }
     res = requests.post(
-        backoffice_api_url,
+        frontend_api_url,
         headers={"Authorization": jwt_token},
         json={
             "query": query,
