@@ -1,10 +1,14 @@
 name: frontend-api
 dependencies:
+  - delivery
   - orders
   - products
   - users
+  - warehouse
 parameters:
+  DeliveryTableName: /ecommerce/{Environment}/delivery/table/name
   OrdersTableName: /ecommerce/{Environment}/orders/table/name
   OrdersCreateOrderArn: /ecommerce/{Environment}/orders/create-order/arn
   ProductsTableName: /ecommerce/{Environment}/products/table/name
   UserPoolId: /ecommerce/{Environment}/users/user-pool/id
+  WarehouseTableName: /ecommerce/{Environment}/warehouse/table/name

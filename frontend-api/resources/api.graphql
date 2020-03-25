@@ -1,50 +1,54 @@
+# Generic inputs/types
+
+type Address @aws_cognito_user_pools {
+    name: String!
+    companyName: String
+    streetAddress: String!
+    postCode: String
+    city: String!
+    state: String
+    country: String!
+    phoneNumber: String!
+}
+
+type Response @aws_cognito_user_pools {
+    success: Boolean!
+}
+
+input AddressInput @aws_cognito_user_pools {
+    name: String!
+    companyName: String
+    streetAddress: String!
+    postCode: String
+    city: String!
+    state: String
+    country: String!
+    phoneNumber: String!
+}
+
+# Delivery inputs/types
+
+type Delivery @aws_cognito_user_pools(cognito_groups: ["admin", "delivery"]) {
+    orderId: String!
+    address: Address!
+}
+
+type PaginatedDeliveries @aws_cognito_user_pools(cognito_groups: ["admin", "delivery"]) {
+    deliveries: [Delivery!]!
+    nextToken: String
+}
+
+input DeliveryInput @aws_cognito_user_pools(cognito_groups: ["admin", "delivery"]) {
+    orderId: String!
+}
+
+# Orders inputs/types
+
 input CreateOrderRequest @aws_cognito_user_pools {
     products: [ProductInput!]!
     address: AddressInput!
     deliveryPrice: Int!
     paymentToken: String!
-}
-
-input AddressInput {
-    name: String!
-    companyName: String
-    streetAddress: String!
-    postCode: String
-    city: String!
-    state: String
-    country: String!
-    phoneNumber: String!
-}
-
-input PackageInput {
-    width: Int
-    length: Int
-    height: Int
-    weight: Int
-}
-
-input ProductInput {
-    productId: ID!
-    createdDate: String
-    modifiedDate: String
-    name: String!
-    package: PackageInput!
-    category: String
-    tags: [String]
-    pictures: [String]
-    price: Int!
-    quantity: Int
-}
-
-type Address {
-    name: String!
-    companyName: String
-    streetAddress: String!
-    postCode: String
-    city: String!
-    state: String
-    country: String!
-    phoneNumber: String!
 }
 
 type CreateOrderResponse @aws_cognito_user_pools {
@@ -66,16 +70,18 @@ type Order @aws_cognito_user_pools {
     total: Int!
 }
 
+type PaginatedOrders @aws_cognito_user_pools {
+    orders: [Order!]!
+    nextToken: String
+}
+
+# Products inputs/types
+
 type Package {
     width: Int
     length: Int
     height: Int
     weight: Int
-}
-
-type PaginatedOrders @aws_cognito_user_pools {
-    orders: [Order!]!
-    nextToken: String
 }
 
 type PaginatedProducts {
@@ -96,7 +102,63 @@ type Product {
     quantity: Int
 }
 
+input PackageInput @aws_cognito_user_pools {
+    width: Int
+    length: Int
+    height: Int
+    weight: Int
+}
+
+input ProductInput @aws_cognito_user_pools {
+    productId: ID!
+    createdDate: String
+    modifiedDate: String
+    name: String!
+    package: PackageInput!
+    category: String
+    tags: [String]
+    pictures: [String]
+    price: Int!
+    quantity: Int
+}
+
+# Warehouse inputs/types
+
+type PackagingRequest @aws_cognito_user_pools(cognito_groups: ["admin", "warehouse"]) {
+    orderId: String!
+    status: String!
+    products: [PackagingRequestProduct!]!
+}
+
+type PackagingRequestProduct @aws_cognito_user_pools(cognito_groups: ["admin", "warehouse"]) {
+    productId: String!
+    quantity: Int!
+}
+
+type PaginatedPackagingRequestIds @aws_cognito_user_pools(cognito_groups: ["admin", "warehouse"]) {
+    packagingRequestIds: [String!]!
+    nextToken: String
+}
+
+input PackagingInput @aws_cognito_user_pools(cognito_groups: ["admin", "warehouse"]) {
+    orderId: String!
+}
+
+input UpdatePackagingProductInput @aws_cognito_user_pools(cognito_groups: ["admin", "warehouse"]) {
+    orderId: String!
+    productId: String!
+    quantity: Int!
+}
+
+# Queries
+
 type Query {
+    # Delivery queries
+    getNewDeliveries(nextToken: String): PaginatedDeliveries!
+    @aws_cognito_user_pools(cognito_groups: ["admin", "delivery"])
+    getDelivery(input: DeliveryInput!): Delivery
+    @aws_cognito_user_pools(cognito_groups: ["admin", "warehouse"])
+
     # Orders queries
     getOrders(nextToken: String): PaginatedOrders!
     @aws_cognito_user_pools
@@ -107,11 +169,36 @@ type Query {
     getProducts(nextToken: String): PaginatedProducts!
     getProduct(productId: ID!): Product
     getProductsByCategory(category: String!): PaginatedProducts!
+
+    # Warehouse queries
+    getNewPackagingRequestIds(nextToken: String): PaginatedPackagingRequestIds!
+    @aws_cognito_user_pools(cognito_groups: ["admin", "warehouse"])
+    getPackagingRequest(input: PackagingInput!): PackagingRequest
+    @aws_cognito_user_pools(cognito_groups: ["admin", "warehouse"])
 }
 
+# Mutations
+
 type Mutation {
+    # Delivery mutations
+    startDelivery(input: DeliveryInput!): Response!
+    @aws_cognito_user_pools(cognito_groups: ["admin", "warehouse"])
+    failDelivery(input: DeliveryInput!): Response!
+    @aws_cognito_user_pools(cognito_groups: ["admin", "warehouse"])
+    completeDelivery(input: DeliveryInput!): Response!
+    @aws_cognito_user_pools(cognito_groups: ["admin", "warehouse"])
+
+    # Orders mutations
     createOrder(order: CreateOrderRequest!): CreateOrderResponse!
     @aws_cognito_user_pools
+
+    # Warehouse mutations
+    startPackaging(input: PackagingInput!): Response!
+    @aws_cognito_user_pools(cognito_groups: ["admin", "warehouse"])
+    updatePackagingProduct(input: UpdatePackagingProductInput!): Response!
+    @aws_cognito_user_pools(cognito_groups: ["admin", "warehouse"])
+    completePackaging(input: PackagingInput!): Response!
+    @aws_cognito_user_pools(cognito_groups: ["admin", "warehouse"])
 }
 
 schema {

@@ -43,7 +43,7 @@ def api_id():
     Frontend GraphQL API ID
     """
 
-    return get_parameter("/ecommerce/{Environment}/backoffice-api/api/id")
+    return get_parameter("/ecommerce/{Environment}/frontend-api/api/id")
 
 
 @pytest.fixture
@@ -52,7 +52,7 @@ def api_url():
     Frontend GraphQL API URL
     """
 
-    return get_parameter("/ecommerce/{Environment}/backoffice-api/api/url")
+    return get_parameter("/ecommerce/{Environment}/frontend-api/api/url")
 
 
 @pytest.fixture(scope="module")
