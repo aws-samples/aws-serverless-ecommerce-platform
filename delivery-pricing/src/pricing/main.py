@@ -96,6 +96,10 @@ def handler(event, _):
 
     for key in ["products", "address"]:
         if key not in body:
+            logger.info({
+                "message": "Missing '{}' in body".format(key),
+                "body": body
+            })
             return response("Missing '{}' in body".format(key), 400)
 
     # Calculate the delivery pricing
