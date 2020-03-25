@@ -1,11 +1,14 @@
 name: frontend-api
 dependencies:
   - delivery
+  - delivery-pricing
   - orders
   - products
   - users
   - warehouse
 parameters:
+  DeliveryPricingApiArn: /ecommerce/{Environment}/delivery-pricing/api/arn
+  DeliveryPricingApiDomain: /ecommerce/{Environment}/delivery-pricing/api/domain
   DeliveryTableName: /ecommerce/{Environment}/delivery/table/name
   OrdersTableName: /ecommerce/{Environment}/orders/table/name
   OrdersCreateOrderArn: /ecommerce/{Environment}/orders/create-order/arn

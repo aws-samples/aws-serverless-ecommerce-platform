@@ -11,6 +11,16 @@ Parameters:
     Type: Number
     Default: 20
     Description: Maximum number of items to return from a single query
+  RetentionInDays:
+    Type: Number
+    Default: 30
+    Description: Retention in days for CloudWatch log groups
+  DeliveryPricingApiArn:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Delivery Pricing API ARN
+  DeliveryPricingApiDomain:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Delivery Pricing API domain name
   DeliveryTableName:
     Type: AWS::SSM::Parameter::Value<String>
     Description: Delivery Table Name
@@ -46,7 +56,37 @@ Resources:
             # AppIdClientRegex: !Sub "ecommerce-${Environment}-frontend-api.*"
             AwsRegion: !Ref AWS::Region
             UserPoolId: !Ref UserPoolId
+      LogConfig:
+        CloudWatchLogsRoleArn: !GetAtt ApiLoggingRole.Arn
+        FieldLogLevel: ALL
       XrayEnabled: true
+
+  ApiLoggingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: appsync.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: CloudWatchLogsAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+
+  ApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/appsync/apis/${Api.ApiId}"
+      RetentionInDays: !Ref RetentionInDays
 
   ApiArnParameter:
     Type: AWS::SSM::Parameter
@@ -291,6 +331,75 @@ Resources:
         {
           "success": true
         }
+
+  ####################
+  # DELIVERY PRICING #
+  ####################
+  DeliveryPricingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: appsync.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: OrdersTableAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - execute-api:Invoke
+                Resource:
+                  - !Sub "${DeliveryPricingApiArn}/POST/backend/pricing"
+
+  DeliveryPricingDataSource:
+    Type: AWS::AppSync::DataSource
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      Name: DeliveryPricingApi
+      Type: HTTP
+      ServiceRoleArn: !GetAtt DeliveryPricingRole.Arn
+      HttpConfig:
+        Endpoint: !Sub "https://${DeliveryPricingApiDomain}/"
+        AuthorizationConfig:
+          AuthorizationType: AWS_IAM
+          AwsIamConfig:
+            SigningRegion: !Ref AWS::Region
+            SigningServiceName: execute-api
+
+  GetDeliveryPricingResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: Schema
+    Properties:
+      ApiId: !GetAtt Api.ApiId
+      DataSourceName: !GetAtt DeliveryPricingDataSource.Name
+      FieldName: getDeliveryPricing
+      TypeName: Query
+      RequestMappingTemplate: |
+        {
+          "version": "2018-05-29",
+          "method": "POST",
+          "params": {
+            "headers": {
+              "Content-Type" : "application/json"
+            },
+            "body": "$util.escapeJavaScript($util.toJson($ctx.args.input))"
+          },
+          "resourcePath": "/prod/backend/pricing"
+        }
+      ResponseMappingTemplate: |
+        #if($ctx.error)
+          $util.error($ctx.error.message, $ctx.error.type)
+        #end
+        #if($ctx.result.statusCode == 200)
+            $ctx.result.body
+        #else
+            $util.error($ctx.result.body)
+        #end
 
   ##########
   # ORDERS #

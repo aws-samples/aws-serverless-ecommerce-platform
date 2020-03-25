@@ -355,3 +355,39 @@ def test_get_orders(jwt_token, api_url):
     assert "data" in data
     assert "getOrders" in data["data"]
     assert "orders" in data["data"]["getOrders"]
+
+
+def test_get_delivery_pricing(get_order, jwt_token, api_url):
+    """
+    Test getDeliveryPricing
+    """
+
+    order = get_order()
+
+    headers = {"Authorization": jwt_token}
+
+    query = """
+    query($input: DeliveryPricingInput!) {
+      getDeliveryPricing(input: $input) {
+        pricing
+      }
+    }
+    """
+    variables = {
+        "input": {
+            "products": order["products"],
+            "address": order["address"]
+        }
+    }
+
+    print("VARIABLES", variables)
+
+    response = requests.post(api_url, json={"query": query, "variables": variables}, headers=headers)
+
+    data = response.json()
+
+    print(data)
+
+    assert "data" in data
+    assert "getDeliveryPricing" in data["data"]
+    assert "pricing" in data["data"]["getDeliveryPricing"]
