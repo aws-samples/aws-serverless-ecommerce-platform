@@ -237,6 +237,35 @@ def handler(event, _):
 
     store_order(order)
 
+    logger.info({
+        "message": "Order {} created".format(order["orderId"]),
+        "orderId": order["orderId"]
+    })
+    logger.debug({
+        "message": "Order {} created".format(order["orderId"]),
+        "orderId": order["orderId"],
+        "order": order
+    })
+    # Generate custom metrics using the Embedded Metric Format
+    # See https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CloudWatch_Embedded_Metric_Format_Specification.html
+    print(json.dumps({
+        "orderCreatedTotal": order["total"],
+        "orderCreated": 1,
+        "environment": ENVIRONMENT,
+        "_aws": {
+            # Timestamp is in milliseconds
+            "Timestamp": int(datetime.datetime.now().timestamp()*1000),
+            "CloudWatchMetrics": [{
+                "Namespace": "ecommerce.orders",
+                "Dimensions": [["environment"]],
+                "Metrics": [
+                    {"Name": "orderCreatedTotal"},
+                    {"Name": "orderCreated"}
+                ]
+            }]
+        }
+    }))
+
     return {
         "success": True,
         "order": order,

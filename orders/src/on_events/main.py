@@ -3,8 +3,10 @@ OnPackageCreated Function
 """
 
 
+import datetime
+import json
 import os
-from typing import List, Optional
+from typing import List, Optional, Union
 import boto3
 from aws_lambda_powertools.tracing import Tracer # pylint: disable=import-error
 from aws_lambda_powertools.logging import logger_setup, logger_inject_lambda_context # pylint: disable=import-error
@@ -18,6 +20,36 @@ dynamodb = boto3.resource("dynamodb") # pylint: disable=invalid-name
 table = dynamodb.Table(TABLE_NAME) # pylint: disable=invalid-name,no-member
 logger = logger_setup() # pylint: disable=invalid-name
 tracer = Tracer() # pylint: disable=invalid-name
+
+
+@tracer.capture_method
+def log_metrics(metric_names: Union[str, List[str]], metric_values: Union[int, List[int]]) -> None:
+    """
+    Log custom metrics
+    """
+
+    if isinstance(metric_names, str):
+        metric_names = [metric_names]
+    if isinstance(metric_values, int):
+        metric_values = [metric_values]
+
+    assert len(metric_names) <= len(metric_values)
+
+    metrics = {metric_names[i]: metric_values[i] for i in range(len(metric_names))}
+    metrics["environment"] = ENVIRONMENT
+    metrics["_aws"] = {
+        # Timestamp is in milliseconds
+        "Timestamp": int(datetime.datetime.now().timestamp()*1000),
+        "CloudWatchMetrics": [{
+            "Namespace": "ecommerce.orders",
+            "Dimensions": [["environment"]],
+            "Metrics": [
+                {"Name": name} for name in metric_names
+            ]
+        }]
+    }
+
+    print(json.dumps(metrics))
 
 
 @tracer.capture_method
@@ -83,8 +115,10 @@ def handler(event, _):
         })
         if event["source"] == "ecommerce.warehouse":
             if event["detail-type"] == "PackageCreated":
+                log_metrics("orderPackaged", 1)
                 update_order(order_id, "PACKAGED", event["detail"]["products"])
             elif event["detail-type"] == "PackagingFailed":
+                log_metrics("orderFailed", 1)
                 update_order(order_id, "PACKAGING_FAILED")
             else:
                 logger.warning({
@@ -95,8 +129,10 @@ def handler(event, _):
                 })
         elif event["source"] == "ecommerce.delivery":
             if event["detail-type"] == "DeliveryCompleted":
+                log_metrics("orderFulfilled", 1)
                 update_order(order_id, "FULFILLED")
             elif event["detail-type"] == "DeliveryFailed":
+                log_metrics("orderFailed", 1)
                 update_order(order_id, "DELIVERY_FAILED")
             else:
                 logger.warning({
