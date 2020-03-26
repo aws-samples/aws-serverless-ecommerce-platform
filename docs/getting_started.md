@@ -23,6 +23,16 @@ If you want to deploy a complete pipeline to a production environment, you can r
 
 When you want to push modifications to AWS, you can run `git push aws HEAD:master`, which will push the latest commit from the current branch to the master branch in the CodeCommit repository.
 
+## Useful commands
+
+All the following commands can be run without the service name (e.g. `make tests-integ` to run integration tests for all services).
+
+* __`make ci-${SERVICE}`__ (e.g. make ci-products): lint, build and run unit tests for a specific service.
+* __`make all-${SERVICE}`__ (e.g. make all-orders): lint, build, run unit tests, package, deploy to AWS and run integration tests for a specific service.
+* __`make tests-unit-${SERVICE}`__: run unit tests for a service, useful when you had a bug in the unit tests but don't need to rebuild the Lambda functions.
+* __`make tests-integ-${SERVICE}`__: run integration tests for a service, for when you had a bug in the integration tests.
+* __`make tests-e2e`__: run end-to-end tests that check if the overall ordering workflows work as expected.
+
 ## Creating or modifying a service
 
 To read how you can create a new service or modify an existing one, please read the [service structure documentation](service.md).
