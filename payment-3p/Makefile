@@ -18,14 +18,15 @@ build: _install
 		mkdir build/ ; \
 	fi
 	cp -rp src/ build/src/
+	npm i
 	npx cdk synth --verbose > build/template.yaml
 
 	# Install packages and transpile to Javascript for each Lambda function
 	for function_folder in build/src/* ; do \
 		cd $$function_folder ; \
 		npm i ; \
-		npx tsc -p . ; \
 		cd ${CURDIR} ; \
+		npx tsc -p $$function_folder ; \
 	done
 
 	# Package artifacts
