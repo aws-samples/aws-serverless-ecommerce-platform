@@ -24,8 +24,8 @@ build: _install
 	for function_folder in build/src/* ; do \
 		cd $$function_folder ; \
 		npm i ; \
-		npx tsc -p . ; \
 		cd ${CURDIR} ; \
+		npx tsc -p $$function_folder ; \
 	done
 
 	# Package artifacts
