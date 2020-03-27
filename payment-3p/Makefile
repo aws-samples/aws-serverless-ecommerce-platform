@@ -18,7 +18,6 @@ build: _install
 		mkdir build/ ; \
 	fi
 	cp -rp src/ build/src/
-	npm i
 	npx cdk synth --verbose > build/template.yaml
 
 	# Install packages and transpile to Javascript for each Lambda function
