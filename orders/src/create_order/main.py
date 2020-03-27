@@ -237,6 +237,8 @@ def handler(event, _):
 
     store_order(order)
 
+    # Log
+    tracer.put_annotation("orderId", order["orderId"])
     logger.info({
         "message": "Order {} created".format(order["orderId"]),
         "orderId": order["orderId"]

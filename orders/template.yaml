@@ -272,6 +272,8 @@ Resources:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: ../../shared/templates/dlq.yaml
+      Parameters:
+        AlarmAction: !Ref AlarmTopic
 
   ############
   # LISTENER #
@@ -362,7 +364,7 @@ Resources:
                   ["AWS/Lambda", "Throttles", "FunctionName", "${OnEventsFunction}", {"id": "lt3", "visible": false}],
                   ["AWS/Lambda", "Throttles", "FunctionName", "${TableUpdateFunction}", {"id": "lt4", "visible": false}],
 
-                  ["AWS/ApiGateway", "5XXError", "ApiName", "${Api}", {"id": "ag1", "visible": false}],
+                  ["AWS/ApiGateway", "5XXError", "ApiName", "${AWS::StackName}-api", {"id": "ag1", "visible": false}],
 
                   ["AWS/DynamoDB", "UserErrors", "TableName", "${Table}", {"id": "db1", "visible": false}],
                   ["AWS/DynamoDB", "SystemErrors", "TableName", "${Table}", {"id": "db2", "visible": false}]
@@ -486,7 +488,7 @@ Resources:
               "type": "metric",
               "x": 0,
               "y": 15,
-              "width": 12,
+              "width": 8,
               "height": 6,
               "properties": {
                 "metrics": [
@@ -504,9 +506,9 @@ Resources:
             },
             {
               "type": "metric",
-              "x": 12,
+              "x": 8,
               "y": 15,
-              "width": 12,
+              "width": 8,
               "height": 6,
               "properties": {
                 "metrics": [
@@ -522,6 +524,27 @@ Resources:
                 "title": "GetOrder Duration"
               }
             },
+            {
+              "type": "metric",
+              "x": 16,
+              "y": 15,
+              "width": 8,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["AWS/ApiGateway", "Latency", "ApiName", "${AWS::StackName}-api", {"color": "#9ccc65", "label": "p50"}],
+                  ["...", {"stat": "p90", "color": "#ffee58", "label": "p90"}],
+                  ["...", {"stat": "p99", "color": "#ef5350", "label": "p99"}]
+                ],
+                "view": "timeSeries",
+                "period": 60,
+                "stacked": false,
+                "stat": "p50",
+                "region": "${AWS::Region}",
+                "title": "API Latency"
+              }
+            },
+
             {
               "type": "metric",
               "x": 0,
@@ -605,8 +628,8 @@ Resources:
               "height": 6,
               "properties": {
                 "metrics": [
-                  ["AWS/ApiGateway", "4XXError", "ApiName", "${Api}", {"color": "#ffa726", "label": "4XX Errors"}],
-                  ["AWS/ApiGateway", "5XXError", "ApiName", "${Api}", {"color": "#ef5350", "label": "5XX Errors"}]
+                  ["AWS/ApiGateway", "4XXError", "ApiName", "${AWS::StackName}-api", {"color": "#ffa726", "label": "4XX Errors"}],
+                  ["AWS/ApiGateway", "5XXError", "ApiName", "${AWS::StackName}-api", {"color": "#ef5350", "label": "5XX Errors"}]
                 ],
                 "view": "timeSeries",
                 "period": 60,
@@ -652,3 +675,288 @@ Resources:
             }
           ]
         }
+
+  ##########
+  # ALARMS #
+  ##########
+
+  AlarmTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: Orders Alarm
+
+  ApiGateway4XXErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref AlarmTopic
+      AlarmDescription: |
+        API Gateway 4XX Errors > 1%
+      ComparisonOperator: GreaterThanThreshold
+      DatapointsToAlarm: 1
+      EvaluationPeriods: 6
+      Metrics:
+        - Id: s1
+          Expression: m1/m2*100
+        - Id: m1
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: ApiName
+                  Value: !Sub "${AWS::StackName}-api"
+              MetricName: 4XXError
+              Namespace: AWS/ApiGateway
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+        - Id: m2
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: ApiName
+                  Value: !Sub "${AWS::StackName}-api"
+              MetricName: Count
+              Namespace: AWS/ApiGateway
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+      Threshold: 1
+      TreatMissingData: notBreaching
+
+  ApiGateway5XXErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref AlarmTopic
+      AlarmDescription: | 
+        API Gateway 5XX Errors > 0
+      ComparisonOperator: GreaterThanThreshold
+      DatapointsToAlarm: 1
+      Dimensions:
+        - Name: ApiName
+          Value: !Sub "${AWS::StackName}-api"
+      EvaluationPeriods: 6
+      ExtendedStatistic: p99
+      MetricName: 5XXError
+      Namespace: AWS/ApiGateway
+      Period: 300
+      Threshold: 0
+      TreatMissingData: notBreaching
+
+  ApiGatewayP99LatencyAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref AlarmTopic
+      AlarmDescription: | 
+        API p99 latency alarm >= 1s
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      DatapointsToAlarm: 1
+      Dimensions:
+        - Name: FunctionName
+          Value: !Sub "${AWS::StackName}-api"
+      EvaluationPeriods: 6
+      ExtendedStatistic: p99
+      MetricName: Latency
+      Namespace: AWS/ApiGateway
+      Period: 300
+      Threshold: 1000
+      TreatMissingData: notBreaching
+
+  DynamoDBErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref AlarmTopic
+      AlarmDescription: |
+        DynamoDB Errors > 0
+      ComparisonOperator: GreaterThanThreshold
+      DatapointsToAlarm: 1
+      EvaluationPeriods: 6
+      Metrics:
+        - Id: s1
+          Expression: m1+m2
+        - Id: m1
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: TableName
+                  Value: !Ref Table
+              MetricName: UserErrors
+              Namespace: AWS/DynamoDB
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+        - Id: m2
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: TableName
+                  Value: !Ref Table
+              MetricName: SystemErrors
+              Namespace: AWS/DynamoDB
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+      Threshold: 0
+      TreatMissingData: notBreaching
+
+  LambdaErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref AlarmTopic
+      AlarmDescription: |
+        Lambda Errors > 0
+      ComparisonOperator: GreaterThanThreshold
+      DatapointsToAlarm: 1
+      EvaluationPeriods: 6
+      Metrics:
+        - Id: s1
+          Expression: m1+m2+m3+m4
+        - Id: m1
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Ref CreateOrderFunction
+              MetricName: Errors
+              Namespace: AWS/Lambda
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+        - Id: m2
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Ref GetOrderFunction
+              MetricName: Errors
+              Namespace: AWS/Lambda
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+        - Id: m3
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Ref OnEventsFunction
+              MetricName: Errors
+              Namespace: AWS/Lambda
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+        - Id: m4
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Ref TableUpdateFunction
+              MetricName: Errors
+              Namespace: AWS/Lambda
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+      Threshold: 0
+      TreatMissingData: notBreaching
+
+  LambdaThrottlesAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref AlarmTopic
+      AlarmDescription: |
+        Lambda Throttles > 0
+      ComparisonOperator: GreaterThanThreshold
+      DatapointsToAlarm: 1
+      EvaluationPeriods: 6
+      Metrics:
+        - Id: s1
+          Expression: m1+m2+m3+m4
+        - Id: m1
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Ref CreateOrderFunction
+              MetricName: Throttles
+              Namespace: AWS/Lambda
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+        - Id: m2
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Ref GetOrderFunction
+              MetricName: Throttles
+              Namespace: AWS/Lambda
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+        - Id: m3
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Ref OnEventsFunction
+              MetricName: Throttles
+              Namespace: AWS/Lambda
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+        - Id: m4
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Ref TableUpdateFunction
+              MetricName: Throttles
+              Namespace: AWS/Lambda
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+      Threshold: 0
+      TreatMissingData: notBreaching
+
+  CreateOrderP99LatencyAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref AlarmTopic
+      AlarmDescription: | 
+        CreateOrder p99 latency alarm >= 5s
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      DatapointsToAlarm: 1
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref CreateOrderFunction
+      EvaluationPeriods: 6
+      ExtendedStatistic: p99
+      MetricName: Duration
+      Namespace: AWS/Lambda
+      Period: 300
+      Threshold: 5000
+      TreatMissingData: notBreaching
+
+  GetOrderP99LatencyAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref AlarmTopic
+      AlarmDescription: | 
+        GetOrder p99 latency alarm >= 1s
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      DatapointsToAlarm: 1
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref GetOrderFunction
+      EvaluationPeriods: 6
+      ExtendedStatistic: p99
+      MetricName: Duration
+      Namespace: AWS/Lambda
+      Period: 300
+      Threshold: 1000
+      TreatMissingData: notBreaching

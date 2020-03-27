@@ -113,6 +113,7 @@ def handler(event, _):
             "eventType": event["detail-type"],
             "orderId": order_id
         })
+        tracer.put_annotation("orderId", order_id)
         if event["source"] == "ecommerce.warehouse":
             if event["detail-type"] == "PackageCreated":
                 log_metrics("orderPackaged", 1)
