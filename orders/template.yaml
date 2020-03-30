@@ -960,3 +960,39 @@ Resources:
       Period: 300
       Threshold: 1000
       TreatMissingData: notBreaching
+
+  OrderCreatedAnomalyDetector:
+    Type: AWS::CloudWatch::AnomalyDetector
+    Properties:
+      MetricName: orderCreated
+      Dimensions:
+        - Name: environment
+          Value: !Ref Environment
+      Namespace: ecommerce.orders
+      Stat: Sum
+
+  OrderCreatedAnomalyAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref AlarmTopic
+      AlarmDescription: |
+        Anomaly on the number of orders created
+      ComparisonOperator: LessThanLowerOrGreaterThanUpperThreshold
+      EvaluationPeriods: 6
+      Metrics:
+        - Expression: ANOMALY_DETECTION_BAND(m1, 2)
+          Id: ad1
+        - Id: m1
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: environment
+                  Value: !Ref Environment
+              MetricName: orderCreated
+              Namespace: ecommerce.orders
+            Period: 3600
+            Stat: Sum
+      ThresholdMetricId: ad1
+      TreatMissingData: notBreaching
+      
