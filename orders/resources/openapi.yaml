@@ -1,6 +1,7 @@
 openapi: "3.0.2"
 info:
-  title: Orders API
+  title:
+    Fn::Sub: "${AWS::StackName}-api"
   version: 1.0.0
   description: Orders service API definition
   license:

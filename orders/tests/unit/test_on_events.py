@@ -1,3 +1,4 @@
+import json
 from boto3.dynamodb.types import TypeSerializer
 from botocore import stub
 import pytest
@@ -18,6 +19,53 @@ context = pytest.fixture(context)
 @pytest.fixture
 def order(get_order):
     return get_order()
+
+
+def test_log_metrics(lambda_module, capsys):
+    """
+    Test log_metrics()
+    """
+
+    lambda_module.log_metrics("METRIC_NAME", 100)
+    captured = capsys.readouterr()
+    metrics = json.loads(captured.out)
+    assert "_aws" in metrics
+    assert "CloudWatchMetrics" in metrics["_aws"]
+    assert len(metrics["_aws"]["CloudWatchMetrics"]) == 1
+    assert metrics["_aws"]["CloudWatchMetrics"][0] == {
+            "Namespace": "ecommerce.orders",
+            "Dimensions": [["environment"]],
+            "Metrics": [
+                {"Name": "METRIC_NAME"}
+            ]
+        }  
+    assert "METRIC_NAME" in metrics
+    assert metrics["METRIC_NAME"] == 100
+
+
+def test_log_metrics_multiple(lambda_module, capsys):
+    """
+    Test log_metrics() with multiple metrics
+    """
+
+    lambda_module.log_metrics(["METRIC_NAME1", "METRIC_NAME2"], [100, 200])
+    captured = capsys.readouterr()
+    metrics = json.loads(captured.out)
+    assert "_aws" in metrics
+    assert "CloudWatchMetrics" in metrics["_aws"]
+    assert len(metrics["_aws"]["CloudWatchMetrics"]) == 1
+    assert metrics["_aws"]["CloudWatchMetrics"][0] == {
+            "Namespace": "ecommerce.orders",
+            "Dimensions": [["environment"]],
+            "Metrics": [
+                {"Name": "METRIC_NAME1"},
+                {"Name": "METRIC_NAME2"}
+            ]
+        }  
+    assert "METRIC_NAME1" in metrics
+    assert "METRIC_NAME2" in metrics
+    assert metrics["METRIC_NAME1"] == 100
+    assert metrics["METRIC_NAME2"] == 200
 
 
 def test_update_order(lambda_module):

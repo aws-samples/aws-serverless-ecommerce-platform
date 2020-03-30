@@ -73,6 +73,9 @@ def handler(event, _):
         logger.warning({"message": "Order ID not found in event"})
         return response("Missing orderId", 400)
 
+    # Set a trace annotation
+    tracer.put_annotation("orderId", order_id)
+
     # Retrieve the order from DynamoDB
     order = get_order(order_id)
 

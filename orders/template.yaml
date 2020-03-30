@@ -272,6 +272,8 @@ Resources:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: ../../shared/templates/dlq.yaml
+      Parameters:
+        AlarmAction: !Ref AlarmTopic
 
   ############
   # LISTENER #
@@ -285,3 +287,712 @@ Resources:
         Environment: !Ref Environment
         EventBusName: !Ref EventBusName
         ServiceName: "orders"
+
+  #############
+  # DASHBOARD #
+  #############
+  Dashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: !Ref AWS::StackName
+      DashboardBody: !Sub |
+        {
+          "start": "-PT6H",
+          "periodOverride": "inherit",
+          "widgets": [
+            {
+              "type": "text",
+              "x": 0,
+              "y": 0,
+              "width": 20,
+              "height": 1,
+              "properties": {
+                "markdown": "\n# Key Metrics\n"
+              }
+            },
+            {
+              "type": "text",
+              "x": 20,
+              "y": 0,
+              "width": 4,
+              "height": 7,
+              "properties": {
+                "markdown": "\n## Useful links\n\n__CloudWatch Logs Insights queries__:\n\n* [Last 100 warning messages](https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#logs-insights:queryDetail=~\\(end~0~start~-21600~timeType~'RELATIVE~unit~'seconds~editorString~'fields*20timestamp*2c*20level*2c*20message.orderId*20as*20orderId*2c*20message.message*20as*20message*0a*7c*20filter*20level*20*3d*3d*20*22WARNING*22*0a*7c*20sort*20*40timestamp*20desc*0a*7c*20limit*2020*0a~isLiveTail~false~queryId~'38d167e2-e680-4dc3-80fc-411dbd93a317~source~(~'*2faws*2flambda*2f${CreateOrderFunction}~'*2faws*2flambda*2f${GetOrderFunction}~'*2faws*2flambda*2f${OnEventsFunction}~'*2faws*2flambda*2f${TableUpdateFunction})\\))\n\n__Other links__:\n\n* [Repository](https://github.com/aws-samples/aws-serverless-ecommerce-platform/tree/master/orders)\n"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 1,
+              "width": 10,
+              "height": 3,
+              "properties": {
+                "metrics": [
+                  ["ecommerce.orders", "orderCreated", "environment", "${Environment}", {"color": "#29b6f6", "label": "Orders Created"}],
+                  ["ecommerce.orders", "orderFulfilled", "environment", "${Environment}", {"color": "#66bb6a", "label": "Orders Fulfilled"}],
+                  ["ecommerce.orders", "orderFailed", "environment", "${Environment}", {"color": "#ef5350", "label": "Orders Failed"}]
+                ],
+                "view": "singleValue",
+                "period": 86400,
+                "stacked": false,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "Orders"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 10,
+              "y": 1,
+              "width": 10,
+              "height": 3,
+              "properties": {
+                "metrics": [
+                  [{"expression": "le1+le2+le3+le4+lt1+lt2+lt3+lt4", "label": "Lambda Errors", "color": "#66bb6a"}],
+                  [{"expression": "ag1", "label": "API Gateway 5XX", "color": "#ef5350"}],
+                  [{"expression": "db1+db2", "label": "DynamoDB Errors", "color": "#ffa726"}],
+
+
+                  ["AWS/Lambda", "Errors", "FunctionName", "${CreateOrderFunction}", {"id": "le1", "visible": false}],
+                  ["AWS/Lambda", "Errors", "FunctionName", "${GetOrderFunction}", {"id": "le2", "visible": false}],
+                  ["AWS/Lambda", "Errors", "FunctionName", "${OnEventsFunction}", {"id": "le3", "visible": false}],
+                  ["AWS/Lambda", "Errors", "FunctionName", "${TableUpdateFunction}", {"id": "le4", "visible": false}],
+
+                  ["AWS/Lambda", "Throttles", "FunctionName", "${CreateOrderFunction}", {"id": "lt1", "visible": false}],
+                  ["AWS/Lambda", "Throttles", "FunctionName", "${GetOrderFunction}", {"id": "lt2", "visible": false}],
+                  ["AWS/Lambda", "Throttles", "FunctionName", "${OnEventsFunction}", {"id": "lt3", "visible": false}],
+                  ["AWS/Lambda", "Throttles", "FunctionName", "${TableUpdateFunction}", {"id": "lt4", "visible": false}],
+
+                  ["AWS/ApiGateway", "5XXError", "ApiName", "${AWS::StackName}-api", {"id": "ag1", "visible": false}],
+
+                  ["AWS/DynamoDB", "UserErrors", "TableName", "${Table}", {"id": "db1", "visible": false}],
+                  ["AWS/DynamoDB", "SystemErrors", "TableName", "${Table}", {"id": "db2", "visible": false}]
+                ],
+                "view": "singleValue",
+                "period": 86400,
+                "stacked": false,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "Errors"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 4,
+              "width": 10,
+              "height": 3,
+              "properties": {
+                "metrics": [
+                  ["AWS/Lambda", "Duration", "FunctionName", "${CreateOrderFunction}", {"color": "#9ccc65", "label": "p50"}],
+                  ["...", {"stat": "p90", "color": "#ffee58", "label": "p90"}],
+                  ["...", {"stat": "p99", "color": "#ef5350", "label": "p99"}]
+                ],
+                "view": "singleValue",
+                "period": 86400,
+                "stacked": false,
+                "stat": "p50",
+                "region": "${AWS::Region}",
+                "title": "CreateOrder Latency"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 10,
+              "y": 4,
+              "width": 10,
+              "height": 3,
+              "properties": {
+                "metrics": [
+                  ["AWS/Lambda", "Duration", "FunctionName", "${CreateOrderFunction}", {"color": "#9ccc65", "label": "p50"}],
+                  ["...", {"stat": "p90", "color": "#ffee58", "label": "p90"}],
+                  ["...", {"stat": "p99", "color": "#ef5350", "label": "p99"}]
+                ],
+                "view": "singleValue",
+                "period": 86400,
+                "stacked": false,
+                "stat": "p50",
+                "region": "${AWS::Region}",
+                "title": "GetOrder Latency"
+              }
+            },
+
+            {
+              "type": "text",
+              "x": 0,
+              "y": 7,
+              "width": 24,
+              "height": 1,
+              "properties": {
+                "markdown": "\n# Traffic\n"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 8,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["AWS/Lambda", "Invocations", "FunctionName", "${CreateOrderFunction}", {"color": "#29b6f6", "label": "CreateOrder"}],
+                  ["AWS/Lambda", "Invocations", "FunctionName", "${GetOrderFunction}", {"color": "#66bb6a", "label": "GetOrder"}],
+                  ["AWS/Lambda", "Invocations", "FunctionName", "${OnEventsFunction}", {"color": "#ec407a", "label": "OnEvents"}],
+                  ["AWS/Lambda", "Invocations", "FunctionName", "${TableUpdateFunction}", {"color": "#ffa726", "label": "TableUpdate"}]
+                ],
+                "view": "timeSeries",
+                "period": 60,
+                "stacked": false,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "Requests"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 8,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["ecommerce.orders", "orderCreated", "environment", "${Environment}", {"color": "#29b6f6", "label": "Orders Created"}],
+                  ["ecommerce.orders", "orderPackaged", "environment", "${Environment}", {"color": "#ffa726", "label": "Orders Packaged"}],
+                  ["ecommerce.orders", "orderFulfilled", "environment", "${Environment}", {"color": "#66bb6a", "label": "Orders Fulfilled"}],
+                  ["ecommerce.orders", "orderFailed", "environment", "${Environment}", {"color": "#ef5350", "label": "Orders Failed"}]
+                ],
+                "view": "timeSeries",
+                "period": 60,
+                "stacked": false,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "Orders"
+              }
+            },
+
+            {
+              "type": "text",
+              "x": 0,
+              "y": 14,
+              "width": 24,
+              "height": 1,
+              "properties": {
+                "markdown": "\n# Latency and Duration\n"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 15,
+              "width": 8,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["AWS/Lambda", "Duration", "FunctionName", "${CreateOrderFunction}", {"color": "#9ccc65", "label": "p50"}],
+                  ["...", {"stat": "p90", "color": "#ffee58", "label": "p90"}],
+                  ["...", {"stat": "p99", "color": "#ef5350", "label": "p99"}]
+                ],
+                "view": "timeSeries",
+                "period": 60,
+                "stacked": false,
+                "stat": "p50",
+                "region": "${AWS::Region}",
+                "title": "CreateOrder Duration"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 8,
+              "y": 15,
+              "width": 8,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["AWS/Lambda", "Duration", "FunctionName", "${GetOrderFunction}", {"color": "#9ccc65", "label": "p50"}],
+                  ["...", {"stat": "p90", "color": "#ffee58", "label": "p90"}],
+                  ["...", {"stat": "p99", "color": "#ef5350", "label": "p99"}]
+                ],
+                "view": "timeSeries",
+                "period": 60,
+                "stacked": false,
+                "stat": "p50",
+                "region": "${AWS::Region}",
+                "title": "GetOrder Duration"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 16,
+              "y": 15,
+              "width": 8,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["AWS/ApiGateway", "Latency", "ApiName", "${AWS::StackName}-api", {"color": "#9ccc65", "label": "p50"}],
+                  ["...", {"stat": "p90", "color": "#ffee58", "label": "p90"}],
+                  ["...", {"stat": "p99", "color": "#ef5350", "label": "p99"}]
+                ],
+                "view": "timeSeries",
+                "period": 60,
+                "stacked": false,
+                "stat": "p50",
+                "region": "${AWS::Region}",
+                "title": "API Latency"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 21,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["AWS/DynamoDB", "SuccessfulRequestLatency", "TableName", "${Table}", "Operation", "GetItem", {"color": "#66bb6a", "label": "GetItem"}],
+                  ["AWS/DynamoDB", "SuccessfulRequestLatency", "TableName", "${Table}", "Operation", "PutItem", {"color": "#ffa726", "label": "PutItem"}],
+                  ["AWS/DynamoDB", "SuccessfulRequestLatency", "TableName", "${Table}", "Operation", "UpdateItem", {"color": "#29b6f6", "label": "UpdateItem"}],
+                  ["AWS/DynamoDB", "SuccessfulRequestLatency", "TableName", "${Table}", "Operation", "DeleteItem", {"color": "#ef5350", "label": "DeleteItem"}],
+                  ["AWS/DynamoDB", "SuccessfulRequestLatency", "TableName", "${Table}", "Operation", "Query", {"color": "#ec407a", "label": "Query"}]
+                ],
+                "view": "timeSeries",
+                "period": 60,
+                "stacked": false,
+                "stat": "Average",
+                "region": "${AWS::Region}",
+                "title": "DynamoDB Latency"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 21,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["AWS/Lambda", "Duration", "FunctionName", "${OnEventsFunction}", {"color": "#ec407a", "label": "OnEvents P90"}],
+                  ["AWS/Lambda", "Duration", "FunctionName", "${TableUpdateFunction}", {"color": "#ffa726", "label": "TableUpdate P90"}],
+                  ["AWS/Lambda", "IteratorAge", "FunctionName", "${TableUpdateFunction}", {"color": "#ff7043", "stat": "Average", "label": "TableUpdate Iterator Age"}]
+                ],
+                "view": "timeSeries",
+                "period": 60,
+                "stacked": false,
+                "stat": "p90",
+                "region": "${AWS::Region}",
+                "title": "Asynchronous Durations"
+              }
+            },
+
+            {
+              "type": "text",
+              "x": 0,
+              "y": 22,
+              "width": 24,
+              "height": 1,
+              "properties": {
+                "markdown": "\n# Errors\n"
+              }
+            },
+
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 23,
+              "width": 8,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["AWS/Lambda", "Errors", "FunctionName", "${CreateOrderFunction}", {"color": "#29b6f6", "label": "CreateOrder"}],
+                  ["AWS/Lambda", "Errors", "FunctionName", "${GetOrderFunction}", {"color": "#66bb6a", "label": "GetOrder"}],
+                  ["AWS/Lambda", "Errors", "FunctionName", "${OnEventsFunction}", {"color": "#ec407a", "label": "OnEvents"}],
+                  ["AWS/Lambda", "Errors", "FunctionName", "${TableUpdateFunction}", {"color": "#ffa726", "label": "TableUpdate"}]
+                ],
+                "view": "timeSeries",
+                "period": 60,
+                "stacked": false,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "Lambda Errors"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 8,
+              "y": 23,
+              "width": 8,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["AWS/ApiGateway", "4XXError", "ApiName", "${AWS::StackName}-api", {"color": "#ffa726", "label": "4XX Errors"}],
+                  ["AWS/ApiGateway", "5XXError", "ApiName", "${AWS::StackName}-api", {"color": "#ef5350", "label": "5XX Errors"}]
+                ],
+                "view": "timeSeries",
+                "period": 60,
+                "stacked": false,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "API Errors"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 16,
+              "y": 23,
+              "width": 8,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["AWS/DynamoDB", "UserErrors", "TableName", "${Table}", {"color": "#ffa726", "label": "User Errors"}],
+                  ["AWS/DynamoDB", "SystemErrors", "TableName", "${Table}", {"color": "#ef5350", "label": "System Errors"}]
+                ],
+                "view": "timeSeries",
+                "period": 60,
+                "stacked": false,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "DynamoDB Errors"
+              }
+            },
+
+            {
+              "type": "log",
+              "x": 0,
+              "y": 29,
+              "width": 24,
+              "height": 6,
+              "properties": {
+                "query": "SOURCE '/aws/lambda/${CreateOrderFunction}' | SOURCE '/aws/lambda/${GetOrderFunction}' | SOURCE '/aws/lambda/${OnEventsFunction}' | SOURCE '/aws/lambda/${TableUpdateFunction}' | fields timestamp, level, message.orderId, message.message as message as orderId \n| filter level == \"ERROR\"\n| sort @timestamp desc\n| limit 20\n",
+                "region": "eu-west-1",
+                "stacked": false,
+                "view": "table",
+                "title": "Last 20 errors"
+              }
+            }
+          ]
+        }
+
+  ##########
+  # ALARMS #
+  ##########
+
+  AlarmTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: Orders Alarm
+
+  ApiGateway4XXErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref AlarmTopic
+      AlarmDescription: |
+        API Gateway 4XX Errors > 1%
+      ComparisonOperator: GreaterThanThreshold
+      DatapointsToAlarm: 1
+      EvaluationPeriods: 6
+      Metrics:
+        - Id: s1
+          Expression: m1/m2*100
+        - Id: m1
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: ApiName
+                  Value: !Sub "${AWS::StackName}-api"
+              MetricName: 4XXError
+              Namespace: AWS/ApiGateway
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+        - Id: m2
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: ApiName
+                  Value: !Sub "${AWS::StackName}-api"
+              MetricName: Count
+              Namespace: AWS/ApiGateway
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+      Threshold: 1
+      TreatMissingData: notBreaching
+
+  ApiGateway5XXErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref AlarmTopic
+      AlarmDescription: | 
+        API Gateway 5XX Errors > 0
+      ComparisonOperator: GreaterThanThreshold
+      DatapointsToAlarm: 1
+      Dimensions:
+        - Name: ApiName
+          Value: !Sub "${AWS::StackName}-api"
+      EvaluationPeriods: 6
+      ExtendedStatistic: p99
+      MetricName: 5XXError
+      Namespace: AWS/ApiGateway
+      Period: 300
+      Threshold: 0
+      TreatMissingData: notBreaching
+
+  ApiGatewayP99LatencyAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref AlarmTopic
+      AlarmDescription: | 
+        API p99 latency alarm >= 1s
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      DatapointsToAlarm: 1
+      Dimensions:
+        - Name: FunctionName
+          Value: !Sub "${AWS::StackName}-api"
+      EvaluationPeriods: 6
+      ExtendedStatistic: p99
+      MetricName: Latency
+      Namespace: AWS/ApiGateway
+      Period: 300
+      Threshold: 1000
+      TreatMissingData: notBreaching
+
+  DynamoDBErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref AlarmTopic
+      AlarmDescription: |
+        DynamoDB Errors > 0
+      ComparisonOperator: GreaterThanThreshold
+      DatapointsToAlarm: 1
+      EvaluationPeriods: 6
+      Metrics:
+        - Id: s1
+          Expression: m1+m2
+        - Id: m1
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: TableName
+                  Value: !Ref Table
+              MetricName: UserErrors
+              Namespace: AWS/DynamoDB
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+        - Id: m2
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: TableName
+                  Value: !Ref Table
+              MetricName: SystemErrors
+              Namespace: AWS/DynamoDB
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+      Threshold: 0
+      TreatMissingData: notBreaching
+
+  LambdaErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref AlarmTopic
+      AlarmDescription: |
+        Lambda Errors > 0
+      ComparisonOperator: GreaterThanThreshold
+      DatapointsToAlarm: 1
+      EvaluationPeriods: 6
+      Metrics:
+        - Id: s1
+          Expression: m1+m2+m3+m4
+        - Id: m1
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Ref CreateOrderFunction
+              MetricName: Errors
+              Namespace: AWS/Lambda
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+        - Id: m2
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Ref GetOrderFunction
+              MetricName: Errors
+              Namespace: AWS/Lambda
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+        - Id: m3
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Ref OnEventsFunction
+              MetricName: Errors
+              Namespace: AWS/Lambda
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+        - Id: m4
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Ref TableUpdateFunction
+              MetricName: Errors
+              Namespace: AWS/Lambda
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+      Threshold: 0
+      TreatMissingData: notBreaching
+
+  LambdaThrottlesAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref AlarmTopic
+      AlarmDescription: |
+        Lambda Throttles > 0
+      ComparisonOperator: GreaterThanThreshold
+      DatapointsToAlarm: 1
+      EvaluationPeriods: 6
+      Metrics:
+        - Id: s1
+          Expression: m1+m2+m3+m4
+        - Id: m1
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Ref CreateOrderFunction
+              MetricName: Throttles
+              Namespace: AWS/Lambda
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+        - Id: m2
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Ref GetOrderFunction
+              MetricName: Throttles
+              Namespace: AWS/Lambda
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+        - Id: m3
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Ref OnEventsFunction
+              MetricName: Throttles
+              Namespace: AWS/Lambda
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+        - Id: m4
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Ref TableUpdateFunction
+              MetricName: Throttles
+              Namespace: AWS/Lambda
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+      Threshold: 0
+      TreatMissingData: notBreaching
+
+  CreateOrderP99LatencyAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref AlarmTopic
+      AlarmDescription: | 
+        CreateOrder p99 latency alarm >= 5s
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      DatapointsToAlarm: 1
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref CreateOrderFunction
+      EvaluationPeriods: 6
+      ExtendedStatistic: p99
+      MetricName: Duration
+      Namespace: AWS/Lambda
+      Period: 300
+      Threshold: 5000
+      TreatMissingData: notBreaching
+
+  GetOrderP99LatencyAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref AlarmTopic
+      AlarmDescription: | 
+        GetOrder p99 latency alarm >= 1s
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      DatapointsToAlarm: 1
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref GetOrderFunction
+      EvaluationPeriods: 6
+      ExtendedStatistic: p99
+      MetricName: Duration
+      Namespace: AWS/Lambda
+      Period: 300
+      Threshold: 1000
+      TreatMissingData: notBreaching
+
+  OrderCreatedAnomalyDetector:
+    Type: AWS::CloudWatch::AnomalyDetector
+    Properties:
+      MetricName: orderCreated
+      Dimensions:
+        - Name: environment
+          Value: !Ref Environment
+      Namespace: ecommerce.orders
+      Stat: Sum
+
+  OrderCreatedAnomalyAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref AlarmTopic
+      AlarmDescription: |
+        Anomaly on the number of orders created
+      ComparisonOperator: LessThanLowerOrGreaterThanUpperThreshold
+      EvaluationPeriods: 6
+      Metrics:
+        - Expression: ANOMALY_DETECTION_BAND(m1, 2)
+          Id: ad1
+        - Id: m1
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: environment
+                  Value: !Ref Environment
+              MetricName: orderCreated
+              Namespace: ecommerce.orders
+            Period: 3600
+            Stat: Sum
+      ThresholdMetricId: ad1
+      TreatMissingData: notBreaching
+      

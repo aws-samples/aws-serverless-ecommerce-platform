@@ -1,6 +1,7 @@
 openapi: "3.0.2"
 info:
-  title: Delivery Pricing API
+  title:
+    Fn::Sub: "${AWS::StackName}-api"
   version: 1.0.0
   description: Delivery Pricing API definition
   license:
