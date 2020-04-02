@@ -27,7 +27,6 @@ all:
 	done
 all-%: 
 	@${MAKE} lint-$*
-	@${MAKE} clean-$*
 	@${MAKE} build-$*
 	@${MAKE} tests-unit-$*
 	@${MAKE} check-deps-$*
@@ -39,7 +38,6 @@ all-%:
 ci: $(foreach service,${SERVICES}, ci-${service})
 ci-%:
 	@${MAKE} lint-$*
-	@${MAKE} clean-$*
 	@${MAKE} build-$*
 	@${MAKE} tests-unit-$*
 
