@@ -1,10 +1,7 @@
 const AWS = require('aws-sdk');
 const axios = require('axios');
 import { v4 as uuidv4 } from 'uuid';
-import { SSL_OP_EPHEMERAL_RSA } from 'constants';
 const env = process.env.ENVIRONMENT || "dev";
-
-AWS.config.credentials = new AWS.SharedIniFileCredentials();
 
 test('cancelPayment', async () => {
     const ssm = new AWS.SSM();

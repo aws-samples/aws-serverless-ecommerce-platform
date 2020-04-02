@@ -13,4 +13,4 @@ phases:
       - make requirements npm-install
   build:
     commands:
-      - make tests-integ-$SERVICE_NAME
+      - make tests-e2e

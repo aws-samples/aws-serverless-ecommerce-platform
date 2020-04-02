@@ -12,11 +12,14 @@ staging:
   parameters:
     LogLevel: DEBUG
     RetentionInDays: "30"
+  flags:
+    can-tests-integ: false
 
 prod:
   parameters:
     LogLevel: INFO
     RetentionInDays: "30"
   flags:
-    can-test: false
+    can-tests-integ: false
+    can-tests-e2e: false
     is-prod: true

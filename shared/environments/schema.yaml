@@ -20,7 +20,10 @@ additionalProperties:
     flags:
       type: object
       properties:
-        can-test:
+        can-tests-integ:
+          type: boolean
+          default: true
+        can-tests-e2e:
           type: boolean
           default: true
         is-prod:

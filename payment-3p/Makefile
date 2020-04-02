@@ -54,7 +54,7 @@ package:
 teardown:
 	@${ROOT}/tools/teardown cloudformation ${SERVICE}
 
-tests-integ:
+tests-integ: _install
 	npm run tests-integ
 
 tests-unit:

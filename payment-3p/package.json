@@ -9,11 +9,16 @@
     "watch": "tsc -w",
     "tests-cdk": "jest --projects cdk.jest.config.js",
     "tests-unit": "jest --projects unit.jest.config.js",
-    "tests-integ": "jest --projects integ.jest.config.js",
+    "tests-integ": "AWS_SDK_LOAD_CONFIG=true jest --projects integ.jest.config.js",
     "cdk": "cdk"
   },
-  "devDependencies": {
+  "dependencies": {
     "@aws-cdk/assert": "1.27.0",
+    "@aws-cdk/aws-dynamodb": "^1.27.0",
+    "@aws-cdk/aws-logs": "^1.27.0",
+    "@aws-cdk/aws-sam": "^1.27.0",
+    "@aws-cdk/aws-ssm": "^1.27.0",
+    "@aws-cdk/core": "1.27.0",
     "@types/chai": "^4.2.10",
     "@types/jest": "^24.0.22",
     "@types/node": "^10.17.17",
@@ -25,17 +30,10 @@
     "babel-jest": "^25.1.0",
     "chai": "^4.2.0",
     "jest": "^24.9.0",
+    "source-map-support": "^0.5.16",
     "ts-jest": "^24.1.0",
     "ts-node": "^8.1.0",
     "typescript": "~3.7.2"
-  },
-  "dependencies": {
-    "@aws-cdk/aws-dynamodb": "^1.27.0",
-    "@aws-cdk/aws-logs": "^1.27.0",
-    "@aws-cdk/aws-sam": "^1.27.0",
-    "@aws-cdk/aws-ssm": "^1.27.0",
-    "@aws-cdk/core": "1.27.0",
-    "source-map-support": "^0.5.16"
   },
   "repository": "https://github.com/aws-samples/aws-serverless-ecommerce-platform",
   "license": "MIT-0"
