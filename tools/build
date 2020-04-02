@@ -83,15 +83,21 @@ build_python3 () {
 
     # Copying source files
     if [ -d $service_dir/src/ ]; then
-        cp -rp $service_dir/src/ $build_dir/src/
+        for function in $(ls $service_dir/src/); do
+            # Only perform the build operation if the checksum file doesn't exist OR the checksum doesn't match
+            if [ ! -f $build_dir/src/$function.md5 -o "$(find $service_dir/src/$function -type f -exec md5sum {} \; | sort -k 2 | md5sum)" != "$(cat $build_dir/src/$function.md5)" ]; then
+                cp -rp $service_dir/src/ $build_dir/src/
+                if [ -f $build_dir/src/$function/requirements.txt ]; then
+                    python3 -m pip install --upgrade \
+                        --requirement $build_dir/src/$function/requirements.txt \
+                        --target $build_dir/src/$function/
+                    find $service_dir/src/$function -type f -exec md5sum {} \; | sort -k 2 | md5sum > $build_dir/src/$function.md5
+                fi
+            else
+                echo "Checksum match for function $function. Skipping"
+            fi
+        done
     fi
-
-    # Install libraries
-    for requirements in $build_dir/src/*/requirements.txt; do
-        python3 -m pip install \
-            --requirement $requirements \
-            --target $(dirname $requirements)
-    done
 }
 
 # Resolve the openapi.yaml file
