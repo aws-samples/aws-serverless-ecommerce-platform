@@ -7,6 +7,9 @@ Parameters:
     Type: String
     Default: dev
     Description: Environment name
+  LogLevel:
+    Type: String
+    Default: INFO
   QueryLimit:
     Type: Number
     Default: 20

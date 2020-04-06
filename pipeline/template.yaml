@@ -151,6 +151,39 @@ Resources:
   # SERVICE PIPELINES #
   #####################
 
+  DeliveryPipeline:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: resources/service-pipeline.yaml
+      Parameters:
+        ArtifactBucket: !Ref ArtifactBucket
+        ArtifactPrefix: "templates/"
+        ServiceName: delivery
+        CodeRepositoryName: !GetAtt CodeRepository.Name
+        CodeRepositoryArn: !GetAtt CodeRepository.Arn
+
+  DeliveryPricingPipeline:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: resources/service-pipeline.yaml
+      Parameters:
+        ArtifactBucket: !Ref ArtifactBucket
+        ArtifactPrefix: "templates/"
+        ServiceName: delivery-pricing
+        CodeRepositoryName: !GetAtt CodeRepository.Name
+        CodeRepositoryArn: !GetAtt CodeRepository.Arn
+
+  FrontendApiPipeline:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: resources/service-pipeline.yaml
+      Parameters:
+        ArtifactBucket: !Ref ArtifactBucket
+        ArtifactPrefix: "templates/"
+        ServiceName: frontend-api
+        CodeRepositoryName: !GetAtt CodeRepository.Name
+        CodeRepositoryArn: !GetAtt CodeRepository.Arn
+
   OrdersPipeline:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -159,6 +192,28 @@ Resources:
         ArtifactBucket: !Ref ArtifactBucket
         ArtifactPrefix: "templates/"
         ServiceName: orders
+        CodeRepositoryName: !GetAtt CodeRepository.Name
+        CodeRepositoryArn: !GetAtt CodeRepository.Arn
+
+  PaymentPipeline:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: resources/service-pipeline.yaml
+      Parameters:
+        ArtifactBucket: !Ref ArtifactBucket
+        ArtifactPrefix: "templates/"
+        ServiceName: payment
+        CodeRepositoryName: !GetAtt CodeRepository.Name
+        CodeRepositoryArn: !GetAtt CodeRepository.Arn
+
+  Payment3pPipeline:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: resources/service-pipeline.yaml
+      Parameters:
+        ArtifactBucket: !Ref ArtifactBucket
+        ArtifactPrefix: "templates/"
+        ServiceName: payment-3p
         CodeRepositoryName: !GetAtt CodeRepository.Name
         CodeRepositoryArn: !GetAtt CodeRepository.Arn
 

@@ -2,8 +2,6 @@ const AWS = require('aws-sdk');
 const axios = require('axios');
 const env = process.env.ENVIRONMENT || "dev";
 
-AWS.config.credentials = new AWS.SharedIniFileCredentials();
-
 test('preauth', async () => {
     const ssm = new AWS.SSM();
     const dynamodb = new AWS.DynamoDB.DocumentClient();

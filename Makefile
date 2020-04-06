@@ -174,10 +174,10 @@ npm-install:
 bootstrap-pipeline:
 	# Deploy in different environments
 	@${MAKE} all ENVIRONMENT=tests
-	#@${MAKE} all ENVIRONMENT=staging
+	@${MAKE} all ENVIRONMENT=staging
 	#@${MAKE} all ENVIRONMENT=prod
 	# Deploy the pipeline
-	@{MAKE} all-pipeline
+	@${MAKE} all-pipeline
 	# Seed the git repository
 	@echo "[*] seed repository"
 	@git remote add aws $(shell aws ssm get-parameter --name /ecommerce/pipeline/repository/url | jq -r '.Parameter.Value')

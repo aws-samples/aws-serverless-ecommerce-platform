@@ -325,7 +325,7 @@ def test_happy_path(get_order, products_table, jwt_token, frontend_api_url, paym
     assert body["data"]["completePackaging"]["success"] == True
 
     # Wait
-    time.sleep(5)
+    time.sleep(10)
 
     # Check the order
     query = """
