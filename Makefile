@@ -175,7 +175,7 @@ bootstrap-pipeline:
 	# Deploy in different environments
 	@${MAKE} all ENVIRONMENT=tests
 	@${MAKE} all ENVIRONMENT=staging
-	#@${MAKE} all ENVIRONMENT=prod
+	@${MAKE} all ENVIRONMENT=prod
 	# Deploy the pipeline
 	@${MAKE} all-pipeline
 	# Seed the git repository
