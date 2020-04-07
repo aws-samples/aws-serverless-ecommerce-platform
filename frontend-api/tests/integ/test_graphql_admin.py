@@ -120,7 +120,8 @@ def user_id(user_pool_id, email, password):
         UserAttributes=[{
             "Name": "email",
             "Value": email
-        }]
+        }],
+        MessageAction="SUPPRESS"
     )
     user_id = response["User"]["Username"]
     cognito.admin_set_user_password(
