@@ -55,7 +55,11 @@ teardown:
 	@${ROOT}/tools/teardown cloudformation ${SERVICE}
 
 tests-integ: _install
-	npm run tests-integ
+	if yq -r ' .'${ENVIRONMENT}'.flags["can-tests-e2e"] | if . == null then true else . end ' ${ROOT}/environments.yaml | grep -q true; then \
+		npm run tests-integ ; \
+	else \
+		echo "The environment ${ENVIRONMENT} does not support tests. Skipping" ; \
+	fi
 
 tests-unit:
 	npm run tests-unit

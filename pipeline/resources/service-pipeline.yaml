@@ -170,7 +170,7 @@ Resources:
                 Resource:
                   - !GetAtt TestsEnvironment.Outputs.RoleArn
                   - !GetAtt StagingEnvironment.Outputs.RoleArn
-                  # - !GetAtt ProdEnvironment.Outputs.RoleArn
+                  - !GetAtt ProdEnvironment.Outputs.RoleArn
               # Allow describing CloudFormation stacks
               - Effect: Allow
                 Action:
@@ -332,37 +332,37 @@ Resources:
         # # PROD #
         # ########
 
-        # - Name: prod
-        #   Actions:
-        #     - Name: create-changeset
-        #       ActionTypeId:
-        #         Category: Deploy
-        #         Provider: CloudFormation
-        #         Owner: AWS
-        #         Version: "1"
-        #       Configuration:
-        #         ActionMode: CHANGE_SET_REPLACE
-        #         StackName: !Sub "ecommerce-prod-${ServiceName}"
-        #         ChangeSetName: !Sub "ecommerce-prod-${ServiceName}"
-        #         Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
-        #         RoleArn: !GetAtt ProdEnvironment.Outputs.RoleArn
-        #         TemplateConfiguration: "TemplateArtifact::config.prod.json"
-        #         TemplatePath: "TemplateArtifact::template.yaml"
-        #       InputArtifacts:
-        #         - Name: TemplateArtifact
-        #       RunOrder: 1
-        #     - Name: execute-changeset
-        #       ActionTypeId:
-        #         Category: Deploy
-        #         Provider: CloudFormation
-        #         Owner: AWS
-        #         Version: "1"
-        #       Configuration:
-        #         ActionMode: CHANGE_SET_EXECUTE
-        #         StackName: !Sub "ecommerce-prod-${ServiceName}"
-        #         ChangeSetName: !Sub "ecommerce-prod-${ServiceName}"
-        #         RoleArn: !GetAtt ProdEnvironment.Outputs.RoleArn
-        #       RunOrder: 2
+        - Name: prod
+          Actions:
+            - Name: create-changeset
+              ActionTypeId:
+                Category: Deploy
+                Provider: CloudFormation
+                Owner: AWS
+                Version: "1"
+              Configuration:
+                ActionMode: CHANGE_SET_REPLACE
+                StackName: !Sub "ecommerce-prod-${ServiceName}"
+                ChangeSetName: !Sub "ecommerce-prod-${ServiceName}"
+                Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+                RoleArn: !GetAtt ProdEnvironment.Outputs.RoleArn
+                TemplateConfiguration: "TemplateArtifact::config.prod.json"
+                TemplatePath: "TemplateArtifact::template.yaml"
+              InputArtifacts:
+                - Name: TemplateArtifact
+              RunOrder: 1
+            - Name: execute-changeset
+              ActionTypeId:
+                Category: Deploy
+                Provider: CloudFormation
+                Owner: AWS
+                Version: "1"
+              Configuration:
+                ActionMode: CHANGE_SET_EXECUTE
+                StackName: !Sub "ecommerce-prod-${ServiceName}"
+                ChangeSetName: !Sub "ecommerce-prod-${ServiceName}"
+                RoleArn: !GetAtt ProdEnvironment.Outputs.RoleArn
+              RunOrder: 2
 
   #########
   # TESTS #
@@ -439,10 +439,10 @@ Resources:
   # # PROD #
   # ########
 
-  # ProdEnvironment:
-  #   Type: AWS::CloudFormation::Stack
-  #   Properties:
-  #     TemplateURL: service-pipeline-environment.yaml
-  #     Parameters:
-  #       ServiceName: !Ref ServiceName
-  #       Environment: prod
+  ProdEnvironment:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: service-pipeline-environment.yaml
+      Parameters:
+        ServiceName: !Ref ServiceName
+        Environment: prod
