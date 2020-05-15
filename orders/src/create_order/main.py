@@ -15,7 +15,7 @@ import jsonschema
 import requests
 from aws_requests_auth.boto_utils import BotoAWSRequestsAuth
 from aws_lambda_powertools.tracing import Tracer # pylint: disable=import-error
-from aws_lambda_powertools.logging import logger_setup, logger_inject_lambda_context # pylint: disable=import-error
+from aws_lambda_powertools.logging.logger import Logger # pylint: disable=import-error
 
 
 ENVIRONMENT = os.environ["ENVIRONMENT"]
@@ -27,7 +27,7 @@ PRODUCTS_API_URL = os.environ["PRODUCTS_API_URL"]
 
 dynamodb = boto3.resource("dynamodb") # pylint: disable=invalid-name
 table = dynamodb.Table(TABLE_NAME) # pylint: disable=invalid-name,no-member
-logger = logger_setup() # pylint: disable=invalid-name
+logger = Logger() # pylint: disable=invalid-name
 tracer = Tracer() # pylint: disable=invalid-name
 
 
@@ -190,7 +190,7 @@ def store_order(order: dict) -> None:
     table.put_item(Item=order)
 
 
-@logger_inject_lambda_context
+@logger.inject_lambda_context
 @tracer.capture_lambda_handler
 def handler(event, _):
     """
