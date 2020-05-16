@@ -8,7 +8,7 @@ import os
 from typing import List, Optional, Union, Set
 import boto3
 from aws_lambda_powertools.tracing import Tracer
-from aws_lambda_powertools.logging import logger_setup, logger_inject_lambda_context
+from aws_lambda_powertools.logging.logger import Logger
 from ecom.apigateway import iam_user_id, response # pylint: disable=import-error
 
 
@@ -16,7 +16,7 @@ ENVIRONMENT = os.environ["ENVIRONMENT"]
 TABLE_NAME = os.environ["TABLE_NAME"]
 
 
-logger = logger_setup() # pylint: disable=invalid-name
+logger = Logger() # pylint: disable=invalid-name
 table = boto3.resource("dynamodb").Table(TABLE_NAME) # pylint: disable=invalid-name,no-member
 tracer = Tracer() # pylint: disable=invalid-name
 
@@ -90,7 +90,7 @@ def validate_products(products: List[dict]) -> Set[Union[List[dict], str]]:
     return validated_products, ". ".join(reasons)
 
 
-@logger_inject_lambda_context
+@logger.inject_lambda_context
 @tracer.capture_lambda_handler
 def handler(event, _):
     """

@@ -117,17 +117,17 @@ In your function code, you can then add the following to set up the logger and t
 
 ```python
 from aws_lambda_powertools.tracing import Tracer
-from aws_lambda_powertools.logging import logger_setup, logger_inject_lambda_context
+from aws_lambda_powertools.logging.logger import Logger
 
 
-logger = logger_setup() # pylint: disable=invalid-name
+logger = Logger() # pylint: disable=invalid-name
 tracer = Tracer() # pylint: disable=invalid-name
 ```
 
 You can then decorate your function handler as such:
 
 ```python
-@logger_inject_lambda_context
+@logger.inject_lambda_context
 @tracer.capture_lambda_handler
 def handler(event, _):
     """

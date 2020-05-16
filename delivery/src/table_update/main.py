@@ -10,7 +10,7 @@ from typing import List, Optional
 import boto3
 from boto3.dynamodb.types import TypeDeserializer
 from aws_lambda_powertools.tracing import Tracer
-from aws_lambda_powertools.logging import logger_setup, logger_inject_lambda_context
+from aws_lambda_powertools.logging.logger import Logger
 from ecom.helpers import Encoder
 
 
@@ -20,7 +20,7 @@ EVENT_BUS_NAME = os.environ["EVENT_BUS_NAME"]
 
 eventbridge = boto3.client("events") # pylint: disable=invalid-name
 deserialize = TypeDeserializer().deserialize # pylint: disable=invalid-name
-logger = logger_setup() # pylint: disable=invalid-name
+logger = Logger() # pylint: disable=invalid-name
 tracer = Tracer() # pylint: disable=invalid-name
 
 
@@ -115,7 +115,7 @@ def process_record(record: dict) -> Optional[dict]:
         raise ValueError("Wrong eventName value for DynamoDB event: {}".format(record["eventName"]))
 
 
-@logger_inject_lambda_context
+@logger.inject_lambda_context
 @tracer.capture_lambda_handler
 def handler(event, _):
     """
