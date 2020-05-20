@@ -8,14 +8,14 @@ import math
 from typing import List
 import os
 from aws_lambda_powertools.tracing import Tracer # pylint: disable=import-error
-from aws_lambda_powertools.logging import logger_setup, logger_inject_lambda_context # pylint: disable=import-error
+from aws_lambda_powertools.logging.logger import Logger # pylint: disable=import-error
 from ecom.apigateway import iam_user_id, response # pylint: disable=import-error
 
 
 ENVIRONMENT = os.environ["ENVIRONMENT"]
 
 
-logger = logger_setup() # pylint: disable=invalid-name
+logger = Logger() # pylint: disable=invalid-name
 tracer = Tracer() # pylint: disable=invalid-name
 
 
@@ -75,7 +75,7 @@ def get_pricing(products: List[dict], address: dict) -> int:
     return count_boxes([p["package"] for p in products]) * get_shipping_cost(address)
 
 
-@logger_inject_lambda_context
+@logger.inject_lambda_context
 @tracer.capture_lambda_handler
 def handler(event, _):
     """

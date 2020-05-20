@@ -6,7 +6,7 @@ import json
 import os
 import requests
 from aws_lambda_powertools.tracing import Tracer #pylint: disable=import-error
-from aws_lambda_powertools.logging import logger_setup, logger_inject_lambda_context #pylint: disable=import-error
+from aws_lambda_powertools.logging.logger import Logger #pylint: disable=import-error
 from ecom.apigateway import iam_user_id, response # pylint: disable=import-error
 
 
@@ -14,7 +14,7 @@ API_URL = os.environ["API_URL"]
 ENVIRONMENT = os.environ["ENVIRONMENT"]
 
 
-logger = logger_setup() # pylint: disable=invalid-name
+logger = Logger() # pylint: disable=invalid-name
 tracer = Tracer() # pylint: disable=invalid-name
 
 
@@ -40,7 +40,7 @@ def validate_payment_token(payment_token: str, total: int) -> bool:
     return body.get("ok", False)
 
 
-@logger_inject_lambda_context
+@logger.inject_lambda_context
 @tracer.capture_lambda_handler
 def handler(event, _):
     """
