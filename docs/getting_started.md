@@ -3,11 +3,11 @@ Getting started
 
 ## Setup the development environment
 
-To set up the development environment, you will need to install __pyenv__ on your computer. You can find installation instruction at [https://github.com/pyenv/pyenv#installation](https://github.com/pyenv/pyenv#installation).
+To set up the development environment, you will need to install __pyenv__ on your computer. You can find installation instruction at [https://github.com/pyenv/pyenv#installation](https://github.com/pyenv/pyenv#installation). If you are using Linux, you might need to install __libffi-dev__ with your distribution's package manager (e.g. `sudo apt-get install libffi-dev`, `sudo yum install libffi-dev`, etc.).
 
 When __pyenv__ is installed, you can run `make setup` to configure the Python environment for this project, including development tools and dependencies.
 
-You will also need [npm](https://www.npmjs.com/), [jq](https://stedolan.github.io/jq/), __md5sum__ and [speccy](https://github.com/wework/speccy). __md5sum__ is not available by default on MacOS but can be installed through the [coreutils formula in homebrew](https://formulae.brew.sh/formula/coreutils).
+You will also need [Node](https://nodejs.org/en/) version 12 or greater, [jq](https://stedolan.github.io/jq/), __md5sum__ and [speccy](https://github.com/wework/speccy). __md5sum__ is not available by default on MacOS but can be installed through the [coreutils formula in homebrew](https://formulae.brew.sh/formula/coreutils).
 
 ## Deploy the infrastructure on AWS
 
