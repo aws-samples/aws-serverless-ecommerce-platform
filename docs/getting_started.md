@@ -1,17 +1,19 @@
 Getting started
 ===============
 
+If you are experience an issue while setting up this project, please take a look at the [Common issues](common_issues.md) section of the documentation. If you cannot find a solution to your problem there, please [create a ticket](https://github.com/aws-samples/aws-serverless-ecommerce-platform/issues/new) explaining the issue that you are experiencing and the steps to reproduce it.
+
 ## Setup the development environment
 
-To set up the development environment, you will need to install __pyenv__ on your computer. You can find installation instruction at [https://github.com/pyenv/pyenv#installation](https://github.com/pyenv/pyenv#installation).
+To set up the development environment, you will need to install __pyenv__ on your computer. You can find installation instruction at [https://github.com/pyenv/pyenv#installation](https://github.com/pyenv/pyenv#installation). If you are using Linux, you might need to install __libffi-dev__ with your distribution's package manager (e.g. `sudo apt-get install libffi-dev`, `sudo yum install libffi-dev`, etc.).
 
 When __pyenv__ is installed, you can run `make setup` to configure the Python environment for this project, including development tools and dependencies.
 
-Additionally, you will need to install __speccy__ for building specific services. __Speccy__ is used to merge OpenAPI definitions together for API Gateway. You can find installation instruction at [https://github.com/wework/speccy#setup](https://github.com/wework/speccy#setup).
+You will also need [Node](https://nodejs.org/en/) version 12 or greater, [jq](https://stedolan.github.io/jq/), __md5sum__ and [speccy](https://github.com/wework/speccy). __md5sum__ is not available by default on MacOS but can be installed through the [coreutils formula in homebrew](https://formulae.brew.sh/formula/coreutils).
 
 ## Deploy the infrastructure on AWS
 
-If you want to deploy the entire project into your AWS account in a dev environment, you can run the command `make all` in the [root](../) of this project.
+If you want to deploy the entire project into your AWS account in a dev environment, you can run the command `make all` in the [root](../) of this project. Please note that you will need to have an S3 bucket with write access to store artifacts as part of the packaging step. You will then need to set the environment variable S3_BUCKET to the bucket name, for example: `export S3_BUCKET=my-artifact-bucket`.
 
 If you want to deploy only a specific service and its dependencies, you can use the command `make deps-${SERVICE}`.
 
@@ -35,4 +37,4 @@ All the following commands can be run without the service name (e.g. `make tests
 
 ## Creating or modifying a service
 
-To read how you can create a new service or modify an existing one, please read the [service structure documentation](service.md).
+To read how you can create a new service or modify an existing one, please read the [service structure documentation](service_structure.md).
