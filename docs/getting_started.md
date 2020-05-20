@@ -1,6 +1,8 @@
 Getting started
 ===============
 
+If you are experience an issue while setting up this project, please take a look at the [Common issues](common_issues.md) section of the documentation. If you cannot find a solution to your problem there, please [create a ticket](https://github.com/aws-samples/aws-serverless-ecommerce-platform/issues/new) explaining the issue that you are experiencing and the steps to reproduce it.
+
 ## Setup the development environment
 
 To set up the development environment, you will need to install __pyenv__ on your computer. You can find installation instruction at [https://github.com/pyenv/pyenv#installation](https://github.com/pyenv/pyenv#installation). If you are using Linux, you might need to install __libffi-dev__ with your distribution's package manager (e.g. `sudo apt-get install libffi-dev`, `sudo yum install libffi-dev`, etc.).
@@ -11,7 +13,7 @@ You will also need [Node](https://nodejs.org/en/) version 12 or greater, [jq](ht
 
 ## Deploy the infrastructure on AWS
 
-If you want to deploy the entire project into your AWS account in a dev environment, you can run the command `make all` in the [root](../) of this project.
+If you want to deploy the entire project into your AWS account in a dev environment, you can run the command `make all` in the [root](../) of this project. Please note that you will need to have an S3 bucket with write access to store artifacts as part of the packaging step. You will then need to set the environment variable S3_BUCKET to the bucket name, for example: `export S3_BUCKET=my-artifact-bucket`.
 
 If you want to deploy only a specific service and its dependencies, you can use the command `make deps-${SERVICE}`.
 

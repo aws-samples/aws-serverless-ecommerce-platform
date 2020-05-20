@@ -39,13 +39,13 @@ flags:
 
 _This section is applicable when using one of the [default Makefiles](../shared/makefiles/). If you're using a custom Makefile, you have the freedom to structure this section as you see fit._
 
-The __template.yaml__ file is the CloudFormation template that defines the resources that are part of the service. See the [CloudFormation](cloudformation.md) section of the documentation.
+The __template.yaml__ file is the CloudFormation template that defines the resources that are part of the service.
 
 ## resources/ folder
 
 _This section is applicable when using one of the [default Makefiles](../shared/makefiles/). If you're using a custom Makefile, you have the freedom to structure this section as you see fit._
 
-This folder contains resource files such as OpenAPI document for API Gateway REST APIs or EventBridge event schemas, nested CloudFormation templates, etc. See the [API Gateway](api_gateway.md), [EventBridge](eventbridge.md) and [CloudFormation](cloudformation.md) sections of the documentation to learn more.
+This folder contains resource files such as OpenAPI document for API Gateway REST APIs or EventBridge event schemas, nested CloudFormation templates, etc.
 
 By convention, the API Gateway REST API document should be named __resources/openapi.yaml__ and the EventBridge event schema documents should be named __resources/events.yaml__. These files are linted automatically as part of the process using the lint command. See the [testing](testing.md) section of the documentation to learn more.
 
@@ -54,8 +54,6 @@ By convention, the API Gateway REST API document should be named __resources/ope
 _This section is applicable when using one of the [default Makefiles](../shared/makefiles/). If you're using a custom Makefile, you have the freedom to structure this section as you see fit._
 
 This section contains the source code of Lambda functions. The code should not be placed directly into this folder but Lambda functions should have dedicated folders within it.
-
-See the [Lambda functions](lambda_functions.md) section of the documentation to learn more.
 
 ## tests/ folder
 
