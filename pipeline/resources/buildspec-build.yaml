@@ -35,4 +35,4 @@ reports:
   build:
     files:
       - '**/*'
-      base-directory: 'reports'
+    base-directory: 'reports'

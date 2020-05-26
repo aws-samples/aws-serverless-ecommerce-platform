@@ -19,4 +19,4 @@ reports:
   staging:
     files:
       - '**/*'
-      base-directory: 'reports'
+    base-directory: 'reports'
