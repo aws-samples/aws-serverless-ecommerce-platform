@@ -14,3 +14,9 @@ phases:
   build:
     commands:
       - make tests-integ-$SERVICE_NAME
+
+reports:
+  tests:
+    files:
+      - '**/*'
+      base-directory: 'reports'
