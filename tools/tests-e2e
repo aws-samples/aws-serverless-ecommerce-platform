@@ -5,7 +5,7 @@ set -e
 ROOT=${ROOT:-$(pwd)}
 
 tests_dir=${ROOT}/shared/tests/e2e
-reports_dir=${REPORTS_DIR:-$ROOT/reports}/e2e
+reports_dir=${REPORTS_DIR:-$ROOT/reports}
 
 display_usage () {
     echo "Usage: $0 TYPE SERVICE"
@@ -46,7 +46,7 @@ tests_e2e () {
     ECOM_ENVIRONMENT=${ENVIRONMENT} \
     PYTHONPATH=${PYTHONPATH} \
     pytest $tests_dir \
-        --junitxml $reports_dir
+        --junitxml $reports_dir/e2e.xml
 }
 
 tests_e2e
