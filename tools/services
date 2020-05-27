@@ -127,7 +127,6 @@ def make_service_graph(
                 # Inject as a reverse dependency
                 services[dep]["rdeps"].append(name)
 
-
     # Scan all services until there are no more services to scan.
     count = 0
     retval = []
@@ -170,13 +169,14 @@ def make_service_graph(
         if basename in services:
             changed.append(basename)
 
-    for service_line in retval:
+    updated_services = copy.deepcopy(retval)
+    for index, service_line in enumerate(retval):
         for service in service_line:
             if service not in changed:
-                service_line.remove(service)
+                updated_services[index].remove(service)
 
     # Only return each service once
-    return [service_line for service_line in retval if service_line]
+    return [service_line for service_line in updated_services if service_line]
 
 
 if __name__ == "__main__":
