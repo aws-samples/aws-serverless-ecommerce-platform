@@ -108,7 +108,7 @@ def handler(event, _):
 
     for order_id in order_ids:
         logger.info({
-            "message": "Got event of type {} from {} for order {}".format(order_id, event["source"], event["resources"]),
+            "message": "Got event of type {} from {} for order {}".format(event["detail-type"], event["source"], order_id),
             "source": event["source"],
             "eventType": event["detail-type"],
             "orderId": order_id
