@@ -14,3 +14,9 @@ phases:
   build:
     commands:
       - make tests-e2e
+
+reports:
+  staging:
+    files:
+      - '**/*'
+    base-directory: 'reports'

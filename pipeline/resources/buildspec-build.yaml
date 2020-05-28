@@ -30,3 +30,9 @@ phases:
         done
       # Update the parameter
       - aws ssm put-parameter --name $COMMIT_PARAMETER --type String --value $CODEBUILD_RESOLVED_SOURCE_VERSION --overwrite
+  
+reports:
+  build:
+    files:
+      - '**/*'
+    base-directory: 'reports'

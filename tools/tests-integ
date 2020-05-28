@@ -8,6 +8,7 @@ SERVICE=$2
 
 service_dir=$ROOT/$SERVICE
 tests_dir=$service_dir/tests/integ
+reports_dir=${REPORTS_DIR:-$ROOT/reports}
 
 display_usage () {
     echo "Usage: $0 TYPE SERVICE"
@@ -70,7 +71,8 @@ tests_cloudformation () {
 
     ECOM_ENVIRONMENT=${ENVIRONMENT} \
     PYTHONPATH=${PYTHONPATH} \
-    pytest $tests_dir
+    pytest $tests_dir \
+        --junitxml $reports_dir/${SERVICE}-integ.xml
 }
 
 type tests_$TYPE | grep -q "function" &>/dev/null || {

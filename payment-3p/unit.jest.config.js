@@ -12,6 +12,10 @@ module.exports = {
       "statements": 90
     }
   },
+  reporters: [
+    "default",
+    ["jest-junit", {outputDirectory: "../reports/", outputName: `payment-3p-unit.xml`}]
+  ],
   testMatch: [ '<rootDir>/tests/unit/**/*.test.ts'],
   transform: {
     "^.+\\.tsx?$": "ts-jest"
