@@ -7,5 +7,7 @@ parameters:
   DeliveryApiArn: /ecommerce/{Environment}/delivery-pricing/api/arn
   DeliveryApiUrl: /ecommerce/{Environment}/delivery-pricing/api/url
   EventBusName: /ecommerce/{Environment}/platform/event-bus/name
+  PaymentApiArn: /ecommerce/{Environment}/payment/api/arn
+  PaymentApiUrl: /ecommerce/{Environment}/payment/api/url
   ProductsApiArn: /ecommerce/{Environment}/products/api/arn
   ProductsApiUrl: /ecommerce/{Environment}/products/api/url

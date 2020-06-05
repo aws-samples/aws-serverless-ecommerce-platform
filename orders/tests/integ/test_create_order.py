@@ -13,6 +13,11 @@ def delivery_api_url():
 
 
 @pytest.fixture(scope="module")
+def payment_3p_api_url():
+    return get_parameter("/ecommerce/{Environment}/payment-3p/api/url")
+
+
+@pytest.fixture(scope="module")
 def product_table_name():
     return get_parameter("/ecommerce/{Environment}/products/table/name")
 
@@ -67,15 +72,38 @@ def delivery_price(delivery_api_url, iam_auth, order, products):
 
     return body["pricing"]
 
+
+@pytest.fixture
+def payment_token(payment_3p_api_url, delivery_price, products):
+
+    # Calculate the order total
+    amount = sum([p["price"]*p.get("quantity", 1) for p in products]) + delivery_price
+
+    # Generate a payment token
+    res = requests.post(payment_3p_api_url+"/preauth", json={
+        "cardNumber": "1234567890123456",
+        "amount": amount
+    })
+
+    payment_token = res.json()["paymentToken"]
+    yield payment_token
+
+    # Cancel the payment token
+    requests.post(payment_3p_api_url+"/cancelPayment", json={
+        "paymentToken": payment_token
+    })
+
+
 @pytest.fixture(scope="function")
-def order_request(order, products, delivery_price):
+def order_request(order, products, delivery_price, payment_token):
+
     return {
         "userId": order["userId"],
         "order": {
             "products": products,
             "address": order["address"],
             "deliveryPrice": delivery_price,
-            "paymentToken": order["paymentToken"]
+            "paymentToken": payment_token
         }
     }
 
