@@ -23,6 +23,12 @@ Parameters:
   EventBusName:
     Type: AWS::SSM::Parameter::Value<String>
     Description: EventBridge Event Bus Name
+  PaymentApiUrl:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Payment API Gateway URL
+  PaymentApiArn:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Payment API Gateway ARN
   ProductsApiUrl:
     Type: AWS::SSM::Parameter::Value<String>
     Description: Products API Gateway URL
@@ -98,6 +104,7 @@ Resources:
       Environment:
         Variables:
           DELIVERY_API_URL: !Ref DeliveryApiUrl
+          PAYMENT_API_URL: !Ref PaymentApiUrl
           PRODUCTS_API_URL: !Ref ProductsApiUrl
       Policies:
         - Version: "2012-10-17"
@@ -112,6 +119,7 @@ Resources:
               # Retrieve the order details
               Resource:
                 - !Sub "${DeliveryApiArn}/POST/*"
+                - !Sub "${PaymentApiArn}/POST/*"
                 - !Sub "${ProductsApiArn}/POST/*"
   
   CreateOrderLogGroup:

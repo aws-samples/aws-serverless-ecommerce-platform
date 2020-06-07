@@ -16,6 +16,7 @@ lambda_module = pytest.fixture(scope="module", params=[{
     "environ": {
         "ENVIRONMENT": "test",
         "DELIVERY_API_URL": "mock://DELIVERY_API_URL",
+        "PAYMENT_API_URL": "mock://PAYMENT_API_URL",
         "PRODUCTS_API_URL": "mock://PRODUCTS_API_URL",
         "TABLE_NAME": "TABLE_NAME",
         "POWERTOOLS_TRACE_DISABLED": "true"
@@ -34,6 +35,15 @@ def order(get_order):
     return {k: order[k] for k in [
         "userId", "products", "address", "deliveryPrice", "paymentToken"
     ]}
+
+
+@pytest.fixture
+def complete_order(get_order):
+    """
+    Complete order fixture
+    """
+
+    return get_order()
 
 
 def test_inject_order_fields(lambda_module, order):
@@ -103,6 +113,69 @@ def test_validate_delivery_fail(lambda_module, order):
         m.post(url, text=json.dumps({"message": "Something went wrong"}), status_code=400)
 
         valid, error_msg = asyncio.run(lambda_module.validate_delivery(order))
+
+    print(valid, error_msg)
+
+    assert m.called
+    assert m.call_count == 1
+    assert m.request_history[0].method == "POST"
+    assert m.request_history[0].url == url
+    assert valid == False
+
+
+def test_validate_payment(lambda_module, complete_order):
+    """
+    Test validate_payment()
+    """
+
+    url = "mock://PAYMENT_API_URL/backend/validate"
+
+    with requests_mock.Mocker() as m:
+        m.post(url, text=json.dumps({"ok": True}))
+
+        valid, error_msg = asyncio.run(lambda_module.validate_payment(complete_order))
+
+    print(valid, error_msg)
+
+    assert m.called
+    assert m.call_count == 1
+    assert m.request_history[0].method == "POST"
+    assert m.request_history[0].url == url
+    assert valid == True
+
+
+def test_valid_payment_incorrect(lambda_module, complete_order):
+    """
+    Test validate_payment()
+    """
+
+    url = "mock://PAYMENT_API_URL/backend/validate"
+
+    with requests_mock.Mocker() as m:
+        m.post(url, text=json.dumps({"ok": False}))
+
+        valid, error_msg = asyncio.run(lambda_module.validate_payment(complete_order))
+
+    print(valid, error_msg)
+
+    assert m.called
+    assert m.call_count == 1
+    assert m.request_history[0].method == "POST"
+    assert m.request_history[0].url == url
+    assert valid == False
+
+
+def test_valid_payment_fail(lambda_module, complete_order):
+    """
+    Test validate_payment()
+    """
+
+    url = "mock://PAYMENT_API_URL/backend/validate"
+
+    with requests_mock.Mocker() as m:
+        m.post(url, text=json.dumps({"message": "Something went wrong"}), status_code=400)
+
+        valid, error_msg = asyncio.run(lambda_module.validate_payment(complete_order))
 
     print(valid, error_msg)
 

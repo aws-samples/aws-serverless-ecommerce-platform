@@ -22,6 +22,7 @@ ENVIRONMENT = os.environ["ENVIRONMENT"]
 SCHEMA_FILE = os.path.join(os.path.dirname(__file__), "schema.json")
 TABLE_NAME = os.environ["TABLE_NAME"]
 DELIVERY_API_URL = os.environ["DELIVERY_API_URL"]
+PAYMENT_API_URL = os.environ["PAYMENT_API_URL"]
 PRODUCTS_API_URL = os.environ["PRODUCTS_API_URL"]
 
 
@@ -87,8 +88,44 @@ async def validate_payment(order: dict) -> Tuple[bool, str]:
     Validate the payment token
     """
 
-    # TODO
-    return (True, "")
+    # Gather the domain name and AWS region
+    url = urlparse(PAYMENT_API_URL)
+    region = boto3.session.Session().region_name
+    # Create the signature helper
+    iam_auth = BotoAWSRequestsAuth(aws_host=url.netloc,
+                                   aws_region=region,
+                                   aws_service='execute-api')
+
+    # Send a POST request
+    response = requests.post(
+        PAYMENT_API_URL+"/backend/validate",
+        json={"paymentToken": order["paymentToken"], "total": order["total"]},
+        auth=iam_auth
+    )
+
+    logger.debug({
+        "message": "Response received from payment",
+        "body": response.json()
+    })
+
+    body = response.json()
+    if response.status_code != 200 or "ok" not in body:
+        logger.warning({
+            "message": "Failure to contact the payment service",
+            "statusCode": response.status_code,
+            "body": body
+        })
+        return (False, "Failure to contact the payment service")
+
+    if not body["ok"]:
+        logger.info({
+            "message": "Wrong payment token",
+            "paymentToken": order["paymentToken"],
+            "total": order["total"]
+        })
+        return (False, "Wrong payment token")
+
+    return (True, "The payment token is valid")
 
 
 @tracer.capture_method
