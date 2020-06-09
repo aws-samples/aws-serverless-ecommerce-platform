@@ -78,64 +78,161 @@ def test_compare_product_missing(lambda_module, product):
     assert retval[1].find(product["productId"]) != -1
 
 
-def test_validate_product_correct(lambda_module, product):
+def test_validate_products(lambda_module, product):
     """
-    Test validate_product() against the right product
+    Test validate_products() against a correct product
     """
+
 
     # Stub boto3
-    table = stub.Stubber(lambda_module.table.meta.client)
+    dynamodb = stub.Stubber(lambda_module.dynamodb)
     response = {
-        "Item": {k: TypeSerializer().serialize(v) for k, v in product.items()}
+        "Responses": {
+            lambda_module.TABLE_NAME: [{k: TypeSerializer().serialize(v) for k, v in product.items()}]
+        }
     }
     expected_params = {
-        "Key": {"productId": product["productId"]},
-        "ProjectionExpression": stub.ANY,
-        "ExpressionAttributeNames": stub.ANY,
-        "TableName": lambda_module.TABLE_NAME
+        "RequestItems": {
+            lambda_module.TABLE_NAME: {
+                "Keys": [{"productId": {"S": product["productId"]}}],
+                "ProjectionExpression": stub.ANY,
+                "ExpressionAttributeNames": stub.ANY
+            }
+        }
     }
-    table.add_response("get_item", response, expected_params)
-    table.activate()
+    dynamodb.add_response("batch_get_item", response, expected_params)
+    dynamodb.activate()
 
     # Run command
-    retval = lambda_module.validate_product(product)
-    assert retval == None
-
-    table.deactivate()
-
-
-def test_validate_product_incorrect(lambda_module, product):
-    """
-    Test validate_product() against an incorrect product
-    """
-
-    product_incorrect = copy.deepcopy(product)
-    product_incorrect["price"] += 200
-
-    # Stub boto3
-    table = stub.Stubber(lambda_module.table.meta.client)
-    response = {
-        "Item": {k: TypeSerializer().serialize(v) for k, v in product.items()}
-    }
-    expected_params = {
-        "Key": {"productId": product["productId"]},
-        "ProjectionExpression": stub.ANY,
-        "ExpressionAttributeNames": stub.ANY,
-        "TableName": lambda_module.TABLE_NAME
-    }
-    table.add_response("get_item", response, expected_params)
-    table.activate()
-
-    # Run command
-    retval = lambda_module.validate_product(product_incorrect)
-    assert retval is not None
-    assert retval[0] == product
+    retval = lambda_module.validate_products([product])
+    print(retval)
+    assert len(retval) == 2
+    assert len(retval[0]) == 0
     assert isinstance(retval[1], str)
 
-    table.deactivate()
+    dynamodb.deactivate()
 
 
-def test_validate_products(lambda_module, product):
+def test_validate_products_multiple(lambda_module, product):
+    """
+    Test validate_products() with multiple DynamoDB calls
+    """
+
+    products = []
+    for i in range(0, 105):
+        product_temp = copy.deepcopy(product)
+        product_temp["productId"] += str(i)
+        products.append(product_temp)
+
+    # Stub boto3
+    dynamodb = stub.Stubber(lambda_module.dynamodb)
+    response = {
+        "Responses": {
+            lambda_module.TABLE_NAME: [{k: TypeSerializer().serialize(v) for k, v in p.items()} for p in products[0:100]]
+        }
+    }
+    expected_params = {
+        "RequestItems": {
+            lambda_module.TABLE_NAME: {
+                "Keys": [{"productId": {"S": p["productId"]}} for p in products[0:100]],
+                "ProjectionExpression": stub.ANY,
+                "ExpressionAttributeNames": stub.ANY
+            }
+        }
+    }
+    dynamodb.add_response("batch_get_item", response, expected_params)
+    response = {
+        "Responses": {
+            lambda_module.TABLE_NAME: [{k: TypeSerializer().serialize(v) for k, v in p.items()} for p in products[100:]]
+        }
+    }
+    expected_params = {
+        "RequestItems": {
+            lambda_module.TABLE_NAME: {
+                "Keys": [{"productId": {"S": p["productId"]}} for p in products[100:]],
+                "ProjectionExpression": stub.ANY,
+                "ExpressionAttributeNames": stub.ANY
+            }
+        }
+    }
+    dynamodb.add_response("batch_get_item", response, expected_params)
+    dynamodb.activate()
+
+    # Run command
+    retval = lambda_module.validate_products(products)
+    print(retval)
+    assert len(retval) == 2
+    assert len(retval[0]) == 0
+    assert isinstance(retval[1], str)
+
+    dynamodb.deactivate()
+
+
+def test_validate_products_paginated(lambda_module, product):
+    """
+    Test validate_products() with pagination
+    """
+
+
+    # Stub boto3
+    dynamodb = stub.Stubber(lambda_module.dynamodb)
+    response = {
+        "Responses": {
+            lambda_module.TABLE_NAME: [{k: TypeSerializer().serialize(v) for k, v in product.items()}]
+        },
+        "UnprocessedKeys": {
+            lambda_module.TABLE_NAME: {
+                "Keys": [{"productId": {"S": product["productId"]}}],
+                "ProjectionExpression": "#productId, #name, #package, #price",
+                "ExpressionAttributeNames": {
+                    "#productId": "productId",
+                    "#name": "name",
+                    "#package": "package",
+                    "#price": "price"
+                }
+            }
+        }
+    }
+    expected_params = {
+        "RequestItems": {
+            lambda_module.TABLE_NAME: {
+                "Keys": [{"productId": {"S": product["productId"]}}],
+                "ProjectionExpression": stub.ANY,
+                "ExpressionAttributeNames": stub.ANY
+            }
+        }
+    }
+    dynamodb.add_response("batch_get_item", response, expected_params)
+
+    # Stub a second answer
+    response = {
+        "Responses": {
+            lambda_module.TABLE_NAME: [{k: TypeSerializer().serialize(v) for k, v in product.items()}]
+        }
+    }
+    expected_params = {
+        "RequestItems": {
+            lambda_module.TABLE_NAME: {
+                "Keys": [{"productId": {"S": product["productId"]}}],
+                "ProjectionExpression": stub.ANY,
+                "ExpressionAttributeNames": stub.ANY
+            }
+        }
+    }
+    dynamodb.add_response("batch_get_item", response, expected_params)
+    dynamodb.activate()
+
+    # Run command
+    retval = lambda_module.validate_products([product])
+    print(retval)
+    assert len(retval) == 2
+    assert len(retval[0]) == 0
+    assert isinstance(retval[1], str)
+
+    dynamodb.deactivate()
+
+
+def test_validate_products_incorrect(lambda_module, product):
     """
     Test validate_products() against an incorrect product
     """
@@ -144,32 +241,43 @@ def test_validate_products(lambda_module, product):
     product_incorrect["price"] += 200
 
     # Stub boto3
-    table = stub.Stubber(lambda_module.table.meta.client)
+    dynamodb = stub.Stubber(lambda_module.dynamodb)
     response = {
-        "Item": {k: TypeSerializer().serialize(v) for k, v in product.items()}
+        "Responses": {
+            lambda_module.TABLE_NAME: [{k: TypeSerializer().serialize(v) for k, v in product.items()}]
+        }
     }
     expected_params = {
-        "Key": {"productId": product["productId"]},
-        "ProjectionExpression": stub.ANY,
-        "ExpressionAttributeNames": stub.ANY,
-        "TableName": lambda_module.TABLE_NAME
+        "RequestItems": {
+            lambda_module.TABLE_NAME: {
+                "Keys": [{"productId": {"S": product["productId"]}}],
+                "ProjectionExpression": stub.ANY,
+                "ExpressionAttributeNames": stub.ANY
+            }
+        }
     }
-    table.add_response("get_item", response, expected_params)
-    table.activate()
+    dynamodb.add_response("batch_get_item", response, expected_params)
+    dynamodb.activate()
 
     # Run command
     retval = lambda_module.validate_products([product_incorrect])
+    print(retval)
     assert len(retval) == 2
     assert len(retval[0]) == 1
     assert isinstance(retval[1], str)
 
-    table.deactivate()
+    dynamodb.deactivate()
 
 
-def test_handler_bad_body(lambda_module, apigateway_event, context, product):
+def test_handler_bad_body(monkeypatch, lambda_module, apigateway_event, context, product):
     """
     Test the function handler with a bad body
     """
+
+    def validate_products(products):
+        assert False # This should never be called
+
+    monkeypatch.setattr(lambda_module, "validate_products", validate_products)
 
     # Create request
     event = apigateway_event(
@@ -189,10 +297,15 @@ def test_handler_bad_body(lambda_module, apigateway_event, context, product):
     assert isinstance(response_body["message"], str)
 
 
-def test_handler_missing_products(lambda_module, apigateway_event, context, product):
+def test_handler_missing_products(monkeypatch, lambda_module, apigateway_event, context, product):
     """
     Test the function handler with missing 'products' in request body
     """
+
+    def validate_products(products):
+        assert False # This should never be called
+
+    monkeypatch.setattr(lambda_module, "validate_products", validate_products)
 
     # Create request
     event = apigateway_event(
@@ -212,10 +325,15 @@ def test_handler_missing_products(lambda_module, apigateway_event, context, prod
     assert isinstance(response_body["message"], str)
 
 
-def test_handler_incorrect(lambda_module, apigateway_event, context, product):
+def test_handler_incorrect(monkeypatch, lambda_module, apigateway_event, context, product):
     """
     Test the function handler against an incorrect product
     """
+
+    def validate_products(products):
+        return [product], "Invalid product."
+
+    monkeypatch.setattr(lambda_module, "validate_products", validate_products)
 
     product_incorrect = copy.deepcopy(product)
     product_incorrect["price"] += 200
@@ -226,25 +344,8 @@ def test_handler_incorrect(lambda_module, apigateway_event, context, product):
         body=json.dumps({"products": [product_incorrect]})
     )
 
-    # Stub boto3
-    table = stub.Stubber(lambda_module.table.meta.client)
-    response = {
-        "Item": {k: TypeSerializer().serialize(v) for k, v in product.items()}
-    }
-    expected_params = {
-        "Key": {"productId": product["productId"]},
-        "ProjectionExpression": stub.ANY,
-        "ExpressionAttributeNames": stub.ANY,
-        "TableName": lambda_module.TABLE_NAME
-    }
-    table.add_response("get_item", response, expected_params)
-    table.activate()
-
     # Parse request
     response = lambda_module.handler(event, context)
-
-    # Remove stub
-    table.deactivate()
 
     # Check response
     assert response["statusCode"] == 200
@@ -257,10 +358,15 @@ def test_handler_incorrect(lambda_module, apigateway_event, context, product):
     assert len(response_body["products"]) == 1
 
 
-def test_handler_correct(lambda_module, apigateway_event, context, product):
+def test_handler_correct(monkeypatch, lambda_module, apigateway_event, context, product):
     """
     Test the function handler against an incorrect product
     """
+
+    def validate_products(products):
+        return [], ""
+
+    monkeypatch.setattr(lambda_module, "validate_products", validate_products)
 
     # Create request
     event = apigateway_event(
@@ -268,25 +374,8 @@ def test_handler_correct(lambda_module, apigateway_event, context, product):
         body=json.dumps({"products": [product]})
     )
 
-    # Stub boto3
-    table = stub.Stubber(lambda_module.table.meta.client)
-    response = {
-        "Item": {k: TypeSerializer().serialize(v) for k, v in product.items()}
-    }
-    expected_params = {
-        "Key": {"productId": product["productId"]},
-        "ProjectionExpression": stub.ANY,
-        "ExpressionAttributeNames": stub.ANY,
-        "TableName": lambda_module.TABLE_NAME
-    }
-    table.add_response("get_item", response, expected_params)
-    table.activate()
-
     # Parse request
     response = lambda_module.handler(event, context)
-
-    # Remove stub
-    table.deactivate()
 
     # Check response
     assert response["statusCode"] == 200

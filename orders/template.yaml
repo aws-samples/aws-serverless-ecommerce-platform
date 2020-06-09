@@ -106,6 +106,7 @@ Resources:
           DELIVERY_API_URL: !Ref DeliveryApiUrl
           PAYMENT_API_URL: !Ref PaymentApiUrl
           PRODUCTS_API_URL: !Ref ProductsApiUrl
+      MemorySize: 512
       Policies:
         - Version: "2012-10-17"
           Statement:
