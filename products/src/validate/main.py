@@ -7,6 +7,7 @@ import json
 import os
 from typing import List, Optional, Union, Set
 import boto3
+from boto3.dynamodb.types import TypeDeserializer
 from aws_lambda_powertools.tracing import Tracer
 from aws_lambda_powertools.logging.logger import Logger
 from ecom.apigateway import iam_user_id, response # pylint: disable=import-error
@@ -16,9 +17,10 @@ ENVIRONMENT = os.environ["ENVIRONMENT"]
 TABLE_NAME = os.environ["TABLE_NAME"]
 
 
+dynamodb = boto3.client("dynamodb") # pylint: disable=invalid-name
 logger = Logger() # pylint: disable=invalid-name
-table = boto3.resource("dynamodb").Table(TABLE_NAME) # pylint: disable=invalid-name,no-member
 tracer = Tracer() # pylint: disable=invalid-name
+type_deserializer = TypeDeserializer() # pylint: disable=invalid-name
 
 
 @tracer.capture_method
@@ -45,32 +47,6 @@ def compare_product(user_product: dict, ddb_product: Optional[dict]) -> Optional
 
 
 @tracer.capture_method
-def validate_product(product: dict) -> Optional[Set[Union[dict, str]]]:
-    """
-    Validate a single product
-    """
-
-    if "productId" not in product:
-        return product, "Missing 'productId' in product"
-
-    tracer.put_annotation("productId", product["productId"])
-
-    # Fetch item in DynamoDB
-    ddb_product = table.get_item(
-        Key={"productId": product["productId"]},
-        ProjectionExpression="#productId, #name, #package, #price",
-        ExpressionAttributeNames={
-            "#productId": "productId",
-            "#name": "name",
-            "#package": "package",
-            "#price": "price"
-        }
-    ).get("Item", None)
-
-    return compare_product(product, ddb_product)
-
-
-@tracer.capture_method
 def validate_products(products: List[dict]) -> Set[Union[List[dict], str]]:
     """
     Takes a list of products and validate them
@@ -81,11 +57,48 @@ def validate_products(products: List[dict]) -> Set[Union[List[dict], str]]:
     validated_products = []
     reasons = []
 
-    for product in products:
-        retval = validate_product(product)
-        if retval is not None:
-            validated_products.append(retval[0])
-            reasons.append(retval[1])
+    # batch_get_item only supports up to 100 items, so split the list of products in batches
+    # of 100 max.
+    for i in range(0, len(products), 100):
+        q_products = {}
+        for product in products[i:i+100]:
+            q_products[product["productId"]] = product
+
+        response = dynamodb.batch_get_item(RequestItems={
+            TABLE_NAME: {
+                "Keys": [
+                    {"productId": {"S": product_id}}
+                    # Only fetch by batch of 100 items
+                    for product_id in q_products.keys()
+                ],
+                "ProjectionExpression": "#productId, #name, #package, #price",
+                "ExpressionAttributeNames": {
+                    "#productId": "productId",
+                    "#name": "name",
+                    "#package": "package",
+                    "#price": "price"
+                }
+            }
+        })
+
+        ddb_products = {
+            p["productId"]["S"]: {k: type_deserializer.deserialize(v) for k, v in p.items()}
+            for p in response.get("Responses", {}).get(TABLE_NAME, [])
+        }
+
+        # Even if we ask less than 100 items, there is a 16MB response limit, so the call might
+        # return less items than expected.
+        while response.get("UnprocessedKeys", {}).get(TABLE_NAME, None) is not None:
+            response = dynamodb.batch_get_item(RequestItems=response["UnprocessedKeys"])
+
+            for product in response.get("Responses", {}).get(TABLE_NAME, []):
+                ddb_products[product["productId"]["S"]] = {k: type_deserializer.deserialize(v) for k, v in product.items()}
+
+        for product_id, product in q_products.items():
+            retval = compare_product(product, ddb_products.get(product_id, None))
+            if retval is not None:
+                validated_products.append(retval[0])
+                reasons.append(retval[1])
 
     return validated_products, ". ".join(reasons)
 

@@ -70,7 +70,7 @@ def test_validate_delivery(lambda_module, order):
     with requests_mock.Mocker() as m:
         m.post(url, text=json.dumps({"pricing": order["deliveryPrice"]}))
 
-        valid, error_msg = asyncio.run(lambda_module.validate_delivery(order))
+        valid, error_msg = lambda_module.validate_delivery(order)
 
     print(valid, error_msg)
 
@@ -91,7 +91,7 @@ def test_validate_delivery_incorrect(lambda_module, order):
     with requests_mock.Mocker() as m:
         m.post(url, text=json.dumps({"pricing": order["deliveryPrice"]+200}))
 
-        valid, error_msg = asyncio.run(lambda_module.validate_delivery(order))
+        valid, error_msg = lambda_module.validate_delivery(order)
 
     print(valid, error_msg)
 
@@ -112,7 +112,7 @@ def test_validate_delivery_fail(lambda_module, order):
     with requests_mock.Mocker() as m:
         m.post(url, text=json.dumps({"message": "Something went wrong"}), status_code=400)
 
-        valid, error_msg = asyncio.run(lambda_module.validate_delivery(order))
+        valid, error_msg = lambda_module.validate_delivery(order)
 
     print(valid, error_msg)
 
@@ -133,7 +133,7 @@ def test_validate_payment(lambda_module, complete_order):
     with requests_mock.Mocker() as m:
         m.post(url, text=json.dumps({"ok": True}))
 
-        valid, error_msg = asyncio.run(lambda_module.validate_payment(complete_order))
+        valid, error_msg = lambda_module.validate_payment(complete_order)
 
     print(valid, error_msg)
 
@@ -154,7 +154,7 @@ def test_valid_payment_incorrect(lambda_module, complete_order):
     with requests_mock.Mocker() as m:
         m.post(url, text=json.dumps({"ok": False}))
 
-        valid, error_msg = asyncio.run(lambda_module.validate_payment(complete_order))
+        valid, error_msg = lambda_module.validate_payment(complete_order)
 
     print(valid, error_msg)
 
@@ -175,7 +175,7 @@ def test_valid_payment_fail(lambda_module, complete_order):
     with requests_mock.Mocker() as m:
         m.post(url, text=json.dumps({"message": "Something went wrong"}), status_code=400)
 
-        valid, error_msg = asyncio.run(lambda_module.validate_payment(complete_order))
+        valid, error_msg = lambda_module.validate_payment(complete_order)
 
     print(valid, error_msg)
 
@@ -196,7 +196,7 @@ def test_validate_products(lambda_module, order):
     with requests_mock.Mocker() as m:
         m.post(url, text=json.dumps({"message": "All products are valid"}))
 
-        valid, error_msg = asyncio.run(lambda_module.validate_products(order))
+        valid, error_msg = lambda_module.validate_products(order)
 
     print(valid, error_msg)
 
@@ -221,7 +221,7 @@ def test_validate_products_fail(lambda_module, order):
             status_code=200
         )
 
-        valid, error_msg = asyncio.run(lambda_module.validate_products(order))
+        valid, error_msg = lambda_module.validate_products(order)
 
     print(valid, error_msg)
 
@@ -238,7 +238,7 @@ def test_validate(monkeypatch, lambda_module, order):
     Test validate()
     """
 
-    async def validate_true(order: dict) -> Tuple[bool, str]:
+    def validate_true(order: dict) -> Tuple[bool, str]:
         return (True, "")
 
     monkeypatch.setattr(lambda_module, "validate_delivery", validate_true)
@@ -254,7 +254,7 @@ def test_validate_fail(monkeypatch, lambda_module, order):
     Test validate() with failures
     """
 
-    async def validate_true(order: dict) -> Tuple[bool, str]:
+    def validate_true(order: dict) -> Tuple[bool, str]:
         return (False, "Something is wrong")
 
     monkeypatch.setattr(lambda_module, "validate_delivery", validate_true)
@@ -287,7 +287,7 @@ def test_handler(monkeypatch, lambda_module, context, order):
     Test handler()
     """
 
-    async def validate_true(order: dict) -> Tuple[bool, str]:
+    def validate_true(order: dict) -> Tuple[bool, str]:
         return (True, "")
 
     def store_order(order: dict) -> None:
@@ -319,7 +319,7 @@ def test_handler_wrong_event(monkeypatch, lambda_module, context, order):
     Test handler() with an incorrect event
     """
 
-    async def validate_true(order: dict) -> Tuple[bool, str]:
+    def validate_true(order: dict) -> Tuple[bool, str]:
         return (True, "")
 
     def store_order(order: dict) -> None:
@@ -344,7 +344,7 @@ def test_handler_wrong_order(monkeypatch, lambda_module, context, order):
     Test handler() with an incorrect order
     """
 
-    async def validate_true(order: dict) -> Tuple[bool, str]:
+    def validate_true(order: dict) -> Tuple[bool, str]:
         return (True, "")
 
     def store_order(order: dict) -> None:
@@ -375,7 +375,7 @@ def test_handler_validation_failure(monkeypatch, lambda_module, context, order):
     Test handler() with failing validation
     """
 
-    async def validate_true(order: dict) -> Tuple[bool, str]:
+    def validate_true(order: dict) -> Tuple[bool, str]:
         return (False, "Something went wrong")
 
     def store_order(order: dict) -> None:

@@ -4,6 +4,7 @@ CreateOrderFunction
 
 
 import asyncio
+import concurrent
 import datetime
 import json
 import os
@@ -37,7 +38,7 @@ with open(SCHEMA_FILE) as fp:
 
 
 @tracer.capture_method
-async def validate_delivery(order: dict) -> Tuple[bool, str]:
+def validate_delivery(order: dict) -> Tuple[bool, str]:
     """
     Validate the delivery price
     """
@@ -83,7 +84,7 @@ async def validate_delivery(order: dict) -> Tuple[bool, str]:
 
 
 @tracer.capture_method
-async def validate_payment(order: dict) -> Tuple[bool, str]:
+def validate_payment(order: dict) -> Tuple[bool, str]:
     """
     Validate the payment token
     """
@@ -129,7 +130,7 @@ async def validate_payment(order: dict) -> Tuple[bool, str]:
 
 
 @tracer.capture_method
-async def validate_products(order: dict) -> Tuple[bool, str]:
+def validate_products(order: dict) -> Tuple[bool, str]:
     """
     Validate the products in the order
     """
@@ -164,12 +165,16 @@ async def validate(order: dict) -> List[str]:
     """
 
     error_msgs = []
-    for valid, error_msg in await asyncio.gather(
-            validate_delivery(order),
-            validate_payment(order),
-            validate_products(order)):
-        if not valid:
-            error_msgs.append(error_msg)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        futures = [
+            executor.submit(validate_delivery, order),
+            executor.submit(validate_payment, order),
+            executor.submit(validate_products, order)
+        ]
+        for future in concurrent.futures.as_completed(futures):
+            valid, error_msg = future.result()
+            if not valid:
+                error_msgs.append(error_msg)
 
     if error_msgs:
         logger.info({
