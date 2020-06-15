@@ -46,6 +46,7 @@ tests_e2e () {
     ECOM_ENVIRONMENT=${ENVIRONMENT} \
     PYTHONPATH=${PYTHONPATH} \
     pytest $tests_dir \
+        --override-ini junit_family=xunit2 \
         --junitxml $reports_dir/e2e.xml
 }
 
