@@ -415,7 +415,7 @@ Resources:
               "height": 3,
               "properties": {
                 "metrics": [
-                  ["AWS/Lambda", "Duration", "FunctionName", "${CreateOrderFunction}", {"color": "#9ccc65", "label": "p50"}],
+                  ["AWS/Lambda", "Duration", "FunctionName", "${GetOrderFunction}", {"color": "#9ccc65", "label": "p50"}],
                   ["...", {"stat": "p90", "color": "#ffee58", "label": "p90"}],
                   ["...", {"stat": "p99", "color": "#ef5350", "label": "p99"}]
                 ],
