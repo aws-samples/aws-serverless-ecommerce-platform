@@ -37,7 +37,8 @@ tests_perf () {
     }
 
     ECOM_ENVIRONMENT=${ENVIRONMENT} \
-    locust -f $tests_dir/perf_happy_path.py
+    locust -f $tests_dir/perf_happy_path.py \
+        --headless -u 500 -r 50 --run-time 1h
 }
 
 tests_perf
