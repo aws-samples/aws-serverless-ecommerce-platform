@@ -113,6 +113,10 @@ tests-unit-%:
 tests-e2e:
 	@tools/tests-e2e
 
+# Performance tests
+tests-perf:
+	@tools/tests-perf
+
 #################
 # SETUP TARGETS #
 #################

@@ -76,6 +76,7 @@ tests_python3 () {
     AWS_SECRET_ACCESS_KEY=AWS_SECRET_ACCESS_KEY \
     AWS_DEFAULT_REGION=eu-west-1 \
     pytest $tests_dir \
+        --override-ini junit_family=xunit2 \
         --cov $build_dir \
         --cov-config $ROOT/shared/tests/unit/coveragerc \
         --junitxml $reports_dir/${SERVICE}-unit.xml

@@ -31,7 +31,9 @@ def send_events(events: List[dict]):
     """
 
     logger.info("Sending %d events to EventBridge", len(events))
-    eventbridge.put_events(Entries=events)
+    # EventBridge only supports batches of up to 10 events
+    for i in range(0, len(events), 10):
+        eventbridge.put_events(Entries=events[i:i+10])
 
 
 def process_record(record: dict) -> Optional[dict]:
