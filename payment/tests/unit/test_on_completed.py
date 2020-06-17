@@ -1,3 +1,4 @@
+import datetime
 import json
 import requests
 import requests_mock
@@ -136,6 +137,7 @@ def test_handler(monkeypatch, lambda_module, context, order_id, payment_token):
     event = {
         "source": "ecommerce.delivery",
         "detail-type": "DeliveryCompleted",
+        "time": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
         "resources": [order_id],
         "detail": {
             "orderId": order_id

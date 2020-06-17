@@ -34,7 +34,7 @@ def event(order):
     return {
         "version": "0",
         "id": str(uuid.uuid4()),
-        "time": datetime.datetime.now(),
+        "time": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
         "region": "eu-west-1",
         "account": "123456789012",
         "source": "ecommerce.warehouse",

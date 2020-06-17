@@ -21,7 +21,6 @@ Parameters:
     Type: AWS::SSM::Parameter::Value<String>
     Description: 3rd Party Payment API Gateway URL
 
-
 Globals:
   Function:
     Runtime: python3.8

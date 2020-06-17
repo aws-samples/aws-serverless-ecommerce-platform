@@ -3,6 +3,8 @@ OnCompleted Function
 """
 
 
+import datetime
+import json
 import os
 import boto3
 import requests
@@ -65,6 +67,26 @@ def handler(event, _):
     """
     Lambda handler
     """
+
+    print(json.dumps({
+        "source": event["source"],
+        "detail-type": event["detail-type"],
+        "environment": ENVIRONMENT,
+        "now": datetime.datetime.utcnow().isoformat(),
+        "then": event["time"],
+        "Latency": (datetime.datetime.utcnow() - datetime.datetime.fromisoformat(event["time"][:-1])).total_seconds(),
+        "_aws": {
+            # Timestamp is in milliseconds
+            "Timestamp": int(datetime.datetime.utcnow().timestamp()*1000),
+            "CloudWatchMetrics": [{
+                "Namespace": "ecommerce.experiments",
+                "Dimensions": [["environment", "source", "detail-type"]],
+                "Metrics": [
+                    {"Name": "Latency"}
+                ]
+            }]
+        }
+    }))
 
     order_id = event["detail"]["orderId"]
 

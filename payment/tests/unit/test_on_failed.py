@@ -1,3 +1,4 @@
+import datetime
 import json
 import uuid
 import pytest
@@ -115,6 +116,7 @@ def test_handler(monkeypatch, lambda_module, context, order_id, payment_token):
         "source": "ecommerce.delivery",
         "detail-type": "DeliveryFailed",
         "resources": [order_id],
+        "time": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
         "detail": {
             "orderId": order_id
         }

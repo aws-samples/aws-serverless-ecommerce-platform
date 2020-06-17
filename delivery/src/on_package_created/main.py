@@ -3,6 +3,8 @@ OnPackageCreatedFunction
 """
 
 
+import datetime
+import json
 import os
 from typing import Optional
 from urllib.parse import urlparse
@@ -98,6 +100,24 @@ def handler(event, context):
     """
     Lambda function handler
     """
+
+    print(json.dumps({
+        "source": event["source"],
+        "detail-type": event["detail-type"],
+        "environment": ENVIRONMENT,
+        "Latency": (datetime.datetime.utcnow() - datetime.datetime.fromisoformat(event["time"][:-1])).total_seconds(),
+        "_aws": {
+            # Timestamp is in milliseconds
+            "Timestamp": int(datetime.datetime.utcnow().timestamp()*1000),
+            "CloudWatchMetrics": [{
+                "Namespace": "ecommerce.experiments",
+                "Dimensions": [["environment", "source", "detail-type"]],
+                "Metrics": [
+                    {"Name": "Latency"}
+                ]
+            }]
+        }
+    }))
 
     # This should only receive PackageCreated events
     assert event["source"] == "ecommerce.warehouse"

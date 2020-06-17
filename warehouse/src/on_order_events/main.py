@@ -3,6 +3,8 @@ OrderEventsFunction
 """
 
 
+import datetime
+import json
 import os
 from typing import Dict, List, Optional
 import boto3
@@ -339,6 +341,24 @@ def handler(event, _):
     """
     Lambda function handler for OrderEvents
     """
+
+    print(json.dumps({
+        "source": event["source"],
+        "detail-type": event["detail-type"],
+        "environment": ENVIRONMENT,
+        "Latency": (datetime.datetime.utcnow() - datetime.datetime.fromisoformat(event["time"][:-1])).total_seconds(),
+        "_aws": {
+            # Timestamp is in milliseconds
+            "Timestamp": int(datetime.datetime.utcnow().timestamp()*1000),
+            "CloudWatchMetrics": [{
+                "Namespace": "ecommerce.experiments",
+                "Dimensions": [["environment", "source", "detail-type"]],
+                "Metrics": [
+                    {"Name": "Latency"}
+                ]
+            }]
+        }
+    }))
 
     logger.info({
         "message": "Received event {} for order id(s) {}".format(event["detail-type"], event["resources"][0]),

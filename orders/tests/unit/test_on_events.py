@@ -1,3 +1,4 @@
+import datetime
 import json
 from boto3.dynamodb.types import TypeSerializer
 from botocore import stub
@@ -199,6 +200,7 @@ def test_handler(monkeypatch, lambda_module, context, order):
             "resources": ["ORDER_ID"],
             "source": test_case["source"],
             "detail-type": test_case["detail-type"],
+            "time": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
             "detail": order
         }
         lambda_module.handler(event, context)

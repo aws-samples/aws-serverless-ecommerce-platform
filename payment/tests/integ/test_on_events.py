@@ -44,7 +44,7 @@ def test_on_created(eventbridge, event_bus_name, table, order):
 
     # Put the event
     event = {
-        "Time": datetime.datetime.now(),
+        "Time": datetime.datetime.utcnow(),
         "Source": "ecommerce.orders",
         "Resources": [order["orderId"]],
         "DetailType": "OrderCreated",
@@ -99,7 +99,7 @@ def test_on_modified(payment_3p_api_url, eventbridge, event_bus_name, table, ord
 
     # Put the event
     event = {
-        "Time": datetime.datetime.now(),
+        "Time": datetime.datetime.utcnow(),
         "Source": "ecommerce.orders",
         "Resources": [order["orderId"]],
         "DetailType": "OrderModified",
@@ -173,7 +173,7 @@ def test_on_failed_warehouse(payment_3p_api_url, eventbridge, event_bus_name, ta
 
     # Put the event
     event = {
-        "Time": datetime.datetime.now(),
+        "Time": datetime.datetime.utcnow(),
         "Source": "ecommerce.warehouse",
         "Resources": [order["orderId"]],
         "DetailType": "PackagingFailed",
@@ -230,7 +230,7 @@ def test_on_failed_delivery(payment_3p_api_url, eventbridge, event_bus_name, tab
 
     # Put the event
     event = {
-        "Time": datetime.datetime.now(),
+        "Time": datetime.datetime.utcnow(),
         "Source": "ecommerce.delivery",
         "Resources": [order["orderId"]],
         "DetailType": "DeliveryFailed",
@@ -287,7 +287,7 @@ def test_on_completed(payment_3p_api_url, eventbridge, event_bus_name, table, or
 
     # Put the event
     event = {
-        "Time": datetime.datetime.now(),
+        "Time": datetime.datetime.utcnow(),
         "Source": "ecommerce.delivery",
         "Resources": [order["orderId"]],
         "DetailType": "DeliveryCompleted",

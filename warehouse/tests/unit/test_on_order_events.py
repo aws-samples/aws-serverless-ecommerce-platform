@@ -460,6 +460,7 @@ def test_handler_created(lambda_module, context, order, order_products, order_me
         "source": "ecommerce.orders",
         "resources": [order["orderId"]],
         "detail-type": "OrderCreated",
+        "time": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
         "detail": order
     }, context)
 
@@ -499,6 +500,7 @@ def test_handler_deleted(lambda_module, context, order, order_products, order_me
         "source": "ecommerce.orders",
         "resources": [order["orderId"]],
         "detail-type": "OrderDeleted",
+        "time": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
         "detail": order
     }, context)
 

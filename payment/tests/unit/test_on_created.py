@@ -1,3 +1,4 @@
+import datetime
 import uuid
 import pytest
 from fixtures import context, lambda_module # pylint: disable=import-error
@@ -52,6 +53,7 @@ def test_handler(monkeypatch, lambda_module, context, order_id, payment_token):
         "source": "ecommerce.orders",
         "detail-type": "OrderCreated",
         "resources": [order_id],
+        "time": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
         "detail": {
             "orderId": order_id,
             "paymentToken": payment_token

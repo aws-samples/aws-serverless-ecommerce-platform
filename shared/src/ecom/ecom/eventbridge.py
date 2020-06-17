@@ -28,7 +28,7 @@ def ddb_to_event(
     """
 
     event = {
-        "Time": datetime.now(),
+        "Time": datetime.utcnow(),
         "Source": source,
         "Resources": [
             str(deserialize(ddb_record["dynamodb"]["Keys"][resource_key]))
