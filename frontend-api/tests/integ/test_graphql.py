@@ -63,6 +63,11 @@ def api_url():
 
 
 @pytest.fixture
+def payment_3p_api_url():
+    return get_parameter("/ecommerce/{Environment}/payment-3p/api/url")
+
+
+@pytest.fixture
 def api_key(api_id):
     """
     API Key for AppSync
@@ -199,7 +204,7 @@ def product(get_product, products_table_name):
 
 
 @pytest.fixture(scope="function")
-def order_request(get_order, product, iam_auth, delivery_pricing_api_url):
+def order_request(get_order, product, iam_auth, delivery_pricing_api_url, payment_3p_api_url):
     """
     Order Request
     """
@@ -217,11 +222,22 @@ def order_request(get_order, product, iam_auth, delivery_pricing_api_url):
     )
     delivery_price = res.json()["pricing"]
 
+    # Get a payment token
+    total = delivery_price + sum([p["price"]*p.get("quantity", 1) for p in order["products"]])
+    res = requests.post(
+        "{}/preauth".format(payment_3p_api_url),
+        json={
+            "cardNumber": "1234567890123456",
+            "amount": total
+        }
+    )
+    payment_token = res.json()["paymentToken"]
+
     return {
         "products": [product],
         "address": order["address"],
         "deliveryPrice": delivery_price,
-        "paymentToken": order["paymentToken"]
+        "paymentToken": payment_token
     }
 
 
