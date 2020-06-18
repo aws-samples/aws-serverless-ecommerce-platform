@@ -5,6 +5,31 @@ Parameters:
   Environment:
     Type: String
     Default: dev
+  LogLevel:
+    Type: String
+    Default: INFO
+  RetentionInDays:
+    Type: Number
+    Default: 30
+    Description: CloudWatch Logs retention period for Lambda functions
+
+
+Globals:
+  Function:
+    Runtime: python3.8
+    Handler: main.handler
+    Timeout: 30
+    Tracing: Active
+    Environment:
+      Variables:
+        ENVIRONMENT: !Ref Environment
+        POWERTOOLS_SERVICE_NAME: platform
+        POWERTOOLS_TRACE_DISABLED: "false"
+        LOG_LEVEL: !Ref LogLevel
+
+
+Conditions:
+  IsNotProd: !Not [!Equals [!Ref Environment, prod]]
 
 
 Resources:
@@ -22,3 +47,276 @@ Resources:
       Name: !Sub /ecommerce/${Environment}/platform/event-bus/name
       Type: String
       Value: !Ref EventBus
+
+  ##################
+  # LISTENER TABLE #
+  ##################
+  ListenerTable:
+    Type: AWS::DynamoDB::Table
+    Condition: IsNotProd
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: service
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: listener-service
+          KeySchema:
+            - AttributeName: service
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      BillingMode: PAY_PER_REQUEST
+
+  ################
+  # LISTENER API #
+  ################
+
+  ListenerApi:
+    Type: AWS::ApiGatewayV2::Api
+    Condition: IsNotProd
+    Properties:
+      Name: !Sub "ecommerce-${Environment}-platform-listener"
+      ProtocolType: WEBSOCKET
+      RouteSelectionExpression: "$request.body.action"
+
+  ListenerApiParameter:
+    Type: AWS::SSM::Parameter
+    Condition: IsNotProd
+    Properties:
+      Name: !Sub /ecommerce/${Environment}/platform/listener-api/url
+      Type: String
+      Value: !Sub "wss://${ListenerApi}.execute-api.${AWS::Region}.amazonaws.com/prod/"
+
+  ListenerApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Condition: IsNotProd
+    Properties:
+      StageName: prod
+      ApiId: !Ref ListenerApi
+      DeploymentId: !Ref ListenerApiDeployment
+
+  ListenerApiDeployment:
+    Type: AWS::ApiGatewayV2::Deployment
+    Condition: IsNotProd
+    DependsOn:
+      - ListenerConnectRoute
+      - ListenerDisconnectRoute
+      - ListenerRegisterRoute
+    Properties:
+      ApiId: !Ref ListenerApi
+
+  ListenerConnectIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Condition: IsNotProd
+    Properties:
+      ApiId: !Ref ListenerApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${OnConnectFunction.Arn}/invocations"
+
+  ListenerConnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Condition: IsNotProd
+    Properties:
+      ApiId: !Ref ListenerApi
+      RouteKey: "$connect"
+      AuthorizationType: AWS_IAM
+      Target: !Sub "integrations/${ListenerConnectIntegration}"
+
+  OnConnectFunction:
+    Type: AWS::Serverless::Function
+    Condition: IsNotProd
+    Properties:
+      CodeUri: src/on_connect/
+      Environment:
+        Variables:
+          LISTENER_TABLE_NAME: !Ref ListenerTable
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource:
+                - !GetAtt ListenerTable.Arn
+
+  OnConnectPermission:
+    Type: AWS::Lambda::Permission
+    Condition: IsNotProd
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref OnConnectFunction
+      Principal: apigateway.amazonaws.com
+
+  OnConnectLogGroup:
+    Type: AWS::Logs::LogGroup
+    Condition: IsNotProd
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${OnConnectFunction}"
+      RetentionInDays: !Ref RetentionInDays
+  
+  ListenerDisconnectIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Condition: IsNotProd
+    Properties:
+      ApiId: !Ref ListenerApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${OnDisconnectFunction.Arn}/invocations"
+
+  ListenerDisconnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Condition: IsNotProd
+    Properties:
+      ApiId: !Ref ListenerApi
+      RouteKey: "$disconnect"
+      Target: !Sub "integrations/${ListenerDisconnectIntegration}"
+
+  OnDisconnectFunction:
+    Type: AWS::Serverless::Function
+    Condition: IsNotProd
+    Properties:
+      CodeUri: src/on_disconnect/
+      Environment:
+        Variables:
+          LISTENER_TABLE_NAME: !Ref ListenerTable
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:DeleteItem
+              Resource:
+                - !GetAtt ListenerTable.Arn
+
+  OnDisconnectPermission:
+    Type: AWS::Lambda::Permission
+    Condition: IsNotProd
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref OnDisconnectFunction
+      Principal: apigateway.amazonaws.com
+
+  OnDisconnectLogGroup:
+    Type: AWS::Logs::LogGroup
+    Condition: IsNotProd
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${OnDisconnectFunction}"
+      RetentionInDays: !Ref RetentionInDays
+
+  ListenerRegisterIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Condition: IsNotProd
+    Properties:
+      ApiId: !Ref ListenerApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RegisterFunction.Arn}/invocations"
+
+  ListenerRegisterRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Condition: IsNotProd
+    Properties:
+      ApiId: !Ref ListenerApi
+      RouteKey: "register"
+      Target: !Sub "integrations/${ListenerRegisterIntegration}"
+
+  RegisterFunction:
+    Type: AWS::Serverless::Function
+    Condition: IsNotProd
+    Properties:
+      CodeUri: src/register/
+      Environment:
+        Variables:
+          LISTENER_TABLE_NAME: !Ref ListenerTable
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource:
+                - !GetAtt ListenerTable.Arn
+
+  RegisterPermission:
+    Type: AWS::Lambda::Permission
+    Condition: IsNotProd
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref RegisterFunction
+      Principal: apigateway.amazonaws.com
+
+  RegisterLogGroup:
+    Type: AWS::Logs::LogGroup
+    Condition: IsNotProd
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${RegisterFunction}"
+      RetentionInDays: !Ref RetentionInDays
+
+  ###################
+  # EVENT FUNCTIONS #
+  ###################
+  OnEventsFunction:
+    Type: AWS::Serverless::Function
+    Condition: IsNotProd
+    Properties:
+      CodeUri: src/on_events/
+      Environment:
+        Variables:
+          LISTENER_API_URL: !Sub "https://${ListenerApi}.execute-api.${AWS::Region}.amazonaws.com/prod/"
+          LISTENER_TABLE_NAME: !Ref ListenerTable
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+              Resource:
+                - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ListenerTable}/index/listener-service"
+            - Effect: Allow
+              Action:
+                - execute-api:ManageConnections
+              Resource:
+                - !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ListenerApi}/prod/*"
+      Events:
+        Event:
+          Type: CloudWatchEvent
+          Properties:
+            EventBusName: !Ref EventBus
+            Pattern:
+              account:
+                - !Ref AWS::AccountId
+      EventInvokeConfig:
+        # Put failed events on a DLQ
+        DestinationConfig:
+          OnFailure:
+            Type: SQS
+            Destination: !GetAtt DeadLetterQueue.Outputs.QueueArn
+
+  OnEventsLogGroup:
+    Type: AWS::Logs::LogGroup
+    Condition: IsNotProd
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${OnEventsFunction}"
+      RetentionInDays: !Ref RetentionInDays
+
+  #####################
+  # DEAD LETTER QUEUE #
+  #####################
+  DeadLetterQueue:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ../../shared/templates/dlq.yaml
+      Parameters:
+        AlarmAction: !Ref AlarmTopic
+
+  ##########
+  # ALARMS #
+  ##########
+
+  AlarmTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: Orders Alarm

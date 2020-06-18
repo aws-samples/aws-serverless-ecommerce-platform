@@ -78,21 +78,14 @@ def test_table_update(table_name, metadata, products, listener):
 
     # Mark the packaging as completed
     metadata["status"] = "COMPLETED"
-    table.put_item(Item=metadata)
+    
 
-    # Listen for messages on EventBridge through a listener SQS queue
-    messages = listener("warehouse", 15)
-
-    # Parse messages
-    found = False
-    for message in messages:
-        print("MESSAGE RECEIVED:", message)
-        body = json.loads(message["Body"])
-        if metadata["orderId"] in body["resources"]:
-            found = True
-            assert body["detail-type"] == "PackageCreated"
-
-    assert found == True
+    # Listen for messages on EventBridge
+    listener(
+        "ecommerce.warehouse",
+        lambda: table.put_item(Item=metadata),
+        lambda m: metadata["orderId"] in m["resources"] and m["detail-type"] == "PackageCreated"
+    )
 
     # Clean up the table
     with table.batch_writer() as batch:

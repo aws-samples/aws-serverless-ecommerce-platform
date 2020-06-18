@@ -1,14 +1,19 @@
+import asyncio
 import datetime
+import json
+import hashlib
+import hmac
 import os
 import random
 import string
 import time
-from typing import List, Optional
+from typing import Callable, List, Optional
 from urllib.parse import urlparse
 import uuid
 from aws_requests_auth.boto_utils import BotoAWSRequestsAuth
 import boto3
 import pytest
+import websockets # pylint: disable=import-error
 
 
 sqs = boto3.client("sqs")
@@ -16,54 +21,107 @@ ssm = boto3.client("ssm")
 
 
 @pytest.fixture
-def listener(request):
+def listener():
     """
-    Listens to messages in the Listener queue for a given service for a fixed
-    period of time.
-
-    To use in your integration tests:
-
-        from fixtures import listener
-
-    Then to write a test:
-
-        test_with_listener(listener):
-            # Trigger an event that would result in messages
-            # ...
-
-            messages = listener("your-service")
-
-            # Parse messages
+    Listens to messages through a WebSocket API
     """
 
-    def _listener(service_name: str, timeout: int=15):
-        queue_url = ssm.get_parameter(
-            Name="/ecommerce/{}/{}/listener/url".format(
-                os.environ["ECOM_ENVIRONMENT"], service_name
-            )
+    def signed_url_headers(url):
+        """
+        Generate SigV4 signature headers
+
+        Taken from https://docs.aws.amazon.com/general/latest/gr/sigv4-signed-request-examples.html
+        """
+
+        def sign(key, msg):
+            return hmac.new(key, msg.encode('utf-8'), hashlib.sha256).digest()
+
+        def get_signature_key(key, dateStamp, regionName, serviceName):
+            kDate = sign(('AWS4' + key).encode('utf-8'), dateStamp)
+            kRegion = sign(kDate, regionName)
+            kService = sign(kRegion, serviceName)
+            kSigning = sign(kService, 'aws4_request')
+            return kSigning
+
+        uri = urlparse(url)
+        session = boto3.Session()
+        credentials = session.get_credentials()
+
+        t = datetime.datetime.utcnow()
+        amzdate = t.strftime('%Y%m%dT%H%M%SZ')
+        datestamp = t.strftime('%Y%m%d')
+        canonical_uri = uri.path
+        canonical_headers = f"host:{uri.netloc}\nx-amz-date:{amzdate}\n"
+        signed_headers = "host;x-amz-date"
+        payload_hash = hashlib.sha256(('').encode('utf-8')).hexdigest()
+        canonical_request = f"GET\n{canonical_uri}\n\n{canonical_headers}\n{signed_headers}\n{payload_hash}"
+        canonical_request_enc = hashlib.sha256(canonical_request.encode('utf-8')).hexdigest()
+        credential_scope = f"{datestamp}/{session.region_name}/execute-api/aws4_request"
+        string_to_sign = f"AWS4-HMAC-SHA256\n{amzdate}\n{credential_scope}\n{canonical_request_enc}"
+        signing_key = get_signature_key(credentials.secret_key, datestamp, session.region_name, "execute-api")
+        signature = hmac.new(signing_key, (string_to_sign).encode('utf-8'), hashlib.sha256).hexdigest()
+        authorization_header = f"AWS4-HMAC-SHA256 Credential={credentials.access_key}/{credential_scope}, SignedHeaders={signed_headers}, Signature={signature}"
+
+        return {'x-amz-date':amzdate, 'Authorization':authorization_header}
+
+    def _listener(service_name: str, gen_function: Callable[[None], None], test_function: Optional[Callable[[dict], bool]]=None, wait_time: int=8):
+        """
+        Listener fixture function
+        """
+
+        # Retrieve the listener API URL
+        listener_api_url = ssm.get_parameter(
+            Name="/ecommerce/{}/platform/listener-api/url".format(os.environ["ECOM_ENVIRONMENT"])
         )["Parameter"]["Value"]
 
-        print("TIMEOUT", timeout)
-        messages = []
-        start_time = time.time()
-        while time.time() < start_time + timeout:
-            response = sqs.receive_message(
-                QueueUrl=queue_url,
-                MaxNumberOfMessages=10,
-                WaitTimeSeconds=min(20, int(time.time()-start_time+timeout))
-            )
-            if response.get("Messages", []):
-                sqs.delete_message_batch(
-                    QueueUrl=queue_url,
-                    Entries=[
-                        {"Id": m["MessageId"], "ReceiptHandle": m["ReceiptHandle"]}
-                        for m in response["Messages"]
-                    ]
+        # Inner async function
+        async def _listen() -> List[dict]:
+            # Generate SigV4 headers
+            headers = signed_url_headers(listener_api_url)
+            # Connects to API
+            async with websockets.connect(listener_api_url, extra_headers=headers) as websocket:
+                # Send to which service we are subscribing
+                await websocket.send(
+                    json.dumps({"action": "register", "serviceName": service_name})
                 )
-            messages.extend(response.get("Messages", []))
 
-        return messages
-    
+                # Sleep to ensure propagation
+                time.sleep(2)
+
+                # Run the function that will produce messages
+                gen_function()
+
+                # Listen to messages through the WebSockets API
+                found = False
+                messages = []
+                # Since asyncio.wait_for timeout parameter takes an integer, we need to
+                # calculate the value. For this, we calculate the datetime until we want to
+                # wait in the worst case, then calculate the timeout integer value based on
+                # that.
+                timeout = datetime.datetime.utcnow() + datetime.timedelta(seconds=wait_time)
+                while datetime.datetime.utcnow() < timeout:
+                    try:
+                        message = json.loads(await asyncio.wait_for(
+                            websocket.recv(),
+                            timeout=(timeout - datetime.datetime.utcnow()).total_seconds()
+                        ))
+                        print(message)
+                        messages.append(message)
+                        # Run the user-provided test
+                        if test_function is not None and test_function(message):
+                            found = True
+                            break
+                    except asyncio.exceptions.TimeoutError:
+                        # Timeout exceeded
+                        break
+
+                if test_function is not None:
+                    assert found == True
+
+                return messages
+
+        return asyncio.run(_listen())
+
     return _listener
 
 

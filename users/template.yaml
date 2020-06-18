@@ -33,10 +33,6 @@ Globals:
         LOG_LEVEL: !Ref LogLevel
 
 
-Conditions:
-  IsNotProd: !Not [!Equals [!Ref Environment, prod]]
-
-
 Resources:
   #############
   # USER POOL #
@@ -94,16 +90,3 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/${SignUpFunction}"
       RetentionInDays: !Ref RetentionInDays
-
-  ############
-  # LISTENER #
-  ############
-  Listener:
-    Type: AWS::CloudFormation::Stack
-    Condition: IsNotProd
-    Properties:
-      TemplateURL: ../../shared/templates/listener.yaml
-      Parameters:
-        Environment: !Ref Environment
-        EventBusName: !Ref EventBusName
-        ServiceName: "users"

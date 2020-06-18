@@ -36,10 +36,6 @@ Globals:
         LOG_LEVEL: !Ref LogLevel
 
 
-Conditions:
-  IsNotProd: !Not [!Equals [!Ref Environment, prod]]
-
-
 Resources:
   #########
   # TABLE #
@@ -177,16 +173,3 @@ Resources:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: ../../shared/templates/dlq.yaml
-
-  ############
-  # LISTENER #
-  ############
-  Listener:
-    Type: AWS::CloudFormation::Stack
-    Condition: IsNotProd
-    Properties:
-      TemplateURL: ../../shared/templates/listener.yaml
-      Parameters:
-        Environment: !Ref Environment
-        EventBusName: !Ref EventBusName
-        ServiceName: "warehouse"

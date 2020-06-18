@@ -51,29 +51,19 @@ def test_on_package_created(order, listener, table_name, event_bus_name):
         "Detail": json.dumps(order),
         "EventBusName": event_bus_name
     }
-    eventbridge.put_events(Entries=[event])
-
-    # Wait
-    time.sleep(5)
-
-    # Check the DynamoDB table
-    response = table.get_item(Key={"orderId": order["orderId"]})
-    assert "Item" in response
-    assert "status" in response["Item"]
-    assert response["Item"]["status"] == "PACKAGED"
 
     # Check events
-    messages = listener("orders", 5)
-    found = False
-    for message in messages:
-        print("MESSAGE RECEIVED:", message)
-        body = json.loads(message["Body"])
-        if order["orderId"] in body["resources"] and body["detail-type"] == "OrderModified":
-            found = True
-            assert "status" in body["detail"]["changed"]
-            assert "products" not in body["detail"]["changed"]
-            assert body["detail"]["new"]["status"] == "PACKAGED"
-    assert found == True
+    listener(
+        "ecommerce.orders", 
+        lambda: eventbridge.put_events(Entries=[event]),
+        lambda m: (
+            order["orderId"] in m["resources"] and
+            m["detail-type"] == "OrderModified" and
+            "status" in m["detail"]["changed"] and
+            "products" not in m["detail"]["changed"] and
+            m["detail"]["new"]["status"] == "PACKAGED"
+        )
+    )
 
     # Clean up
     table.delete_item(Key={"orderId": order["orderId"]})
@@ -102,31 +92,19 @@ def test_on_package_created_products(order, listener, table_name, event_bus_name
         "Detail": json.dumps(package_order),
         "EventBusName": event_bus_name
     }
-    eventbridge.put_events(Entries=[event])
-
-    # Wait
-    time.sleep(5)
-
-    # Check the DynamoDB table
-    response = table.get_item(Key={"orderId": order["orderId"]})
-    assert "Item" in response
-    assert "status" in response["Item"]
-    assert response["Item"]["status"] == "PACKAGED"
-    assert len(response["Item"]["products"]) == len(package_order["products"])
-    assert removed_product["productId"] not in [p["productId"] for p in response["Item"]["products"]]
 
     # Check events
-    messages = listener("orders", 5)
-    found = False
-    for message in messages:
-        print("MESSAGE RECEIVED:", message)
-        body = json.loads(message["Body"])
-        if order["orderId"] in body["resources"] and body["detail-type"] == "OrderModified":
-            found = True
-            assert "status" in body["detail"]["changed"]
-            assert "products" in body["detail"]["changed"]
-            assert body["detail"]["new"]["status"] == "PACKAGED"
-    assert found == True
+    listener(
+        "ecommerce.orders",
+        lambda: eventbridge.put_events(Entries=[event]),
+        lambda m: (
+            order["orderId"] in m["resources"] and
+            m["detail-type"] == "OrderModified" and
+            "status" in m["detail"]["changed"] and
+            "products" in m["detail"]["changed"] and
+            m["detail"]["new"]["status"] == "PACKAGED"
+        )
+    )
 
     # Clean up
     table.delete_item(Key={"orderId": order["orderId"]})
@@ -152,28 +130,18 @@ def test_on_packaging_failed(order, listener, table_name, event_bus_name):
         "Detail": json.dumps(order),
         "EventBusName": event_bus_name
     }
-    eventbridge.put_events(Entries=[event])
-
-    # Wait
-    time.sleep(5)
-
-    # Check the DynamoDB table
-    response = table.get_item(Key={"orderId": order["orderId"]})
-    assert "Item" in response
-    assert "status" in response["Item"]
-    assert response["Item"]["status"] == "PACKAGING_FAILED"
-
+    
     # Check events
-    messages = listener("orders", 5)
-    found = False
-    for message in messages:
-        print("MESSAGE RECEIVED:", message)
-        body = json.loads(message["Body"])
-        if order["orderId"] in body["resources"] and body["detail-type"] == "OrderModified":
-            found = True
-            assert "status" in body["detail"]["changed"]
-            assert body["detail"]["new"]["status"] == "PACKAGING_FAILED"
-    assert found == True
+    listener(
+        "ecommerce.orders",
+        lambda: eventbridge.put_events(Entries=[event]),
+        lambda m: (
+            order["orderId"] in m["resources"] and
+            m["detail-type"] == "OrderModified" and
+            "status" in m["detail"]["changed"] and
+            m["detail"]["new"]["status"] == "PACKAGING_FAILED"
+        )
+    )
 
     # Clean up
     table.delete_item(Key={"orderId": order["orderId"]})
@@ -199,28 +167,18 @@ def test_on_delivery_completed(order, listener, table_name, event_bus_name):
         "Detail": json.dumps(order),
         "EventBusName": event_bus_name
     }
-    eventbridge.put_events(Entries=[event])
-
-    # Wait
-    time.sleep(5)
-
-    # Check the DynamoDB table
-    response = table.get_item(Key={"orderId": order["orderId"]})
-    assert "Item" in response
-    assert "status" in response["Item"]
-    assert response["Item"]["status"] == "FULFILLED"
 
     # Check events
-    messages = listener("orders", 5)
-    found = False
-    for message in messages:
-        print("MESSAGE RECEIVED:", message)
-        body = json.loads(message["Body"])
-        if order["orderId"] in body["resources"] and body["detail-type"] == "OrderModified":
-            found = True
-            assert "status" in body["detail"]["changed"]
-            assert body["detail"]["new"]["status"] == "FULFILLED"
-    assert found == True
+    listener(
+        "ecommerce.orders",
+        lambda: eventbridge.put_events(Entries=[event]),
+        lambda m: (
+            order["orderId"] in m["resources"] and
+            m["detail-type"] == "OrderModified" and
+            "status" in m["detail"]["changed"] and
+            m["detail"]["new"]["status"] == "FULFILLED"
+        )
+    )
 
     # Clean up
     table.delete_item(Key={"orderId": order["orderId"]})
@@ -246,28 +204,18 @@ def test_on_delivery_failed(order, listener, table_name, event_bus_name):
         "Detail": json.dumps(order),
         "EventBusName": event_bus_name
     }
-    eventbridge.put_events(Entries=[event])
-
-    # Wait
-    time.sleep(5)
-
-    # Check the DynamoDB table
-    response = table.get_item(Key={"orderId": order["orderId"]})
-    assert "Item" in response
-    assert "status" in response["Item"]
-    assert response["Item"]["status"] == "DELIVERY_FAILED"
 
     # Check events
-    messages = listener("orders", 5)
-    found = False
-    for message in messages:
-        print("MESSAGE RECEIVED:", message)
-        body = json.loads(message["Body"])
-        if order["orderId"] in body["resources"] and body["detail-type"] == "OrderModified":
-            found = True
-            assert "status" in body["detail"]["changed"]
-            assert body["detail"]["new"]["status"] == "DELIVERY_FAILED"
-    assert found == True
+    listener(
+        "ecommerce.orders",
+        lambda: eventbridge.put_events(Entries=[event]),
+        lambda m: (
+            order["orderId"] in m["resources"] and
+            m["detail-type"] == "OrderModified" and
+            "status" in m["detail"]["changed"] and
+            m["detail"]["new"]["status"] == "DELIVERY_FAILED"
+        )
+    )
 
     # Clean up
     table.delete_item(Key={"orderId": order["orderId"]})

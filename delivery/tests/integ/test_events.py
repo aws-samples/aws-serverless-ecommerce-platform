@@ -45,21 +45,13 @@ def test_table_update_completed(table_name, listener, order):
 
     # Set the item to COMPLETED
     order["status"] = "COMPLETED"
-    table.put_item(Item=order)
 
-    # Listen for messages on EventBridge through a listener SQS queue
-    messages = listener("delivery")
-
-    # Parse messages
-    found = False
-    for message in messages:
-        print("MESSAGE RECEIVED:", message)
-        body = json.loads(message["Body"])
-        if order["orderId"] in body["resources"]:
-            found = True
-            assert body["detail-type"] == "DeliveryCompleted"
-
-    assert found == True
+    # Listen for messages on EventBridge
+    listener(
+        "ecommerce.delivery",
+        lambda: table.put_item(Item=order),
+        lambda m: order["orderId"] in m["resources"] and m["detail-type"] == "DeliveryCompleted"
+    )
 
     # Delete the item
     table.delete_item(Key={"orderId": order["orderId"]})
@@ -76,19 +68,9 @@ def test_table_update_failed(table_name, listener, order):
     order["status"] = "NEW"
     table.put_item(Item=order)
 
-    # Delete the item
-    table.delete_item(Key={"orderId": order["orderId"]})
-
     # Listen for messages on EventBridge through a listener SQS queue
-    messages = listener("delivery")
-
-    # Parse messages
-    found = False
-    for message in messages:
-        print("MESSAGE RECEIVED:", message)
-        body = json.loads(message["Body"])
-        if order["orderId"] in body["resources"]:
-            found = True
-            assert body["detail-type"] == "DeliveryFailed"
-
-    assert found == True
+    listener(
+        "ecommerce.delivery",
+        lambda: table.delete_item(Key={"orderId": order["orderId"]}),
+        lambda m: order["orderId"] in m["resources"] and m["detail-type"] == "DeliveryFailed"
+    )
