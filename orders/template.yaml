@@ -106,7 +106,7 @@ Resources:
           DELIVERY_API_URL: !Ref DeliveryApiUrl
           PAYMENT_API_URL: !Ref PaymentApiUrl
           PRODUCTS_API_URL: !Ref ProductsApiUrl
-      MemorySize: 512
+      MemorySize: 768
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -140,6 +140,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: src/get_order/
+      MemorySize: 512
       Events:
         BackendApi:
           Type: Api
@@ -166,6 +167,7 @@ Resources:
     Properties:
       Handler: main.handler
       CodeUri: src/table_update/
+      MemorySize: 384
       Events:
         DynamoDB:
           Type: DynamoDB
