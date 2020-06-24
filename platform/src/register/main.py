@@ -3,6 +3,7 @@ Register Lambda function
 """
 
 
+import datetime
 import json
 import os
 import boto3
@@ -27,9 +28,12 @@ def register_service(connection_id: str, service_name: str):
     Store the connectionId in DynamoDB
     """
 
+    ttl = datetime.datetime.now() + datetime.timedelta(days=1)
+
     table.put_item(Item={
         "id": connection_id,
-        "service": service_name
+        "service": service_name,
+        "ttl": int(ttl.timestamp())
     })
 
 

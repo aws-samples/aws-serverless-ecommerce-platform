@@ -1,5 +1,6 @@
 import json
 import uuid
+from botocore import stub
 import pytest
 from fixtures import apigateway_event, context, lambda_module # pylint: disable=import-error
 from helpers import mock_table # pylint: disable=import-error,no-name-in-module
@@ -28,7 +29,8 @@ def test_register_service(lambda_module):
         lambda_module.table, "put_item", ["id"],
         items={
             "id": connection_id,
-            "service": service_name
+            "service": service_name,
+            "ttl": stub.ANY
         }
     )
 

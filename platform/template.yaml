@@ -71,6 +71,9 @@ Resources:
           Projection:
             ProjectionType: ALL
       BillingMode: PAY_PER_REQUEST
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
 
   ################
   # LISTENER API #
@@ -134,6 +137,8 @@ Resources:
       CodeUri: src/on_connect/
       Environment:
         Variables:
+          # EventBridge rule for OnEventsFunction
+          EVENT_RULE_NAME: !Ref OnEventsFunctionEvent
           LISTENER_TABLE_NAME: !Ref ListenerTable
       Policies:
         - Version: "2012-10-17"
@@ -143,6 +148,11 @@ Resources:
                 - dynamodb:PutItem
               Resource:
                 - !GetAtt ListenerTable.Arn
+            - Effect: Allow
+              Action:
+                - events:EnableRule
+              Resource:
+                - !GetAtt OnEventsFunctionEvent.Arn
 
   OnConnectPermission:
     Type: AWS::Lambda::Permission
@@ -182,6 +192,8 @@ Resources:
       CodeUri: src/on_disconnect/
       Environment:
         Variables:
+          # EventBridge rule for OnEventsFunction
+          EVENT_RULE_NAME: !Ref OnEventsFunctionEvent
           LISTENER_TABLE_NAME: !Ref ListenerTable
       Policies:
         - Version: "2012-10-17"
@@ -189,8 +201,14 @@ Resources:
             - Effect: Allow
               Action:
                 - dynamodb:DeleteItem
+                - dynamodb:Scan
               Resource:
                 - !GetAtt ListenerTable.Arn
+            - Effect: Allow
+              Action:
+                - events:DisableRule
+              Resource:
+                - !GetAtt OnEventsFunctionEvent.Arn
 
   OnDisconnectPermission:
     Type: AWS::Lambda::Permission
