@@ -1,5 +1,5 @@
 import uuid
-from botocore import stub
+from botocore import stub, exceptions
 import pytest
 from fixtures import apigateway_event, context, lambda_module # pylint: disable=import-error
 from helpers import mock_table # pylint: disable=import-error,no-name-in-module
@@ -48,6 +48,15 @@ def test_enable_rule(lambda_module):
         "Name": "EVENT_RULE_NAME",
         "EventBusName": "EVENT_BUS_NAME"
     })
+    eventbridge.add_response(
+        "describe_rule",
+        {
+            "Name": "EVENT_RULE_NAME",
+            "State": "ENABLED",
+            "EventBusName": "EVENT_BUS_NAME"
+        },
+        {"Name": "EVENT_RULE_NAME", "EventBusName": "EVENT_BUS_NAME"},
+    )
     eventbridge.activate()
 
     lambda_module.enable_rule()

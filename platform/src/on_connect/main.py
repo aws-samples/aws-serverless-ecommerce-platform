@@ -15,7 +15,8 @@ from ecom.apigateway import response # pylint: disable=import-error
 ENVIRONMENT = os.environ["ENVIRONMENT"]
 EVENT_BUS_NAME, EVENT_RULE_NAME = os.environ["EVENT_RULE_NAME"].split("|")
 TABLE_NAME = os.environ["LISTENER_TABLE_NAME"]
-
+WAITER_MAX_ATTEMPTS = 5
+WAITER_DELAY = 2
 
 dynamodb = boto3.resource("dynamodb") # pylint: disable=invalid-name
 eventbridge = boto3.client("events") #pylint: disable=invalid-name
@@ -32,8 +33,8 @@ def create_waiter(evb_client):
         "waiters": {
             "EvbRuleEnabled": {
                 "operation": "DescribeRule",
-                "delay": 3,
-                "maxAttempts": 15,
+                "delay": WAITER_DELAY,
+                "maxAttempts": WAITER_MAX_ATTEMPTS,
                 "acceptors": [
                     {
                         "matcher": "path",
