@@ -6,6 +6,7 @@ OnConnect Lambda function
 import datetime
 import os
 import boto3
+from botocore.waiter import WaiterModel, create_waiter_with_client
 from aws_lambda_powertools.tracing import Tracer # pylint: disable=import-error
 from aws_lambda_powertools.logging.logger import Logger # pylint: disable=import-error
 from ecom.apigateway import response # pylint: disable=import-error
@@ -21,6 +22,40 @@ eventbridge = boto3.client("events") #pylint: disable=invalid-name
 table = dynamodb.Table(TABLE_NAME) # pylint: disable=invalid-name,no-member
 logger = Logger() # pylint: disable=invalid-name
 tracer = Tracer() # pylint: disable=invalid-name
+
+
+@tracer.capture_method
+def create_waiter(evb_client):
+    waiter_name = "EvbRuleEnabled"
+    waiter_config = {
+        "version": 2,
+        "waiters": {
+            "EvbRuleEnabled": {
+                "operation": "DescribeRule",
+                "delay": 3,
+                "maxAttempts": 15,
+                "acceptors": [
+                    {
+                        "matcher": "path",
+                        "expected": "ENABLED",
+                        "state": "success",
+                        "argument": "State",
+                    },
+                    {
+                        "matcher": "path",
+                        "expected": "DISABLED",
+                        "state": "retry",
+                        "argument": "State",
+                    },
+                ],
+            }
+        },
+    }
+    waiter_model = WaiterModel(waiter_config)
+    return create_waiter_with_client(waiter_name, waiter_model, evb_client)
+
+
+evb_rule_waiter = create_waiter(evb_client=eventbridge)
 
 
 @tracer.capture_method
@@ -45,6 +80,10 @@ def enable_rule():
 
     eventbridge.enable_rule(
         Name=EVENT_RULE_NAME,
+        EventBusName=EVENT_BUS_NAME
+    )    
+    evb_rule_waiter.wait(
+        Name=EVENT_RULE_NAME, 
         EventBusName=EVENT_BUS_NAME
     )
 

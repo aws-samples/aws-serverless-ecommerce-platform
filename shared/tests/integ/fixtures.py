@@ -85,9 +85,6 @@ def listener():
                     json.dumps({"action": "register", "serviceName": service_name})
                 )
 
-                # Sleep to ensure propagation
-                time.sleep(2)
-
                 # Run the function that will produce messages
                 gen_function()
 
