@@ -38,35 +38,17 @@ def test_table_update(table_name, listener, product):
     """
     # Add a new item
     table = boto3.resource("dynamodb").Table(table_name) # pylint: disable=no-member
-    table.put_item(Item=product)
 
-    # Listen for messages on EventBridge through a listener SQS queue
-    messages = listener("products")
+    # Listen for messages on EventBridge
+    listener(
+        "ecommerce.products",
+        lambda: table.put_item(Item=product),
+        lambda m: product["productId"] in m["resources"] and m["detail-type"] == "ProductCreated"
+    )
 
-    # Parse messages
-    found = False
-    for message in messages:
-        print("MESSAGE RECEIVED:", message)
-        body = json.loads(message["Body"])
-        if product["productId"] in body["resources"]:
-            found = True
-            assert body["detail-type"] == "ProductCreated"
-
-    assert found == True
-
-    # Delete the item
-    table.delete_item(Key={"productId": product["productId"]})
-
-    # Listen for messages on EventBridge through a listener SQS queue
-    messages = listener("products")
-
-    # Parse messages
-    found = False
-    for message in messages:
-        print("MESSAGE RECEIVED:", message)
-        body = json.loads(message["Body"])
-        if product["productId"] in body["resources"]:
-            found = True
-            assert body["detail-type"] == "ProductDeleted"
-
-    assert found == True
+    # Listen for messages on EventBridge
+    listener(
+        "ecommerce.products",
+        lambda: table.delete_item(Key={"productId": product["productId"]}),
+        lambda m: product["productId"] in m["resources"] and m["detail-type"] == "ProductDeleted"
+    )
