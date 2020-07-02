@@ -5,6 +5,8 @@ OnCreated Function
 
 import os
 import boto3
+import json
+import datetime
 from aws_lambda_powertools.tracing import Tracer # pylint: disable=import-error
 from aws_lambda_powertools.logging.logger import Logger # pylint: disable=import-error
 
@@ -48,3 +50,21 @@ def handler(event, _):
     })
 
     save_payment_token(order_id, payment_token)
+
+    # Generate custom metrics using the Embedded Metric Format
+    # See https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CloudWatch_Embedded_Metric_Format_Specification.html
+    print(json.dumps({
+        "paymentCreated": 1,
+        "environment": ENVIRONMENT,
+        "_aws": {
+            # Timestamp is in milliseconds
+            "Timestamp": int(datetime.datetime.now().timestamp()*1000),
+            "CloudWatchMetrics": [{
+                "Namespace": "ecommerce.payment",
+                "Dimensions": [["environment"]],
+                "Metrics": [
+                    {"Name": "paymentCreated"}
+                ]
+            }]
+        }
+    }))

@@ -259,3 +259,390 @@ Resources:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: ../../shared/templates/dlq.yaml
+
+ #############
+  # DASHBOARD #
+  #############
+  Dashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: !Ref AWS::StackName
+      DashboardBody: !Sub |
+        {
+          "start": "-PT6H",
+          "periodOverride": "inherit",
+          "widgets": [
+            {
+              "type": "text",
+              "x": 0,
+              "y": 0,
+              "width": 20,
+              "height": 1,
+              "properties": {
+                "markdown": "\n# Key Metrics\n"
+              }
+            },
+            {
+              "type": "text",
+              "x": 20,
+              "y": 0,
+              "width": 4,
+              "height": 7,
+              "properties": {
+                "markdown": "\n## Useful links\n\n__CloudWatch Logs Insights queries__:\n\n* [Last 100 warning messages](https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#logs-insights:queryDetail=~\\(end~0~start~-21600~timeType~'RELATIVE~unit~'seconds~editorString~'fields*20timestamp*2c*20level*2c*20message.orderId*20as*20orderId*2c*20message.paymentToken*20as*20paymentToken*2c*20message.message*20as*20message*0a*7c*20filter*20level*20*3d*3d*20*22WARNING*22*0a*7c*20sort*20*40timestamp*20desc*0a*7c*20limit*2020*0a~isLiveTail~false~queryId~'38d167e2-e680-4dc3-80fc-411dbd93a317~source~(~'*2faws*2flambda*2f${OnCreatedFunction}~'*2faws*2flambda*2f${OnModifiedFunction}~'*2faws*2flambda*2f${OnFailedFunction}~'*2faws*2flambda*2f${OnCompletedFunction}~'*2faws*2flambda*2f${ValidateFunction})\\))\n\n__Other links__:\n\n* [Repository](https://github.com/aws-samples/aws-serverless-ecommerce-platform/tree/master/payment)\n"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 1,
+              "width": 10,
+              "height": 3,
+              "properties": {
+                "metrics": [
+                  ["ecommerce.payment", "paymentCreated", "environment", "${Environment}", {"color": "#29b6f6", "label": "Payments Created"}],
+                  ["ecommerce.payment", "paymentCompleted", "environment", "${Environment}", {"color": "#66bb6a", "label": "Payments Completed"}],
+                  ["ecommerce.payment", "paymentCanceled", "environment", "${Environment}", {"color": "#ef5350", "label": "Payments Canceled"}]
+                ],
+                "view": "singleValue",
+                "period": 86400,
+                "stacked": false,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "Payments"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 10,
+              "y": 1,
+              "width": 10,
+              "height": 3,
+              "properties": {
+                "metrics": [
+                  [{"expression": "le1+le2+le3+le4+le5+lt1+lt2+lt3+lt4+lt5", "label": "Lambda Errors", "color": "#66bb6a"}],
+                  [{"expression": "ag1", "label": "API Gateway 5XX", "color": "#ef5350"}],
+                  [{"expression": "db1+db2", "label": "DynamoDB Errors", "color": "#ffa726"}],
+
+
+                  ["AWS/Lambda", "Errors", "FunctionName", "${OnCreatedFunction}", {"id": "le1", "visible": false}],
+                  ["AWS/Lambda", "Errors", "FunctionName", "${OnCompletedFunction}", {"id": "le2", "visible": false}],
+                  ["AWS/Lambda", "Errors", "FunctionName", "${OnModifiedFunction}", {"id": "le3", "visible": false}],
+                  ["AWS/Lambda", "Errors", "FunctionName", "${OnFailedFunction}", {"id": "le4", "visible": false}],
+                  ["AWS/Lambda", "Errors", "FunctionName", "${ValidateFunction}", {"id": "le5", "visible": false}],
+
+                  ["AWS/Lambda", "Throttles", "FunctionName", "${OnCreatedFunction}", {"id": "lt1", "visible": false}],
+                  ["AWS/Lambda", "Throttles", "FunctionName", "${OnCompletedFunction}", {"id": "lt2", "visible": false}],
+                  ["AWS/Lambda", "Throttles", "FunctionName", "${OnModifiedFunction}", {"id": "lt3", "visible": false}],
+                  ["AWS/Lambda", "Throttles", "FunctionName", "${OnFailedFunction}", {"id": "lt4", "visible": false}],
+                  ["AWS/Lambda", "Throttles", "FunctionName", "${ValidateFunction}", {"id": "lt5", "visible": false}],
+
+                  ["AWS/ApiGateway", "5XXError", "ApiName", "${AWS::StackName}-api", {"id": "ag1", "visible": false}],
+
+                  ["AWS/DynamoDB", "UserErrors", "TableName", "${Table}", {"id": "db1", "visible": false}],
+                  ["AWS/DynamoDB", "SystemErrors", "TableName", "${Table}", {"id": "db2", "visible": false}]
+                ],
+                "view": "singleValue",
+                "period": 86400,
+                "stacked": false,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "Errors"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 4,
+              "width": 10,
+              "height": 3,
+              "properties": {
+                "metrics": [
+                  ["AWS/Lambda", "Duration", "FunctionName", "${OnCreatedFunction}", {"color": "#9ccc65", "label": "p50"}],
+                  ["...", {"stat": "p90", "color": "#ffee58", "label": "p90"}],
+                  ["...", {"stat": "p99", "color": "#ef5350", "label": "p99"}]
+                ],
+                "view": "singleValue",
+                "period": 86400,
+                "stacked": false,
+                "stat": "p50",
+                "region": "${AWS::Region}",
+                "title": "OnCreated Latency"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 10,
+              "y": 4,
+              "width": 10,
+              "height": 3,
+              "properties": {
+                "metrics": [
+                  ["AWS/Lambda", "Duration", "FunctionName", "${OnCompletedFunction}", {"color": "#9ccc65", "label": "p50"}],
+                  ["...", {"stat": "p90", "color": "#ffee58", "label": "p90"}],
+                  ["...", {"stat": "p99", "color": "#ef5350", "label": "p99"}]
+                ],
+                "view": "singleValue",
+                "period": 86400,
+                "stacked": false,
+                "stat": "p50",
+                "region": "${AWS::Region}",
+                "title": "OnCompleted Latency"
+              }
+            },
+
+            {
+              "type": "text",
+              "x": 0,
+              "y": 7,
+              "width": 24,
+              "height": 1,
+              "properties": {
+                "markdown": "\n# Traffic\n"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 8,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["AWS/Lambda", "Invocations", "FunctionName", "${OnCreatedFunction}", {"color": "#29b6f6", "label": "CreatePayment"}],
+                  ["AWS/Lambda", "Invocations", "FunctionName", "${OnCompletedFunction}", {"color": "#66bb6a", "label": "CompletePayment"}],
+                  ["AWS/Lambda", "Invocations", "FunctionName", "${OnFailedFunction}", {"color": "#ec407a", "label": "CancelPayment"}],
+                  ["AWS/Lambda", "Invocations", "FunctionName", "${OnModifiedFunction}", {"color": "#b300b3", "label": "ModifyPayment"}],
+                  ["AWS/Lambda", "Invocations", "FunctionName", "${ValidateFunction}", {"color": "#ffa726", "label": "ValidatePayment"}]
+                ],
+                "view": "timeSeries",
+                "period": 60,
+                "stacked": false,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "Requests"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 8,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["ecommerce.payment", "paymentCreated", "environment", "${Environment}", {"color": "#29b6f6", "label": "Payment Created"}],
+                  ["ecommerce.payment", "paymentCompleted", "environment", "${Environment}", {"color": "#66bb6a", "label": "Payment Completed"}],
+                  ["ecommerce.payment", "paymentCanceled", "environment", "${Environment}", {"color": "#ef5350", "label": "Payment Canceled"}]
+                ],
+                "view": "timeSeries",
+                "period": 60,
+                "stacked": false,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "Payments"
+              }
+            },
+
+            {
+              "type": "text",
+              "x": 0,
+              "y": 14,
+              "width": 24,
+              "height": 1,
+              "properties": {
+                "markdown": "\n# Latency and Duration\n"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 15,
+              "width": 8,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["AWS/Lambda", "Duration", "FunctionName", "${OnCreatedFunction}", {"color": "#9ccc65", "label": "p50"}],
+                  ["...", {"stat": "p90", "color": "#ffee58", "label": "p90"}],
+                  ["...", {"stat": "p99", "color": "#ef5350", "label": "p99"}]
+                ],
+                "view": "timeSeries",
+                "period": 60,
+                "stacked": false,
+                "stat": "p50",
+                "region": "${AWS::Region}",
+                "title": "CreatePayment Duration"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 8,
+              "y": 15,
+              "width": 8,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["AWS/Lambda", "Duration", "FunctionName", "${OnCompletedFunction}", {"color": "#9ccc65", "label": "p50"}],
+                  ["...", {"stat": "p90", "color": "#ffee58", "label": "p90"}],
+                  ["...", {"stat": "p99", "color": "#ef5350", "label": "p99"}]
+                ],
+                "view": "timeSeries",
+                "period": 60,
+                "stacked": false,
+                "stat": "p50",
+                "region": "${AWS::Region}",
+                "title": "CompletePayment Duration"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 16,
+              "y": 15,
+              "width": 8,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["AWS/Lambda", "Duration", "FunctionName", "${OnFailedFunction}", {"color": "#9ccc65", "label": "p50"}],
+                  ["...", {"stat": "p90", "color": "#ffee58", "label": "p90"}],
+                  ["...", {"stat": "p99", "color": "#ef5350", "label": "p99"}]
+                ],
+                "view": "timeSeries",
+                "period": 60,
+                "stacked": false,
+                "stat": "p50",
+                "region": "${AWS::Region}",
+                "title": "CancelPayment Duration"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 21,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["AWS/ApiGateway", "Latency", "ApiName", "${AWS::StackName}-api", {"color": "#9ccc65", "label": "p50"}],
+                  ["...", {"stat": "p90", "color": "#ffee58", "label": "p90"}],
+                  ["...", {"stat": "p99", "color": "#ef5350", "label": "p99"}]
+                ],
+                "view": "timeSeries",
+                "period": 60,
+                "stacked": false,
+                "stat": "p50",
+                "region": "${AWS::Region}",
+                "title": "API Latency"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 21,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["AWS/DynamoDB", "SuccessfulRequestLatency", "TableName", "${Table}", "Operation", "GetItem", {"color": "#66bb6a", "label": "GetItem"}],
+                  ["AWS/DynamoDB", "SuccessfulRequestLatency", "TableName", "${Table}", "Operation", "PutItem", {"color": "#ffa726", "label": "PutItem"}],
+                  ["AWS/DynamoDB", "SuccessfulRequestLatency", "TableName", "${Table}", "Operation", "UpdateItem", {"color": "#29b6f6", "label": "UpdateItem"}],
+                  ["AWS/DynamoDB", "SuccessfulRequestLatency", "TableName", "${Table}", "Operation", "DeleteItem", {"color": "#ef5350", "label": "DeleteItem"}],
+                  ["AWS/DynamoDB", "SuccessfulRequestLatency", "TableName", "${Table}", "Operation", "Query", {"color": "#ec407a", "label": "Query"}]
+                ],
+                "view": "timeSeries",
+                "period": 60,
+                "stacked": false,
+                "stat": "Average",
+                "region": "${AWS::Region}",
+                "title": "DynamoDB Latency"
+              }
+            },
+
+            {
+              "type": "text",
+              "x": 0,
+              "y": 22,
+              "width": 24,
+              "height": 1,
+              "properties": {
+                "markdown": "\n# Errors\n"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 23,
+              "width": 8,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["AWS/Lambda", "Errors", "FunctionName", "${OnCreatedFunction}", {"color": "#29b6f6", "label": "CreatePayment"}],
+                  ["AWS/Lambda", "Errors", "FunctionName", "${OnCompletedFunction}", {"color": "#66bb6a", "label": "CompletePayment"}],
+                  ["AWS/Lambda", "Errors", "FunctionName", "${OnFailedFunction}", {"color": "#ec407a", "label": "CancelPayment"}],
+                  ["AWS/Lambda", "Errors", "FunctionName", "${OnModifiedFunction}", {"color": "#b300b3", "label": "ModifyPayment"}],
+                  ["AWS/Lambda", "Errors", "FunctionName", "${ValidateFunction}", {"color": "#ffa726", "label": "ValidatePayment"}]
+                ],
+                "view": "timeSeries",
+                "period": 60,
+                "stacked": false,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "Lambda Errors"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 8,
+              "y": 23,
+              "width": 8,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["AWS/ApiGateway", "4XXError", "ApiName", "${AWS::StackName}-api", {"color": "#ffa726", "label": "4XX Errors"}],
+                  ["AWS/ApiGateway", "5XXError", "ApiName", "${AWS::StackName}-api", {"color": "#ef5350", "label": "5XX Errors"}]
+                ],
+                "view": "timeSeries",
+                "period": 60,
+                "stacked": false,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "API Errors"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 16,
+              "y": 23,
+              "width": 8,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["AWS/DynamoDB", "UserErrors", "TableName", "${Table}", {"color": "#ffa726", "label": "User Errors"}],
+                  ["AWS/DynamoDB", "SystemErrors", "TableName", "${Table}", {"color": "#ef5350", "label": "System Errors"}]
+                ],
+                "view": "timeSeries",
+                "period": 60,
+                "stacked": false,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "DynamoDB Errors"
+              }
+            },
+
+            {
+              "type": "log",
+              "x": 0,
+              "y": 29,
+              "width": 24,
+              "height": 6,
+              "properties": {
+                "query": "SOURCE '/aws/lambda/${OnCreatedFunction}' | SOURCE '/aws/lambda/${OnCompletedFunction}' | SOURCE '/aws/lambda/${OnFailedFunction}' | SOURCE '/aws/lambda/${OnModifiedFunction}' | SOURCE '/aws/lambda/${ValidateFunction}' | fields timestamp, level, message.orderId as orderId, message.message as message, message.paymentToken as paymentToken \n| PARSE @message \"[*] *\" as loggingLevel, loggingMessage \n| filter (loggingLevel == \"ERROR\" or level == \"ERROR\")\n| sort @timestamp desc\n| limit 20\n",
+                "region": "${AWS::Region}",
+                "stacked": false,
+                "view": "table",
+                "title": "Last 20 errors"
+              }
+            }
+          ]
+        }
+
+        
