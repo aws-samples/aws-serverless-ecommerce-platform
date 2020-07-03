@@ -230,47 +230,6 @@ Resources:
               }
             },
             {
-              "type": "metric",
-              "x": 0,
-              "y": 4,
-              "width": 10,
-              "height": 3,
-              "properties": {
-                "metrics": [
-                  ["AWS/Lambda", "Duration", "FunctionName", "${OnPackageCreatedFunction}", {"color": "#9ccc65", "label": "p50"}],
-                  ["...", {"stat": "p90", "color": "#ffee58", "label": "p90"}],
-                  ["...", {"stat": "p99", "color": "#ef5350", "label": "p99"}]
-                ],
-                "view": "singleValue",
-                "period": 86400,
-                "stacked": false,
-                "stat": "p50",
-                "region": "${AWS::Region}",
-                "title": "OnPackageCreated Latency"
-              }
-            },
-            {
-              "type": "metric",
-              "x": 10,
-              "y": 4,
-              "width": 10,
-              "height": 3,
-              "properties": {
-                "metrics": [
-                  ["AWS/Lambda", "Duration", "FunctionName", "${TableUpdateFunction}", {"color": "#9ccc65", "label": "p50"}],
-                  ["...", {"stat": "p90", "color": "#ffee58", "label": "p90"}],
-                  ["...", {"stat": "p99", "color": "#ef5350", "label": "p99"}]
-                ],
-                "view": "singleValue",
-                "period": 86400,
-                "stacked": false,
-                "stat": "p50",
-                "region": "${AWS::Region}",
-                "title": "TableUpdate Latency"
-              }
-            },
-
-            {
               "type": "text",
               "x": 0,
               "y": 7,
@@ -315,10 +274,10 @@ Resources:
                 "stacked": false,
                 "stat": "Sum",
                 "region": "${AWS::Region}",
-                "title": "Orders"
+                "title": "Deliveries"
               }
             },
-                        {
+            {
               "type": "text",
               "x": 0,
               "y": 14,
@@ -332,7 +291,47 @@ Resources:
               "type": "metric",
               "x": 0,
               "y": 15,
-              "width": 8,
+              "width": 10,
+              "height": 3,
+              "properties": {
+                "metrics": [
+                  ["AWS/Lambda", "Duration", "FunctionName", "${OnPackageCreatedFunction}", {"color": "#9ccc65", "label": "p50"}],
+                  ["...", {"stat": "p90", "color": "#ffee58", "label": "p90"}],
+                  ["...", {"stat": "p99", "color": "#ef5350", "label": "p99"}]
+                ],
+                "view": "singleValue",
+                "period": 86400,
+                "stacked": false,
+                "stat": "p50",
+                "region": "${AWS::Region}",
+                "title": "OnPackageCreated Latency"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 10,
+              "y": 15,
+              "width": 10,
+              "height": 3,
+              "properties": {
+                "metrics": [
+                  ["AWS/Lambda", "Duration", "FunctionName", "${TableUpdateFunction}", {"color": "#9ccc65", "label": "p50"}],
+                  ["...", {"stat": "p90", "color": "#ffee58", "label": "p90"}],
+                  ["...", {"stat": "p99", "color": "#ef5350", "label": "p99"}]
+                ],
+                "view": "singleValue",
+                "period": 86400,
+                "stacked": false,
+                "stat": "p50",
+                "region": "${AWS::Region}",
+                "title": "TableUpdate Latency"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 21,
+              "width": 10,
               "height": 6,
               "properties": {
                 "metrics": [
@@ -350,9 +349,9 @@ Resources:
             },
             {
               "type": "metric",
-              "x": 8,
-              "y": 15,
-              "width": 8,
+              "x": 10,
+              "y": 21,
+              "width": 10,
               "height": 6,
               "properties": {
                 "metrics": [
@@ -371,7 +370,7 @@ Resources:
             {
               "type": "metric",
               "x": 0,
-              "y": 21,
+              "y": 22,
               "width": 12,
               "height": 6,
               "properties": {
@@ -393,7 +392,7 @@ Resources:
             {
               "type": "metric",
               "x": 12,
-              "y": 21,
+              "y": 22,
               "width": 12,
               "height": 6,
               "properties": {
@@ -413,7 +412,7 @@ Resources:
             {
               "type": "text",
               "x": 0,
-              "y": 22,
+              "y": 23,
               "width": 24,
               "height": 1,
               "properties": {
@@ -423,7 +422,7 @@ Resources:
             {
               "type": "metric",
               "x": 0,
-              "y": 23,
+              "y": 24,
               "width": 8,
               "height": 6,
               "properties": {
@@ -442,7 +441,7 @@ Resources:
             {
               "type": "metric",
               "x": 8,
-              "y": 23,
+              "y": 24,
               "width": 8,
               "height": 6,
               "properties": {
@@ -466,8 +465,8 @@ Resources:
               "width": 24,
               "height": 6,
               "properties": {
-                "query": "SOURCE '/aws/lambda/${OnPackageCreatedFunction}' | SOURCE '/aws/lambda/${TableUpdateFunction}' | sort @timestamp desc\n| limit 20\n",
-                "region": "eu-west-1",
+                "query": "SOURCE '/aws/lambda/${OnPackageCreatedFunction}' | SOURCE '/aws/lambda/${TableUpdateFunction}' | fields @message \n | filter @message like /ERROR/ \n | sort @timestamp desc\n| limit 20\n",
+                "region": "${AWS::Region}",
                 "stacked": false,
                 "view": "table",
                 "title": "Last 20 errors"
