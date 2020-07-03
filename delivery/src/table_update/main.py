@@ -6,7 +6,7 @@ TableUpdateFunction
 import datetime
 import json
 import os
-from typing import List, Optional, Union
+from typing import List, Optional
 import boto3
 from boto3.dynamodb.types import TypeDeserializer
 from aws_lambda_powertools.tracing import Tracer
@@ -142,7 +142,7 @@ def handler(event, _):
         process_record(record)
         for record in event.get("Records", [])
     ]
-    events = [event for event in events if event is not None]    
+    events = [event for event in events if event is not None]
 
     logger.info("Received %d event(s)", len(events))
     logger.debug({
