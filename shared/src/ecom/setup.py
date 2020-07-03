@@ -6,7 +6,7 @@ from setuptools import find_packages, setup
 
 setup(
     author="Amazon Web Services",
-    install_requires=["boto3"],
+    install_requires=["boto3","aws-lambda-powertools"],
     license="MIT-0",
     name="ecom",
     packages=find_packages(),

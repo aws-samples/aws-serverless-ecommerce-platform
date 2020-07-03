@@ -2,3 +2,4 @@ aws-lambda-powertools==0.9.3
 aws_requests_auth
 boto3
 requests
+../shared/src/ecom/

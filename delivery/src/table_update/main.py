@@ -6,12 +6,13 @@ TableUpdateFunction
 import datetime
 import json
 import os
-from typing import List, Optional
+from typing import List, Optional, Union
 import boto3
 from boto3.dynamodb.types import TypeDeserializer
 from aws_lambda_powertools.tracing import Tracer
 from aws_lambda_powertools.logging.logger import Logger
 from ecom.helpers import Encoder
+from ecom.metrics import log_metrics
 
 
 ENVIRONMENT = os.environ["ENVIRONMENT"]
@@ -90,6 +91,7 @@ def process_record(record: dict) -> Optional[dict]:
             "record": record
         })
         event["DetailType"] = "DeliveryFailed"
+        log_metrics("ecommerce.deliveries", "deliveryFailed", 1)
         return event
 
     # MODIFY records
@@ -100,6 +102,7 @@ def process_record(record: dict) -> Optional[dict]:
                 "record": record
             })
             event["DetailType"] = "DeliveryFailed"
+            log_metrics("ecommerce.deliveries", "deliveryFailed", 1)
             return event
 
         elif deserialize(record["dynamodb"]["NewImage"]["status"]) == "COMPLETED":
@@ -108,6 +111,7 @@ def process_record(record: dict) -> Optional[dict]:
                 "record": record
             })
             event["DetailType"] = "DeliveryCompleted"
+            log_metrics("ecommerce.deliveries", "deliveryCompleted", 1)
             return event
 
         else:

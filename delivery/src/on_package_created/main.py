@@ -11,6 +11,7 @@ import requests # pylint: disable=import-error
 from aws_requests_auth.boto_utils import BotoAWSRequestsAuth # pylint: disable=import-error
 from aws_lambda_powertools.tracing import Tracer # pylint: disable=import-error
 from aws_lambda_powertools.logging.logger import Logger # pylint: disable=import-error
+from ecom.metrics import log_metrics
 
 
 ENVIRONMENT = os.environ["ENVIRONMENT"]
@@ -80,6 +81,7 @@ def save_shipping_request(order: dict) -> None:
             "message": "Cannot update shipping request in status '{}'".format(result["Item"]["status"]),
             "orderId": order["orderId"]
         })
+        log_metrics("ecommerce.deliveries", "deliveryCreateFailed", 1)
         return
 
     # We only care about the order ID (partition key) and address
@@ -90,6 +92,8 @@ def save_shipping_request(order: dict) -> None:
         "status": "NEW",
         "address": order["address"]
     })
+
+    log_metrics("ecommerce.deliveries", "deliveryCreated", 1)
 
 
 @logger.inject_lambda_context

@@ -26,13 +26,10 @@ all:
 		${MAKE} ${MAKEOPTS} $$(echo all-$$service_line | sed 's/,/ all-/g') QUIET=true || exit 1 ; \
 	done
 all-%: 
-	@${MAKE} lint-$*
 	@${MAKE} build-$*
-	@${MAKE} tests-unit-$*
 	@${MAKE} check-deps-$*
 	@${MAKE} package-$*
 	@${MAKE} deploy-$*
-	@${MAKE} tests-integ-$*
 
 # Run CI on services
 ci: $(foreach service,${SERVICES}, ci-${service})

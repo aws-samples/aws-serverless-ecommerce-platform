@@ -156,3 +156,322 @@ Resources:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: ../../shared/templates/dlq.yaml
+
+
+  #############
+  # DASHBOARD #
+  #############
+  Dashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: !Ref AWS::StackName
+      DashboardBody: !Sub |
+        {
+          "start": "-PT6H",
+          "periodOverride": "inherit",
+          "widgets": [
+            {
+              "type": "text",
+              "x": 0,
+              "y": 0,
+              "width": 20,
+              "height": 1,
+              "properties": {
+                "markdown": "\n# Key Metrics\n"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 1,
+              "width": 12,
+              "height": 3,
+              "properties": {
+                "metrics": [
+                  ["ecommerce.deliveries", "deliveryCompleted", "environment", "${Environment}", {"color": "#29b6f6", "label": "Delivery Completed"}],
+                  ["ecommerce.deliveries", "deliveryFailed", "environment", "${Environment}", {"color": "#ef5350", "label": "Delivery Failed"}],
+                  ["ecommerce.deliveries", "deliveryCreated", "environment", "${Environment}", {"color": "#66bb6a", "label": "Delivery Created"}],
+                  ["ecommerce.deliveries", "deliveryCreateFailed", "environment", "${Environment}", {"color": "#9400D3", "label": "Delivery Create Failed"}]
+                ],
+                "view": "singleValue",
+                "period": 86400,
+                "stacked": false,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "Deliveries"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 1,
+              "width": 12,
+              "height": 3,
+              "properties": {
+                "metrics": [
+                  [{"expression": "le1+le2+lt1+lt2", "label": "Lambda Errors", "color": "#66bb6a"}],
+                  [{"expression": "db1+db2", "label": "DynamoDB Errors", "color": "#ffa726"}],
+
+                  ["AWS/Lambda", "Errors", "FunctionName", "${OnPackageCreatedFunction}", {"id": "le1", "visible": false}],
+                  ["AWS/Lambda", "Errors", "FunctionName", "${TableUpdateFunction}", {"id": "le2", "visible": false}],
+
+                  ["AWS/Lambda", "Throttles", "FunctionName", "${OnPackageCreatedFunction}", {"id": "lt1", "visible": false}],
+                  ["AWS/Lambda", "Throttles", "FunctionName", "${TableUpdateFunction}", {"id": "lt2", "visible": false}],
+
+                  ["AWS/DynamoDB", "UserErrors", "TableName", "${Table}", {"id": "db1", "visible": false}],
+                  ["AWS/DynamoDB", "SystemErrors", "TableName", "${Table}", {"id": "db2", "visible": false}]
+                ],
+                "view": "singleValue",
+                "period": 86400,
+                "stacked": false,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "Errors"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 4,
+              "width": 10,
+              "height": 3,
+              "properties": {
+                "metrics": [
+                  ["AWS/Lambda", "Duration", "FunctionName", "${OnPackageCreatedFunction}", {"color": "#9ccc65", "label": "p50"}],
+                  ["...", {"stat": "p90", "color": "#ffee58", "label": "p90"}],
+                  ["...", {"stat": "p99", "color": "#ef5350", "label": "p99"}]
+                ],
+                "view": "singleValue",
+                "period": 86400,
+                "stacked": false,
+                "stat": "p50",
+                "region": "${AWS::Region}",
+                "title": "OnPackageCreated Latency"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 10,
+              "y": 4,
+              "width": 10,
+              "height": 3,
+              "properties": {
+                "metrics": [
+                  ["AWS/Lambda", "Duration", "FunctionName", "${TableUpdateFunction}", {"color": "#9ccc65", "label": "p50"}],
+                  ["...", {"stat": "p90", "color": "#ffee58", "label": "p90"}],
+                  ["...", {"stat": "p99", "color": "#ef5350", "label": "p99"}]
+                ],
+                "view": "singleValue",
+                "period": 86400,
+                "stacked": false,
+                "stat": "p50",
+                "region": "${AWS::Region}",
+                "title": "TableUpdate Latency"
+              }
+            },
+
+            {
+              "type": "text",
+              "x": 0,
+              "y": 7,
+              "width": 24,
+              "height": 1,
+              "properties": {
+                "markdown": "\n# Traffic\n"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 8,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["AWS/Lambda", "Invocations", "FunctionName", "${OnPackageCreatedFunction}", {"color": "#29b6f6", "label": "OnPackageCreated"}],
+                  ["AWS/Lambda", "Invocations", "FunctionName", "${TableUpdateFunction}", {"color": "#ffa726", "label": "TableUpdate"}]
+                ],
+                "view": "timeSeries",
+                "period": 60,
+                "stacked": false,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "Requests"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 8,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["ecommerce.deliveries", "deliveryCompleted", "environment", "${Environment}", {"color": "#29b6f6", "label": "Delivery Completed"}],
+                  ["ecommerce.deliveries", "deliveryFailed", "environment", "${Environment}", {"color": "#ef5350", "label": "Delivery Failed"}]
+                ],
+                "view": "timeSeries",
+                "period": 60,
+                "stacked": false,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "Orders"
+              }
+            },
+                        {
+              "type": "text",
+              "x": 0,
+              "y": 14,
+              "width": 24,
+              "height": 1,
+              "properties": {
+                "markdown": "\n# Latency and Duration\n"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 15,
+              "width": 8,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["AWS/Lambda", "Duration", "FunctionName", "${OnPackageCreatedFunction}", {"color": "#9ccc65", "label": "p50"}],
+                  ["...", {"stat": "p90", "color": "#ffee58", "label": "p90"}],
+                  ["...", {"stat": "p99", "color": "#ef5350", "label": "p99"}]
+                ],
+                "view": "timeSeries",
+                "period": 60,
+                "stacked": false,
+                "stat": "p50",
+                "region": "${AWS::Region}",
+                "title": "OnPackageCreated Duration"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 8,
+              "y": 15,
+              "width": 8,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["AWS/Lambda", "Duration", "FunctionName", "${TableUpdateFunction}", {"color": "#9ccc65", "label": "p50"}],
+                  ["...", {"stat": "p90", "color": "#ffee58", "label": "p90"}],
+                  ["...", {"stat": "p99", "color": "#ef5350", "label": "p99"}]
+                ],
+                "view": "timeSeries",
+                "period": 60,
+                "stacked": false,
+                "stat": "p50",
+                "region": "${AWS::Region}",
+                "title": "TableUpdate Duration"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 21,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["AWS/DynamoDB", "SuccessfulRequestLatency", "TableName", "${Table}", "Operation", "GetItem", {"color": "#66bb6a", "label": "GetItem"}],
+                  ["AWS/DynamoDB", "SuccessfulRequestLatency", "TableName", "${Table}", "Operation", "PutItem", {"color": "#ffa726", "label": "PutItem"}],
+                  ["AWS/DynamoDB", "SuccessfulRequestLatency", "TableName", "${Table}", "Operation", "UpdateItem", {"color": "#29b6f6", "label": "UpdateItem"}],
+                  ["AWS/DynamoDB", "SuccessfulRequestLatency", "TableName", "${Table}", "Operation", "DeleteItem", {"color": "#ef5350", "label": "DeleteItem"}],
+                  ["AWS/DynamoDB", "SuccessfulRequestLatency", "TableName", "${Table}", "Operation", "Query", {"color": "#ec407a", "label": "Query"}]
+                ],
+                "view": "timeSeries",
+                "period": 60,
+                "stacked": false,
+                "stat": "Average",
+                "region": "${AWS::Region}",
+                "title": "DynamoDB Latency"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 21,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["AWS/Lambda", "Duration", "FunctionName", "${OnPackageCreatedFunction}", {"color": "#ec407a", "label": "OnPackageCreated P90"}],
+                  ["AWS/Lambda", "Duration", "FunctionName", "${TableUpdateFunction}", {"color": "#ffa726", "label": "TableUpdate P90"}],
+                  ["AWS/Lambda", "IteratorAge", "FunctionName", "${TableUpdateFunction}", {"color": "#ff7043", "stat": "Average", "label": "TableUpdate Iterator Age"}]
+                ],
+                "view": "timeSeries",
+                "period": 60,
+                "stacked": false,
+                "stat": "p90",
+                "region": "${AWS::Region}",
+                "title": "Asynchronous Durations"
+              }
+            },
+            {
+              "type": "text",
+              "x": 0,
+              "y": 22,
+              "width": 24,
+              "height": 1,
+              "properties": {
+                "markdown": "\n# Errors\n"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 23,
+              "width": 8,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["AWS/Lambda", "Errors", "FunctionName", "${OnPackageCreatedFunction}", {"color": "#29b6f6", "label": "OnPackageCreated"}],
+                  ["AWS/Lambda", "Errors", "FunctionName", "${TableUpdateFunction}", {"color": "#ffa726", "label": "TableUpdate"}]
+                ],
+                "view": "timeSeries",
+                "period": 60,
+                "stacked": false,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "Lambda Errors"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 8,
+              "y": 23,
+              "width": 8,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["AWS/DynamoDB", "UserErrors", "TableName", "${Table}", {"color": "#ffa726", "label": "User Errors"}],
+                  ["AWS/DynamoDB", "SystemErrors", "TableName", "${Table}", {"color": "#ef5350", "label": "System Errors"}]
+                ],
+                "view": "timeSeries",
+                "period": 60,
+                "stacked": false,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "DynamoDB Errors"
+              }
+            },
+
+            {
+              "type": "log",
+              "x": 0,
+              "y": 29,
+              "width": 24,
+              "height": 6,
+              "properties": {
+                "query": "SOURCE '/aws/lambda/${OnPackageCreatedFunction}' | SOURCE '/aws/lambda/${TableUpdateFunction}' | sort @timestamp desc\n| limit 20\n",
+                "region": "eu-west-1",
+                "stacked": false,
+                "view": "table",
+                "title": "Last 20 errors"
+              }
+            }
+          ]
+        }
