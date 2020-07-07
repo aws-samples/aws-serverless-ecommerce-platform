@@ -11,7 +11,8 @@ import requests # pylint: disable=import-error
 from aws_requests_auth.boto_utils import BotoAWSRequestsAuth # pylint: disable=import-error
 from aws_lambda_powertools.tracing import Tracer # pylint: disable=import-error
 from aws_lambda_powertools.logging.logger import Logger # pylint: disable=import-error
-from ecom.metrics import log_metrics
+from aws_lambda_powertools import Metrics
+from aws_lambda_powertools.metrics import MetricUnit
 
 
 ENVIRONMENT = os.environ["ENVIRONMENT"]
@@ -23,6 +24,7 @@ dynamodb = boto3.resource("dynamodb") # pylint: disable=invalid-name
 table = dynamodb.Table(TABLE_NAME) # pylint: disable=invalid-name,no-member
 logger = Logger() # pylint: disable=invalid-name
 tracer = Tracer() # pylint: disable=invalid-name
+metrics = Metrics(namespace="ecommerce.deliveries", service="delivery")
 
 
 @tracer.capture_method
@@ -81,7 +83,6 @@ def save_shipping_request(order: dict) -> None:
             "message": "Cannot update shipping request in status '{}'".format(result["Item"]["status"]),
             "orderId": order["orderId"]
         })
-        log_metrics("ecommerce.deliveries", "deliveryCreateFailed", 1)
         return
 
     # We only care about the order ID (partition key) and address
@@ -93,15 +94,18 @@ def save_shipping_request(order: dict) -> None:
         "address": order["address"]
     })
 
-    log_metrics("ecommerce.deliveries", "deliveryCreated", 1)
+    metrics.add_metric(name="deliveryCreated", unit=MetricUnit.Count, value=1)
 
 
+@metrics.log_metrics
 @logger.inject_lambda_context
 @tracer.capture_lambda_handler
 def handler(event, context):
     """
     Lambda function handler
     """
+
+    metrics.add_dimension(name="environment", value=ENVIRONMENT)
 
     # This should only receive PackageCreated events
     assert event["source"] == "ecommerce.warehouse"

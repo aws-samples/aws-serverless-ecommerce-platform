@@ -6,13 +6,15 @@ TableUpdateFunction
 import datetime
 import json
 import os
+import warnings
 from typing import List, Optional
 import boto3
 from boto3.dynamodb.types import TypeDeserializer
 from aws_lambda_powertools.tracing import Tracer
 from aws_lambda_powertools.logging.logger import Logger
+from aws_lambda_powertools import Metrics
+from aws_lambda_powertools.metrics import MetricUnit
 from ecom.helpers import Encoder
-from ecom.metrics import log_metrics
 
 
 ENVIRONMENT = os.environ["ENVIRONMENT"]
@@ -23,6 +25,7 @@ eventbridge = boto3.client("events") # pylint: disable=invalid-name
 deserialize = TypeDeserializer().deserialize # pylint: disable=invalid-name
 logger = Logger() # pylint: disable=invalid-name
 tracer = Tracer() # pylint: disable=invalid-name
+metrics = Metrics(namespace="ecommerce.deliveries", service="delivery")
 
 
 @tracer.capture_method
@@ -91,7 +94,7 @@ def process_record(record: dict) -> Optional[dict]:
             "record": record
         })
         event["DetailType"] = "DeliveryFailed"
-        log_metrics("ecommerce.deliveries", "deliveryFailed", 1)
+        metrics.add_metric(name="deliveryFailed", unit=MetricUnit.Count, value=1)
         return event
 
     # MODIFY records
@@ -102,7 +105,7 @@ def process_record(record: dict) -> Optional[dict]:
                 "record": record
             })
             event["DetailType"] = "DeliveryFailed"
-            log_metrics("ecommerce.deliveries", "deliveryFailed", 1)
+            metrics.add_metric(name="deliveryFailed", unit=MetricUnit.Count, value=1)
             return event
 
         elif deserialize(record["dynamodb"]["NewImage"]["status"]) == "COMPLETED":
@@ -111,7 +114,7 @@ def process_record(record: dict) -> Optional[dict]:
                 "record": record
             })
             event["DetailType"] = "DeliveryCompleted"
-            log_metrics("ecommerce.deliveries", "deliveryCompleted", 1)
+            metrics.add_metric(name="deliveryCompleted", unit=MetricUnit.Count, value=1)
             return event
 
         else:
@@ -121,12 +124,18 @@ def process_record(record: dict) -> Optional[dict]:
         raise ValueError("Wrong eventName value for DynamoDB event: {}".format(record["eventName"]))
 
 
+@metrics.log_metrics
 @logger.inject_lambda_context
 @tracer.capture_lambda_handler
 def handler(event, _):
     """
     Lambda function handler for Orders Table stream
     """
+
+    # this handler may complete without publishing any metrics
+    warnings.filterwarnings("ignore", "No metrics to publish*")
+
+    metrics.add_dimension(name="environment", value=ENVIRONMENT)
 
     logger.debug({
         "message": "Input event",
