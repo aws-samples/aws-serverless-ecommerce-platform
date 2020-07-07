@@ -25,7 +25,7 @@ eventbridge = boto3.client("events") # pylint: disable=invalid-name
 deserialize = TypeDeserializer().deserialize # pylint: disable=invalid-name
 logger = Logger() # pylint: disable=invalid-name
 tracer = Tracer() # pylint: disable=invalid-name
-metrics = Metrics(namespace="ecommerce.deliveries", service="delivery")
+metrics = Metrics(namespace="ecommerce.delivery", service="delivery")
 
 
 @tracer.capture_method

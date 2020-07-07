@@ -188,9 +188,9 @@ Resources:
               "height": 3,
               "properties": {
                 "metrics": [
-                  ["ecommerce.deliveries", "deliveryCreated", "environment", "${Environment}", "service", "delivery", {"color": "#66bb6a", "label": "Delivery Created"}],
-                  ["ecommerce.deliveries", "deliveryCompleted", "environment", "${Environment}", "service", "delivery", {"color": "#29b6f6", "label": "Delivery Completed"}],
-                  ["ecommerce.deliveries", "deliveryFailed", "environment", "${Environment}", "service", "delivery", {"color": "#ef5350", "label": "Delivery Failed"}]
+                  ["ecommerce.delivery", "deliveryCreated", "environment", "${Environment}", "service", "delivery", {"color": "#66bb6a", "label": "Delivery Created"}],
+                  ["ecommerce.delivery", "deliveryCompleted", "environment", "${Environment}", "service", "delivery", {"color": "#29b6f6", "label": "Delivery Completed"}],
+                  ["ecommerce.delivery", "deliveryFailed", "environment", "${Environment}", "service", "delivery", {"color": "#ef5350", "label": "Delivery Failed"}]
                 ],
                 "view": "singleValue",
                 "period": 86400,
@@ -265,9 +265,9 @@ Resources:
               "height": 6,
               "properties": {
                 "metrics": [
-                  ["ecommerce.deliveries", "deliveryCreated", "environment", "${Environment}", "service", "delivery", {"color": "#66bb6a", "label": "Delivery Created"}],
-                  ["ecommerce.deliveries", "deliveryCompleted", "environment", "${Environment}", "service", "delivery", {"color": "#29b6f6", "label": "Delivery Completed"}],
-                  ["ecommerce.deliveries", "deliveryFailed", "environment", "${Environment}", "service", "delivery", {"color": "#ef5350", "label": "Delivery Failed"}]
+                  ["ecommerce.delivery", "deliveryCreated", "environment", "${Environment}", "service", "delivery", {"color": "#66bb6a", "label": "Delivery Created"}],
+                  ["ecommerce.delivery", "deliveryCompleted", "environment", "${Environment}", "service", "delivery", {"color": "#29b6f6", "label": "Delivery Completed"}],
+                  ["ecommerce.delivery", "deliveryFailed", "environment", "${Environment}", "service", "delivery", {"color": "#ef5350", "label": "Delivery Failed"}]
                 ],
                 "view": "timeSeries",
                 "period": 60,

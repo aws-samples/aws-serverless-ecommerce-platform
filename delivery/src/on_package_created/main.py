@@ -24,7 +24,7 @@ dynamodb = boto3.resource("dynamodb") # pylint: disable=invalid-name
 table = dynamodb.Table(TABLE_NAME) # pylint: disable=invalid-name,no-member
 logger = Logger() # pylint: disable=invalid-name
 tracer = Tracer() # pylint: disable=invalid-name
-metrics = Metrics(namespace="ecommerce.deliveries", service="delivery")
+metrics = Metrics(namespace="ecommerce.delivery", service="delivery")
 
 
 @tracer.capture_method
