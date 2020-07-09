@@ -276,7 +276,7 @@ Resources:
               "type": "text",
               "x": 0,
               "y": 0,
-              "width": 20,
+              "width": 21,
               "height": 1,
               "properties": {
                 "markdown": "\n# Key Metrics\n"
@@ -284,9 +284,9 @@ Resources:
             },
             {
               "type": "text",
-              "x": 20,
+              "x": 21,
               "y": 0,
-              "width": 4,
+              "width": 3,
               "height": 7,
               "properties": {
                 "markdown": "\n## Useful links\n\n__CloudWatch Logs Insights queries__:\n\n* [Last 100 warning messages](https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#logs-insights:queryDetail=~\\(end~0~start~-21600~timeType~'RELATIVE~unit~'seconds~editorString~'fields*20timestamp*2c*20level*2c*20message.orderId*20as*20orderId*2c*20message.paymentToken*20as*20paymentToken*2c*20message.message*20as*20message*0a*7c*20filter*20level*20*3d*3d*20*22WARNING*22*0a*7c*20sort*20*40timestamp*20desc*0a*7c*20limit*2020*0a~isLiveTail~false~queryId~'38d167e2-e680-4dc3-80fc-411dbd93a317~source~(~'*2faws*2flambda*2f${OnCreatedFunction}~'*2faws*2flambda*2f${OnModifiedFunction}~'*2faws*2flambda*2f${OnFailedFunction}~'*2faws*2flambda*2f${OnCompletedFunction}~'*2faws*2flambda*2f${ValidateFunction})\\))\n\n__Other links__:\n\n* [Repository](https://github.com/aws-samples/aws-serverless-ecommerce-platform/tree/master/payment)\n"
@@ -296,13 +296,15 @@ Resources:
               "type": "metric",
               "x": 0,
               "y": 1,
-              "width": 10,
-              "height": 3,
+              "width": 8,
+              "height": 6,
               "properties": {
                 "metrics": [
-                  ["ecommerce.payment", "paymentCreated", "environment", "${Environment}", {"color": "#29b6f6", "label": "Payments Created"}],
-                  ["ecommerce.payment", "paymentCompleted", "environment", "${Environment}", {"color": "#66bb6a", "label": "Payments Completed"}],
-                  ["ecommerce.payment", "paymentCanceled", "environment", "${Environment}", {"color": "#ef5350", "label": "Payments Canceled"}]
+                  ["ecommerce.payment", "amountWin", "environment", "${Environment}", "service", "payment", {"color": "#66bb6a", "label": "Amount Processed ($)"}],
+                  ["ecommerce.payment", "amountLost", "environment", "${Environment}", "service", "payment", {"color": "#d62728", "label": "Amount Cancelled ($)"}],
+                  ["ecommerce.payment", "paymentProcessed", "environment", "${Environment}", "service", "payment", {"color": "#dbdb8d", "label": "Payments Processed"}],
+                  ["ecommerce.payment", "paymentCancelled", "environment", "${Environment}", "service", "payment", {"color": "#ff7f0e", "label": "Payments Cancelled"}],
+                  ["ecommerce.payment", "paymentCreated", "environment", "${Environment}", "service", "payment", {"color": "#29b6f6", "label": "Payments Created"}]
                 ],
                 "view": "singleValue",
                 "period": 86400,
@@ -314,10 +316,10 @@ Resources:
             },
             {
               "type": "metric",
-              "x": 10,
+              "x": 8,
               "y": 1,
-              "width": 10,
-              "height": 3,
+              "width": 7,
+              "height": 6,
               "properties": {
                 "metrics": [
                   [{"expression": "le1+le2+le3+le4+le5+lt1+lt2+lt3+lt4+lt5", "label": "Lambda Errors", "color": "#66bb6a"}],
@@ -352,13 +354,13 @@ Resources:
             },
             {
               "type": "metric",
-              "x": 0,
-              "y": 4,
-              "width": 10,
-              "height": 3,
+              "x": 15,
+              "y": 1,
+              "width": 6,
+              "height": 6,
               "properties": {
                 "metrics": [
-                  ["AWS/Lambda", "Duration", "FunctionName", "${OnCreatedFunction}", {"color": "#9ccc65", "label": "p50"}],
+                  ["AWS/Lambda", "Duration", "FunctionName", "${ValidateFunction}", {"color": "#9ccc65", "label": "p50"}],
                   ["...", {"stat": "p90", "color": "#ffee58", "label": "p90"}],
                   ["...", {"stat": "p99", "color": "#ef5350", "label": "p99"}]
                 ],
@@ -367,30 +369,9 @@ Resources:
                 "stacked": false,
                 "stat": "p50",
                 "region": "${AWS::Region}",
-                "title": "OnCreated Latency"
+                "title": "Validate Latency"
               }
             },
-            {
-              "type": "metric",
-              "x": 10,
-              "y": 4,
-              "width": 10,
-              "height": 3,
-              "properties": {
-                "metrics": [
-                  ["AWS/Lambda", "Duration", "FunctionName", "${OnCompletedFunction}", {"color": "#9ccc65", "label": "p50"}],
-                  ["...", {"stat": "p90", "color": "#ffee58", "label": "p90"}],
-                  ["...", {"stat": "p99", "color": "#ef5350", "label": "p99"}]
-                ],
-                "view": "singleValue",
-                "period": 86400,
-                "stacked": false,
-                "stat": "p50",
-                "region": "${AWS::Region}",
-                "title": "OnCompleted Latency"
-              }
-            },
-
             {
               "type": "text",
               "x": 0,
@@ -431,23 +412,42 @@ Resources:
               "height": 6,
               "properties": {
                 "metrics": [
-                  ["ecommerce.payment", "paymentCreated", "environment", "${Environment}", {"color": "#29b6f6", "label": "Payment Created"}],
-                  ["ecommerce.payment", "paymentCompleted", "environment", "${Environment}", {"color": "#66bb6a", "label": "Payment Completed"}],
-                  ["ecommerce.payment", "paymentCanceled", "environment", "${Environment}", {"color": "#ef5350", "label": "Payment Canceled"}]
+                  ["ecommerce.payment", "paymentCreated", "environment", "${Environment}", "service", "payment", {"color": "#29b6f6", "label": "Payment Created"}],
+                  ["ecommerce.payment", "paymentProcessed", "environment", "${Environment}", "service", "payment", {"color": "#66bb6a", "label": "Payment Processed"}],
+                  ["ecommerce.payment", "paymentCancelled", "environment", "${Environment}", "service", "payment", {"color": "#ef5350", "label": "Payment Cancelled"}]
                 ],
                 "view": "timeSeries",
                 "period": 60,
                 "stacked": false,
                 "stat": "Sum",
                 "region": "${AWS::Region}",
-                "title": "Payments"
+                "title": "Payment counts"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 14,
+              "width": 24,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["ecommerce.payment", "amountWin", "environment", "${Environment}", "service", "payment", {"color": "#66bb6a", "label": "Amount Processed ($)"}],
+                  ["ecommerce.payment", "amountLost", "environment", "${Environment}", "service", "payment", {"color": "#ef5350", "label": "Amount Cancelled ($)"}]
+                ],
+                "view": "timeSeries",
+                "period": 60,
+                "stacked": false,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "Payment amounts"
               }
             },
 
             {
               "type": "text",
               "x": 0,
-              "y": 14,
+              "y": 20,
               "width": 24,
               "height": 1,
               "properties": {
@@ -457,7 +457,7 @@ Resources:
             {
               "type": "metric",
               "x": 0,
-              "y": 15,
+              "y": 21,
               "width": 8,
               "height": 6,
               "properties": {
@@ -477,7 +477,7 @@ Resources:
             {
               "type": "metric",
               "x": 8,
-              "y": 15,
+              "y": 21,
               "width": 8,
               "height": 6,
               "properties": {
@@ -497,7 +497,7 @@ Resources:
             {
               "type": "metric",
               "x": 16,
-              "y": 15,
+              "y": 21,
               "width": 8,
               "height": 6,
               "properties": {
@@ -517,7 +517,7 @@ Resources:
             {
               "type": "metric",
               "x": 0,
-              "y": 21,
+              "y": 27,
               "width": 12,
               "height": 6,
               "properties": {
@@ -537,7 +537,7 @@ Resources:
             {
               "type": "metric",
               "x": 12,
-              "y": 21,
+              "y": 27,
               "width": 12,
               "height": 6,
               "properties": {
@@ -556,11 +556,91 @@ Resources:
                 "title": "DynamoDB Latency"
               }
             },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 33,
+              "width": 12,
+              "height": 3,
+              "properties": {
+                "metrics": [
+                  ["AWS/Lambda", "Duration", "FunctionName", "${OnCreatedFunction}", {"color": "#9ccc65", "label": "p50"}],
+                  ["...", {"stat": "p90", "color": "#ffee58", "label": "p90"}],
+                  ["...", {"stat": "p99", "color": "#ef5350", "label": "p99"}]
+                ],
+                "view": "singleValue",
+                "period": 86400,
+                "stacked": false,
+                "stat": "p50",
+                "region": "${AWS::Region}",
+                "title": "OnCreated Latency"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 33,
+              "width": 12,
+              "height": 3,
+              "properties": {
+                "metrics": [
+                  ["AWS/Lambda", "Duration", "FunctionName", "${OnCompletedFunction}", {"color": "#9ccc65", "label": "p50"}],
+                  ["...", {"stat": "p90", "color": "#ffee58", "label": "p90"}],
+                  ["...", {"stat": "p99", "color": "#ef5350", "label": "p99"}]
+                ],
+                "view": "singleValue",
+                "period": 86400,
+                "stacked": false,
+                "stat": "p50",
+                "region": "${AWS::Region}",
+                "title": "OnCompleted Latency"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 36,
+              "width": 12,
+              "height": 3,
+              "properties": {
+                "metrics": [
+                  ["AWS/Lambda", "Duration", "FunctionName", "${OnModifiedFunction}", {"color": "#9ccc65", "label": "p50"}],
+                  ["...", {"stat": "p90", "color": "#ffee58", "label": "p90"}],
+                  ["...", {"stat": "p99", "color": "#ef5350", "label": "p99"}]
+                ],
+                "view": "singleValue",
+                "period": 86400,
+                "stacked": false,
+                "stat": "p50",
+                "region": "${AWS::Region}",
+                "title": "OnModified Latency"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 36,
+              "width": 12,
+              "height": 3,
+              "properties": {
+                "metrics": [
+                  ["AWS/Lambda", "Duration", "FunctionName", "${OnFailedFunction}", {"color": "#9ccc65", "label": "p50"}],
+                  ["...", {"stat": "p90", "color": "#ffee58", "label": "p90"}],
+                  ["...", {"stat": "p99", "color": "#ef5350", "label": "p99"}]
+                ],
+                "view": "singleValue",
+                "period": 86400,
+                "stacked": false,
+                "stat": "p50",
+                "region": "${AWS::Region}",
+                "title": "OnFailed Latency"
+              }
+            },
 
             {
               "type": "text",
               "x": 0,
-              "y": 22,
+              "y": 39,
               "width": 24,
               "height": 1,
               "properties": {
@@ -570,7 +650,7 @@ Resources:
             {
               "type": "metric",
               "x": 0,
-              "y": 23,
+              "y": 40,
               "width": 8,
               "height": 6,
               "properties": {
@@ -592,7 +672,7 @@ Resources:
             {
               "type": "metric",
               "x": 8,
-              "y": 23,
+              "y": 40,
               "width": 8,
               "height": 6,
               "properties": {
@@ -611,7 +691,7 @@ Resources:
             {
               "type": "metric",
               "x": 16,
-              "y": 23,
+              "y": 40,
               "width": 8,
               "height": 6,
               "properties": {
@@ -627,11 +707,20 @@ Resources:
                 "title": "DynamoDB Errors"
               }
             },
-
+            {
+              "type": "text",
+              "x": 0,
+              "y": 46,
+              "width": 24,
+              "height": 1,
+              "properties": {
+                "markdown": "\n# Logs\n"
+              }
+            },
             {
               "type": "log",
               "x": 0,
-              "y": 29,
+              "y": 47,
               "width": 24,
               "height": 6,
               "properties": {
