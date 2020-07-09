@@ -44,9 +44,18 @@ trap cleanup EXIT
 
 package_cloudformation () {
     if [ -f $service_dir/build/template.yaml ]; then
+        # Construct the S3 Bucket name
+        aws_region=$(python3 -c 'import boto3; print(boto3.Session().region_name)')
+        aws_account_id=$(aws sts get-caller-identity | jq .Account -r)
+        s3_bucket="ecommerce-artifacts-${aws_account_id}-${aws_region}"
+        # Create the S3 bucket if it doesn't exist
+        aws s3api head-bucket --bucket $s3_bucket || {
+            aws s3 mb s3://$s3_bucket --region ${aws_region}
+        }
+
         pushd $build_dir
         aws cloudformation package \
-            --s3-bucket ${S3_BUCKET:-${USER}-src} \
+            --s3-bucket $s3_bucket \
             --s3-prefix "artifacts" \
             --template-file template.yaml \
             --output-template-file template.out || {

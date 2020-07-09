@@ -13,7 +13,7 @@ You will also need [Node](https://nodejs.org/en/) version 12 or greater, [jq](ht
 
 ## Deploy the infrastructure on AWS
 
-If you want to deploy the entire project into your AWS account in a dev environment, you can run the command `make all` in the [root](../) of this project. Please note that you will need to have an S3 bucket with write access to store artifacts as part of the packaging step. You will then need to set the environment variable S3_BUCKET to the bucket name, for example: `export S3_BUCKET=my-artifact-bucket`.
+If you want to deploy the entire project into your AWS account in a dev environment, you can run the command `make all` in the [root](../) of this project. Please note that this will create an S3 bucket to store artifacts as part of the packaging step.
 
 If you want to deploy only a specific service and its dependencies, you can use the command `make deps-${SERVICE}`.
 
