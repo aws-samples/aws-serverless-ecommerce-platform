@@ -205,8 +205,8 @@ Resources:
               "height": 3,
               "properties": {
                 "metrics": [
-                  ["ecommerce.warehouse", "PackageCreated", "environment", "${Environment}", "service", "warehouse", {"color": "#66bb6a", "label": "Package Created"}],
-                  ["ecommerce.warehouse", "PackagingFailed", "environment", "${Environment}", "service", "warehouse", {"color": "#ef5350", "label": "Packaging Failed"}]
+                  ["ecommerce.warehouse", "packageCreated", "environment", "${Environment}", "service", "warehouse", {"color": "#66bb6a", "label": "Package Created"}],
+                  ["ecommerce.warehouse", "packagingFailed", "environment", "${Environment}", "service", "warehouse", {"color": "#ef5350", "label": "Packaging Failed"}]
                 ],
                 "view": "singleValue",
                 "period": 86400,
@@ -281,8 +281,8 @@ Resources:
               "height": 6,
               "properties": {
                 "metrics": [
-                  ["ecommerce.warehouse", "PackageCreated", "environment", "${Environment}", "service", "warehouse", {"color": "#66bb6a", "label": "Package Created"}],
-                  ["ecommerce.warehouse", "PackagingFailed", "environment", "${Environment}", "service", "warehouse", {"color": "#ef5350", "label": "Packaging Failed"}]
+                  ["ecommerce.warehouse", "packageCreated", "environment", "${Environment}", "service", "warehouse", {"color": "#66bb6a", "label": "Package Created"}],
+                  ["ecommerce.warehouse", "packagingFailed", "environment", "${Environment}", "service", "warehouse", {"color": "#ef5350", "label": "Packaging Failed"}]
                 ],
                 "view": "timeSeries",
                 "period": 60,

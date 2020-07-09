@@ -33,6 +33,12 @@ tracer = Tracer() # pylint: disable=invalid-name
 metrics = Metrics(namespace="ecommerce.warehouse", service="warehouse")
 
 
+event_type_to_metric = {
+    'PackageCreated':'packageCreated',
+    'PackagingFailed':'packagingFailed'
+}
+
+
 @tracer.capture_method
 def send_events(events: List[dict]):
     """
@@ -75,7 +81,7 @@ def parse_record(ddb_record: dict) -> Optional[dict]:
         detail_type = "PackageCreated"
         detail["products"] = products
 
-    metrics.add_metric(name=detail_type, unit=MetricUnit.Count, value=1)
+    metrics.add_metric(name=event_type_to_metric[detail_type], unit=MetricUnit.Count, value=1)
 
     # Return event
     return {
