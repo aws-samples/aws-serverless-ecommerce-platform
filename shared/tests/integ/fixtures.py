@@ -64,7 +64,7 @@ def listener():
 
         return {'x-amz-date':amzdate, 'Authorization':authorization_header}
 
-    def _listener(service_name: str, gen_function: Callable[[None], None], test_function: Optional[Callable[[dict], bool]]=None, wait_time: int=8):
+    def _listener(service_name: str, gen_function: Callable[[None], None], test_function: Optional[Callable[[dict], bool]]=None, wait_time: int=15):
         """
         Listener fixture function
         """

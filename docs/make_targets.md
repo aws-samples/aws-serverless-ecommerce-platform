@@ -35,4 +35,3 @@ These targets should be defined in the Makefile of each individual service. You 
 You can tweak some of the behaviour by using the following environment variables.
 
 * __ENVIRONMENT__: The target environment on AWS on which you want to deploy resources or run integration tests. This default to `dev`.
-* __S3_BUCKET__: The S3 bucket used to store artifacts as part of the `package` target. This defaults to `${USER}-src`. You need to have permission to write to that S3 bucket or the package command will fail.

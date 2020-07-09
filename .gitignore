@@ -295,3 +295,6 @@ $RECYCLE.BIN/
 
 # Ignore test reports
 reports
+
+# Ignore IDEs
+.idea
