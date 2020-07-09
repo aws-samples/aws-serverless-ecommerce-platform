@@ -17,6 +17,8 @@ import requests
 from aws_requests_auth.boto_utils import BotoAWSRequestsAuth
 from aws_lambda_powertools.tracing import Tracer # pylint: disable=import-error
 from aws_lambda_powertools.logging.logger import Logger # pylint: disable=import-error
+from aws_lambda_powertools import Metrics # pylint: disable=import-error
+from aws_lambda_powertools.metrics import MetricUnit # pylint: disable=import-error
 
 
 ENVIRONMENT = os.environ["ENVIRONMENT"]
@@ -31,6 +33,7 @@ dynamodb = boto3.resource("dynamodb") # pylint: disable=invalid-name
 table = dynamodb.Table(TABLE_NAME) # pylint: disable=invalid-name,no-member
 logger = Logger() # pylint: disable=invalid-name
 tracer = Tracer() # pylint: disable=invalid-name
+metrics = Metrics(namespace="ecommerce.orders") # pylint: disable=invalid-name
 
 
 with open(SCHEMA_FILE) as fp:
@@ -232,6 +235,7 @@ def store_order(order: dict) -> None:
     table.put_item(Item=order)
 
 
+@metrics.log_metrics(raise_on_empty_metrics=False)
 @logger.inject_lambda_context
 @tracer.capture_lambda_handler
 def handler(event, _):
@@ -290,25 +294,11 @@ def handler(event, _):
         "orderId": order["orderId"],
         "order": order
     })
-    # Generate custom metrics using the Embedded Metric Format
-    # See https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CloudWatch_Embedded_Metric_Format_Specification.html
-    print(json.dumps({
-        "orderCreatedTotal": order["total"],
-        "orderCreated": 1,
-        "environment": ENVIRONMENT,
-        "_aws": {
-            # Timestamp is in milliseconds
-            "Timestamp": int(datetime.datetime.now().timestamp()*1000),
-            "CloudWatchMetrics": [{
-                "Namespace": "ecommerce.orders",
-                "Dimensions": [["environment"]],
-                "Metrics": [
-                    {"Name": "orderCreatedTotal"},
-                    {"Name": "orderCreated"}
-                ]
-            }]
-        }
-    }))
+
+    # Add custom metrics
+    metrics.add_dimension(name="environment", value=ENVIRONMENT)
+    metrics.add_metric(name="orderCreated", unit=MetricUnit.Count, value=1)
+    metrics.add_metric(name="orderCreatedTotal", unit=MetricUnit.Count, value=order["total"])
 
     return {
         "success": True,

@@ -323,9 +323,9 @@ Resources:
               "height": 3,
               "properties": {
                 "metrics": [
-                  ["ecommerce.orders", "orderCreated", "environment", "${Environment}", {"color": "#29b6f6", "label": "Orders Created"}],
-                  ["ecommerce.orders", "orderFulfilled", "environment", "${Environment}", {"color": "#66bb6a", "label": "Orders Fulfilled"}],
-                  ["ecommerce.orders", "orderFailed", "environment", "${Environment}", {"color": "#ef5350", "label": "Orders Failed"}]
+                  ["ecommerce.orders", "orderCreated", "environment", "${Environment}", "service", "orders", {"color": "#29b6f6", "label": "Orders Created"}],
+                  ["ecommerce.orders", "orderFulfilled", "environment", "${Environment}", "service", "orders", {"color": "#66bb6a", "label": "Orders Fulfilled"}],
+                  ["ecommerce.orders", "orderFailed", "environment", "${Environment}", "service", "orders", {"color": "#ef5350", "label": "Orders Failed"}]
                 ],
                 "view": "singleValue",
                 "period": 86400,
@@ -453,10 +453,10 @@ Resources:
               "height": 6,
               "properties": {
                 "metrics": [
-                  ["ecommerce.orders", "orderCreated", "environment", "${Environment}", {"color": "#29b6f6", "label": "Orders Created"}],
-                  ["ecommerce.orders", "orderPackaged", "environment", "${Environment}", {"color": "#ffa726", "label": "Orders Packaged"}],
-                  ["ecommerce.orders", "orderFulfilled", "environment", "${Environment}", {"color": "#66bb6a", "label": "Orders Fulfilled"}],
-                  ["ecommerce.orders", "orderFailed", "environment", "${Environment}", {"color": "#ef5350", "label": "Orders Failed"}]
+                  ["ecommerce.orders", "orderCreated", "environment", "${Environment}", "service", "orders", {"color": "#29b6f6", "label": "Orders Created"}],
+                  ["ecommerce.orders", "orderPackaged", "environment", "${Environment}", "service", "orders", {"color": "#ffa726", "label": "Orders Packaged"}],
+                  ["ecommerce.orders", "orderFulfilled", "environment", "${Environment}", "service", "orders", {"color": "#66bb6a", "label": "Orders Fulfilled"}],
+                  ["ecommerce.orders", "orderFailed", "environment", "${Environment}", "service", "orders", {"color": "#ef5350", "label": "Orders Failed"}]
                 ],
                 "view": "timeSeries",
                 "period": 60,
@@ -962,6 +962,8 @@ Resources:
       Dimensions:
         - Name: environment
           Value: !Ref Environment
+        - Name: service
+          Value: orders
       Namespace: ecommerce.orders
       Stat: Sum
 
@@ -983,6 +985,8 @@ Resources:
               Dimensions:
                 - Name: environment
                   Value: !Ref Environment
+                - Name: service
+                  Value: orders
               MetricName: orderCreated
               Namespace: ecommerce.orders
             Period: 3600
