@@ -6,9 +6,12 @@ TableUpdateFunction
 import datetime
 import json
 import os
+import warnings
 from typing import List, Optional
 from aws_lambda_powertools.tracing import Tracer
 from aws_lambda_powertools.logging.logger import Logger
+from aws_lambda_powertools import Metrics
+from aws_lambda_powertools.metrics import MetricUnit
 import boto3
 from boto3.dynamodb.conditions import Key
 from boto3.dynamodb.types import TypeDeserializer
@@ -27,6 +30,7 @@ table = dynamodb.Table(TABLE_NAME) # pylint: disable=invalid-name,no-member
 type_deserializer = TypeDeserializer() # pylint: disable=invalid-name
 logger = Logger() # pylint: disable=invalid-name
 tracer = Tracer() # pylint: disable=invalid-name
+metrics = Metrics(namespace="ecommerce.warehouse", service="warehouse")
 
 
 @tracer.capture_method
@@ -70,6 +74,8 @@ def parse_record(ddb_record: dict) -> Optional[dict]:
     if len(products) > 0:
         detail_type = "PackageCreated"
         detail["products"] = products
+
+    metrics.add_metric(name=detail_type, unit=MetricUnit.Count, value=1)
 
     # Return event
     return {
@@ -118,12 +124,18 @@ def get_products(order_id: str) -> List[dict]:
     return products
 
 
+@metrics.log_metrics
 @logger.inject_lambda_context
 @tracer.capture_lambda_handler
 def handler(event, _):
     """
     Lambda function handler for Warehouse Table stream
     """
+
+    # this handler may complete without publishing any metrics
+    warnings.filterwarnings("ignore", "No metrics to publish*")
+
+    metrics.add_dimension(name="environment", value=ENVIRONMENT)
 
     logger.debug({
         "message": "Input event",
