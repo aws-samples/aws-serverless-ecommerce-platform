@@ -262,7 +262,7 @@ Resources:
               "height": 6,
               "properties": {
                 "metrics": [
-                  ["AWS/Lambda", "Invocations", "FunctionName", "${OnOrderEventsFunction}", {"color": "#29b6f6", "label": "OnPackageCreated"}],
+                  ["AWS/Lambda", "Invocations", "FunctionName", "${OnOrderEventsFunction}", {"color": "#29b6f6", "label": "OnOrderEvents"}],
                   ["AWS/Lambda", "Invocations", "FunctionName", "${TableUpdateFunction}", {"color": "#ffa726", "label": "TableUpdate"}]
                 ],
                 "view": "timeSeries",
