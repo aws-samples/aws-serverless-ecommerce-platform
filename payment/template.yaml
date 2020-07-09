@@ -300,7 +300,7 @@ Resources:
               "height": 6,
               "properties": {
                 "metrics": [
-                  ["ecommerce.payment", "amountWin", "environment", "${Environment}", "service", "payment", {"color": "#66bb6a", "label": "Amount Processed ($)"}],
+                  ["ecommerce.payment", "amountWon", "environment", "${Environment}", "service", "payment", {"color": "#66bb6a", "label": "Amount Processed ($)"}],
                   ["ecommerce.payment", "amountLost", "environment", "${Environment}", "service", "payment", {"color": "#d62728", "label": "Amount Cancelled ($)"}],
                   ["ecommerce.payment", "paymentProcessed", "environment", "${Environment}", "service", "payment", {"color": "#dbdb8d", "label": "Payments Processed"}],
                   ["ecommerce.payment", "paymentCancelled", "environment", "${Environment}", "service", "payment", {"color": "#ff7f0e", "label": "Payments Cancelled"}],
@@ -432,7 +432,7 @@ Resources:
               "height": 6,
               "properties": {
                 "metrics": [
-                  ["ecommerce.payment", "amountWin", "environment", "${Environment}", "service", "payment", {"color": "#66bb6a", "label": "Amount Processed ($)"}],
+                  ["ecommerce.payment", "amountWon", "environment", "${Environment}", "service", "payment", {"color": "#66bb6a", "label": "Amount Processed ($)"}],
                   ["ecommerce.payment", "amountLost", "environment", "${Environment}", "service", "payment", {"color": "#ef5350", "label": "Amount Cancelled ($)"}]
                 ],
                 "view": "timeSeries",

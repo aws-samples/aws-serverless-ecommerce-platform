@@ -81,5 +81,5 @@ def handler(event, _):
     if difference < 0:
         metric = "amountLost"
     else:
-        metric = "amountWin"
+        metric = "amountWon"
     metrics.add_metric(name=metric, unit=MetricUnit.Count, value=abs(difference))

@@ -84,5 +84,5 @@ def handler(event, _):
 
     metrics.add_dimension(name="environment", value=ENVIRONMENT)
     metrics.add_metric(name="paymentProcessed", unit=MetricUnit.Count, value=1)
-    metrics.add_metric(name="amountWin", unit=MetricUnit.Count, value=amount_processed)
+    metrics.add_metric(name="amountWon", unit=MetricUnit.Count, value=amount_processed)
     
