@@ -116,7 +116,8 @@ def test_handler(monkeypatch, lambda_module, context, order_id, payment_token):
         "detail-type": "DeliveryFailed",
         "resources": [order_id],
         "detail": {
-            "orderId": order_id
+            "orderId": order_id,
+            "total": 1234
         }
     }
 
