@@ -32,16 +32,13 @@ def order(get_order):
     return get_order()
 
 
-def test_on_package_created(delivery_table_name, orders_table_name, order, event_bus_name):
+@pytest.fixture
+def package_created_event(order, event_bus_name):
+    """
+    Event indicating a package was created for delivery
+    """
 
-    # create an order
-    orders_table = boto3.resource("dynamodb").Table(orders_table_name)  # pylint: disable=no-member
-    orders_table.put_item(Item=order)
-
-    eventbridge = boto3.client("events")
-
-    # event indicating a package was created for delivery
-    event = {
+    return  {
         "Time": datetime.datetime.now(),
         "Source": "ecommerce.warehouse",
         "Resources": [order["orderId"]],
@@ -50,8 +47,17 @@ def test_on_package_created(delivery_table_name, orders_table_name, order, event
         "EventBusName": event_bus_name
     }
 
+
+def test_on_package_created(delivery_table_name, orders_table_name, order, package_created_event):
+
+    # create an order
+    orders_table = boto3.resource("dynamodb").Table(orders_table_name)  # pylint: disable=no-member
+    orders_table.put_item(Item=order)
+
+    eventbridge = boto3.client("events")
+
     # Send the event on EventBridge
-    eventbridge.put_events(Entries=[event])
+    eventbridge.put_events(Entries=[package_created_event])
 
     # Wait for PackageCreated event to be processed
     time.sleep(5)
