@@ -97,7 +97,7 @@ def get_services(
 
 
 def make_service_graph(
-        services: List[dict],
+        services: Dict[str, dict],
         changed_since: str = "0"
     ) -> List[str]:
     """
