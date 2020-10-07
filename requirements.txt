@@ -10,4 +10,4 @@ PyYAML==5.3
 requests==2.23.0
 requests-mock==1.7.0
 websockets==8.1
-yq==2.10.0
+yq==2.11.1
