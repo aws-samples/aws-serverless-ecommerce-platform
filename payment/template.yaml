@@ -36,6 +36,8 @@ Globals:
         POWERTOOLS_SERVICE_NAME: payment
         POWERTOOLS_TRACE_DISABLED: "false"
         LOG_LEVEL: !Ref LogLevel
+    Layers:
+      - !Sub "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:2"
 
 Resources:
   #########
@@ -81,6 +83,7 @@ Resources:
             Type: SQS
             Destination: !GetAtt DeadLetterQueue.Outputs.QueueArn
       Policies:
+        - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
@@ -115,6 +118,7 @@ Resources:
             Type: SQS
             Destination: !GetAtt DeadLetterQueue.Outputs.QueueArn          
       Policies:
+        - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
@@ -155,6 +159,7 @@ Resources:
             Type: SQS
             Destination: !GetAtt DeadLetterQueue.Outputs.QueueArn
       Policies:
+        - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
@@ -192,6 +197,7 @@ Resources:
             Type: SQS
             Destination: !GetAtt DeadLetterQueue.Outputs.QueueArn
       Policies:
+        - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
@@ -216,6 +222,8 @@ Resources:
             Path: /backend/validate
             Method: POST
             RestApiId: !Ref Api
+      Policies:
+        - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
 
   ValidateLogGroup:
     Type: AWS::Logs::LogGroup

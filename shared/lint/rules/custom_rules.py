@@ -199,3 +199,66 @@ class LambdaRuleInvokeConfig(CloudFormationLintRule):
                     ))
 
         return matches
+
+
+class LambdaInsightsLayer(CloudFormationLintRule):
+    """
+    Check that Lambda functions have the CloudWatch Lambda Insights Layer
+    """
+
+    id = "E9005"
+    shortdesc = "Lambda Insights Layer"
+    description = "Ensure that Lambda functions use the CloudWatch Lambda Insights Layer"
+
+    _message = "Function {} does not use the CloudWatch Lambda Insights layer"
+    _layer_pattern = { "Fn::Sub": "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:2" }
+
+    def match(self, cfn):
+        """
+        Match Lambda functions that don't have the Lambda Insights Layer
+        """
+
+        matches = []
+
+        functions = cfn.get_resources("AWS::Lambda::Function")
+
+        for key, resource in functions.items():
+            if  self._layer_pattern not in resource.get("Properties", {}).get("Layers", []):
+                matches.append(RuleMatch(
+                    ["Resources", key],
+                    self._message.format(key)
+                ))
+
+        return matches
+
+
+class LambdaInsightsPermission(CloudFormationLintRule):
+    """
+    Check that Lambda functions have the CloudWatch Lambda Insights managed policy
+    """
+
+    id = "E9006"
+    shortdesc = "Lambda Insights Permission"
+    description = "Ensure that Lambda functions have the CloudWatch Lambda Insights managed policy"
+
+    _message = "Function {} does not have the CloudWatch Lambda Insights managed policy"
+    _policy_arn = "arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy"
+
+    def match(self, cfn):
+        """
+        Match Lambda functions that don't have the right permission for CloudWatch Lambda Insights
+        """
+
+        matches = []
+
+        function_names = cfn.get_resources("AWS::Lambda::Function").keys()
+        roles = cfn.get_resources("AWS::IAM::Role")
+
+        for function_name in function_names:
+            if self._policy_arn not in roles[f"{function_name}Role"].get("Properties", {}).get("ManagedPolicyArns", []):
+                matches.append(RuleMatch(
+                    ["Resources", function_name],
+                    self._message.format(function_name)
+                ))
+
+        return matches

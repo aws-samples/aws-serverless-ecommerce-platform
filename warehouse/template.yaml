@@ -34,6 +34,8 @@ Globals:
         POWERTOOLS_SERVICE_NAME: warehouse
         POWERTOOLS_TRACE_DISABLED: "false"
         LOG_LEVEL: !Ref LogLevel
+    Layers:
+      - !Sub "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:2"
 
 
 Resources:
@@ -121,6 +123,7 @@ Resources:
             Type: SQS
             Destination: !GetAtt DeadLetterQueue.Outputs.QueueArn
       Policies:
+        - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
         - DynamoDBCrudPolicy:
             TableName: !Ref Table
 
@@ -145,6 +148,7 @@ Resources:
               OnFailure:
                 Destination: !GetAtt DeadLetterQueue.Outputs.QueueArn
       Policies:
+        - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow

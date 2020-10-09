@@ -31,6 +31,8 @@ Globals:
         POWERTOOLS_SERVICE_NAME: users
         POWERTOOLS_TRACE_DISABLED: "false"
         LOG_LEVEL: !Ref LogLevel
+    Layers:
+      - !Sub "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:2"
 
 
 Resources:
@@ -78,6 +80,7 @@ Resources:
             UserPool: !Ref UserPool
             Trigger: PreSignUp
       Policies:
+        - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
