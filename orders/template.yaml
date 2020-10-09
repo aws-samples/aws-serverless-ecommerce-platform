@@ -284,6 +284,8 @@ Resources:
   DeadLetterQueue:
     Type: AWS::CloudFormation::Stack
     Properties:
+      # The path starts with '../..' as this will be evaluated from the
+      # orders/build folder, not the orders folder.
       TemplateURL: ../../shared/templates/dlq.yaml
       Parameters:
         AlarmAction: !Ref AlarmTopic
