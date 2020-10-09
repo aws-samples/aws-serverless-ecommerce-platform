@@ -266,6 +266,8 @@ Resources:
   DeadLetterQueue:
     Type: AWS::CloudFormation::Stack
     Properties:
+      # The path starts with '../..' as this will be evaluated from the
+      # payment/build folder, not the payment folder.
       TemplateURL: ../../shared/templates/dlq.yaml
 
  #############

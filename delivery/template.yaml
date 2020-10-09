@@ -159,6 +159,8 @@ Resources:
   DeadLetterQueue:
     Type: AWS::CloudFormation::Stack
     Properties:
+      # The path starts with '../..' as this will be evaluated from the
+      # delivery/build folder, not the delivery folder.
       TemplateURL: ../../shared/templates/dlq.yaml
 
 
