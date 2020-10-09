@@ -26,6 +26,8 @@ Globals:
         POWERTOOLS_SERVICE_NAME: platform
         POWERTOOLS_TRACE_DISABLED: "false"
         LOG_LEVEL: !Ref LogLevel
+    Layers:
+      - !Sub "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:2"
 
 
 Conditions:
@@ -141,6 +143,7 @@ Resources:
           EVENT_RULE_NAME: !Ref OnEventsFunctionEvent
           LISTENER_TABLE_NAME: !Ref ListenerTable
       Policies:
+        - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
@@ -197,6 +200,7 @@ Resources:
           EVENT_RULE_NAME: !Ref OnEventsFunctionEvent
           LISTENER_TABLE_NAME: !Ref ListenerTable
       Policies:
+        - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
@@ -251,6 +255,7 @@ Resources:
         Variables:
           LISTENER_TABLE_NAME: !Ref ListenerTable
       Policies:
+        - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
@@ -287,6 +292,7 @@ Resources:
           LISTENER_API_URL: !Sub "https://${ListenerApi}.execute-api.${AWS::Region}.amazonaws.com/prod/"
           LISTENER_TABLE_NAME: !Ref ListenerTable
       Policies:
+        - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow

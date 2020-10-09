@@ -28,6 +28,8 @@ Globals:
         POWERTOOLS_SERVICE_NAME: delivery-pricing
         POWERTOOLS_TRACE_DISABLED: "false"
         LOG_LEVEL: !Ref LogLevel
+    Layers:
+      - !Sub "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:2"
 
 
 Resources:
@@ -42,6 +44,8 @@ Resources:
             Path: /backend/pricing
             Method: POST
             RestApiId: !Ref Api
+      Policies:
+        - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
 
   PricingLogGroup:
     Type: AWS::Logs::LogGroup

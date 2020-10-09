@@ -74,15 +74,16 @@ def handler(event, _):
         "message": "Received completed order {}".format(order_id),
         "orderId": order_id
     })
+    logger.debug({
+        "message": "Received completed order {}".format(order_id),
+        "event": event
+    })
 
     payment_token = get_payment_token(order_id)
     process_payment(payment_token)
     delete_payment_token(order_id)
 
     # Add custom metrics
-    amount_processed = event["detail"]["total"]
-
     metrics.add_dimension(name="environment", value=ENVIRONMENT)
     metrics.add_metric(name="paymentProcessed", unit=MetricUnit.Count, value=1)
-    metrics.add_metric(name="amountWon", unit=MetricUnit.Count, value=amount_processed)
     
