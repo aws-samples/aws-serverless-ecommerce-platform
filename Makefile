@@ -1,14 +1,13 @@
 # Setup variables
 NAME = ecommerce-platform
 PYENV := $(shell which pyenv)
-SPECCY := $(shell which speccy)
 JQ := $(shell which jq)
 PYTHON_VERSION = 3.8.1
 MAKEOPTS += -j4
 
 # Service variables
-SERVICES = $(shell tools/services)
-SERVICES_ENVONLY = $(shell tools/services --env-only)
+SERVICES = $(shell tools/services 2>/dev/null)
+SERVICES_ENVONLY = $(shell tools/services --env-only 2>/dev/null)
 export DOMAIN ?= ecommerce
 export ENVIRONMENT ?= dev
 
@@ -122,7 +121,7 @@ tests-perf:
 #################
 
 # Validate that necessary tools are installed
-validate: validate-pyenv validate-speccy validate-jq
+validate: validate-pyenv validate-jq
 
 # Validate that pyenv is installed
 validate-pyenv:
@@ -134,12 +133,6 @@ ifndef PYENV_SHELL
 endif
 ifndef PYENV_VIRTUALENV_INIT
 	$(error Add 'pyenv virtualenv-init' to your shell to enable shims and autocompletion.)
-endif
-
-# Validate that speccy is installed
-validate-speccy:
-ifndef SPECCY
-	$(error 'speccy' not found. You can install speccy by following the instructions at 'https://github.com/wework/speccy'.)
 endif
 
 # Validate that jq is installed
@@ -157,7 +150,36 @@ setup: validate
 	@pyenv virtualenv $(PYTHON_VERSION) $(NAME)
 	@$(MAKE) activate
 	@$(MAKE) requirements
-	@${MAKE} npm-install
+	@$(MAKE) npm-install
+
+# setup for Cloud9 environments
+setup-cloud9:
+	@echo "[*] Install required libraries"
+	sudo yum install -y @development zlib-devel bzip2 bzip2-devel readline-devel sqlite sqlite-devel openssl-devel xz xz-devel libffi-devel findutils jq
+	@echo "[*] Resize Cloud 9 volume"
+	aws ec2 modify-volume --volume-id $$(aws ec2 describe-instances --instance-id $$(curl http://169.254.169.254/latest/meta-data/instance-id) | jq -r .Reservations[0].Instances[0].BlockDeviceMappings[0].Ebs.VolumeId) --size 20
+	while [ "$$(aws ec2 describe-volumes-modifications --volume-id $$(aws ec2 describe-instances --instance-id $$(curl http://169.254.169.254/latest/meta-data/instance-id) | jq -r .Reservations[0].Instances[0].BlockDeviceMappings[0].Ebs.VolumeId) --filters Name=modification-state,Values="optimizing","completed" | jq '.VolumesModifications | length')" != "1" ]; do sleep 1; done
+	if [ $$(readlink -f /dev/xvda) = "/dev/xvda" ]; then sudo growpart /dev/xvda 1; else sudo growpart /dev/nvme0n1 1; fi
+	sudo xfs_growfs -d /
+	@echo "[*] Install pyenv"
+	curl https://pyenv.run | bash
+	echo -e 'export PATH="$$HOME/.pyenv/bin:$$PATH"\neval "$$(pyenv init -)"\neval "$$(pyenv virtualenv-init -)"' >> ~/.bashrc
+	@echo "[*] Install node 12"
+	sudo yum remove -y nodejs npm
+	curl -sL https://rpm.nodesource.com/setup_12.x | sudo bash -
+	sudo yum install -y nodejs
+	@echo "****************************"
+	@echo "* BEFORE CONTINUING PLEASE *"
+	@echo "* RUN THIS COMMAND:        *"
+	@echo
+	@echo "  exec $${SHELL}            "
+	@echo
+	@echo "* THEN CONTINUE WITH THE   *"
+	@echo "* FOLLOWING COMMAND:       *"
+	@echo
+	@echo "  make setup                "
+	@echo
+	@echo "****************************"
 
 # Activate the virtual environment
 activate: validate-pyenv
