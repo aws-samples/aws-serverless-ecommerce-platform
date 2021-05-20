@@ -111,7 +111,7 @@ Resources:
         GitCloneDepth: 0
         Location: !GetAtt CodeRepository.CloneUrlHttp
         Type: CODECOMMIT
-      SourceVersion: refs/heads/master
+      SourceVersion: refs/heads/main
 
   BuildLogGroup:
     Type: AWS::Logs::LogGroup
@@ -148,7 +148,7 @@ Resources:
         resources: [!GetAtt CodeRepository.Arn]
         detail:
           event: [referenceCreated, referenceUpdated]
-          referenceName: [master]
+          referenceName: [main]
           referenceType: [branch]
       State: ENABLED
       Targets:

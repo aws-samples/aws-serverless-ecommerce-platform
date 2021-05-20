@@ -237,7 +237,7 @@ Resources:
                 Version: "1"
               Configuration:
                 RepositoryName: !Ref CodeRepositoryName
-                BranchName: master
+                BranchName: main
                 PollForSourceChanges: false
               OutputArtifacts:
                 - Name: CodeArtifact

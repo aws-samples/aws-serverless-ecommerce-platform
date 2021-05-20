@@ -207,4 +207,4 @@ bootstrap-pipeline:
 	# Seed the git repository
 	@echo "[*] seed repository"
 	@git remote add aws $(shell aws ssm get-parameter --name /ecommerce/pipeline/repository/url | jq -r '.Parameter.Value')
-	@git push aws HEAD:master
+	@git push aws HEAD:main
