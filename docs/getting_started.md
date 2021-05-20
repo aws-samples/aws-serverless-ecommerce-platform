@@ -23,7 +23,7 @@ These commands will lint, build, run unit tests, package, deploy and run integra
 
 If you want to deploy a complete pipeline to a production environment, you can run `make bootstrap-pipeline`, which will deploy all services in all environments needed by the pipeline, the CI/CD pipeline itself and seed a CodeCommit repository with the latest commit from this repository.
 
-When you want to push modifications to AWS, you can run `git push aws HEAD:master`, which will push the latest commit from the current branch to the master branch in the CodeCommit repository.
+When you want to push modifications to AWS, you can run `git push aws HEAD:main`, which will push the latest commit from the current branch to the main branch in the CodeCommit repository.
 
 ## Useful commands
 
