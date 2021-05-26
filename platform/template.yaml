@@ -11,7 +11,7 @@ Parameters:
   RetentionInDays:
     Type: Number
     Default: 30
-    Description: CloudWatch Logs retention period for Lambda functions
+    Description: CloudWatch Logs retention period for Lambda functions and EventBridge event bus
 
 
 Globals:
@@ -49,6 +49,12 @@ Resources:
       Name: !Sub /ecommerce/${Environment}/platform/event-bus/name
       Type: String
       Value: !Ref EventBus
+
+  EventBusArchive:
+    Type: AWS::Events::Archive
+    Properties:
+      SourceArn: !GetAtt EventBus.Arn
+      RetentionDays: !Ref RetentionInDays
 
   ##################
   # LISTENER TABLE #
@@ -151,12 +157,6 @@ Resources:
                 - dynamodb:PutItem
               Resource:
                 - !GetAtt ListenerTable.Arn
-            - Effect: Allow
-              Action:
-                - events:EnableRule
-                - events:DescribeRule
-              Resource:
-                - !GetAtt OnEventsFunctionEvent.Arn
 
   OnConnectPermission:
     Type: AWS::Lambda::Permission
@@ -206,14 +206,8 @@ Resources:
             - Effect: Allow
               Action:
                 - dynamodb:DeleteItem
-                - dynamodb:Scan
               Resource:
                 - !GetAtt ListenerTable.Arn
-            - Effect: Allow
-              Action:
-                - events:DisableRule
-              Resource:
-                - !GetAtt OnEventsFunctionEvent.Arn
 
   OnDisconnectPermission:
     Type: AWS::Lambda::Permission
