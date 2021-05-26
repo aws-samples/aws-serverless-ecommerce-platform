@@ -1,4 +1,4 @@
-aws-lambda-powertools==1.6.1
+aws-lambda-powertools==1.16.1
 aws_requests_auth
 boto3
 requests
