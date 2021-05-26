@@ -50,6 +50,13 @@ Resources:
       Type: String
       Value: !Ref EventBus
 
+  EventbusArnParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /ecommerce/${Environment}/platform/event-bus/arn
+      Type: String
+      Value: !GetAtt EventBus.Arn
+
   EventBusArchive:
     Type: AWS::Events::Archive
     Properties:
