@@ -3,6 +3,7 @@ dependencies:
   - orders
   - platform
 parameters:
+  EventBusArn: /ecommerce/{Environment}/platform/event-bus/arn
   EventBusName: /ecommerce/{Environment}/platform/event-bus/name
   OrdersApiUrl: /ecommerce/{Environment}/orders/api/url
   OrdersApiArn: /ecommerce/{Environment}/orders/api/arn

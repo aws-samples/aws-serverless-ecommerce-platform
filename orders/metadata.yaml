@@ -6,6 +6,7 @@ dependencies:
 parameters:
   DeliveryApiArn: /ecommerce/{Environment}/delivery-pricing/api/arn
   DeliveryApiUrl: /ecommerce/{Environment}/delivery-pricing/api/url
+  EventBusArn: /ecommerce/{Environment}/platform/event-bus/arn
   EventBusName: /ecommerce/{Environment}/platform/event-bus/name
   PaymentApiArn: /ecommerce/{Environment}/payment/api/arn
   PaymentApiUrl: /ecommerce/{Environment}/payment/api/url

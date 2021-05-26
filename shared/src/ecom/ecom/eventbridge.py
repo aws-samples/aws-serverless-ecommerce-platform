@@ -5,6 +5,7 @@ EventBridge helpers for Lambda functions
 
 from datetime import datetime
 import json
+import os
 from boto3.dynamodb.types import TypeDeserializer
 from .helpers import Encoder
 
@@ -35,6 +36,11 @@ def ddb_to_event(
         ],
         "EventBusName": event_bus_name
     }
+
+    # Inject X-Ray trace ID
+    trace_id = os.environ.get("_X_AMZN_TRACE_ID", None)
+    if trace_id:
+        event["TraceHeader"] = trace_id
 
     # Created event
     if ddb_record["eventName"].upper() == "INSERT":

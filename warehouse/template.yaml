@@ -14,6 +14,9 @@ Parameters:
     Type: Number
     Default: 30
     Description: CloudWatch Logs retention period for Lambda functions
+  EventBusArn:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: EventBridge Event Bus ARN
   EventBusName:
     Type: AWS::SSM::Parameter::Value<String>
     Description: EventBridge Event Bus Name
@@ -154,7 +157,10 @@ Resources:
             - Effect: Allow
               Action:
                 - events:PutEvents
-              Resource: "*"
+              Resource: !Ref EventBusArn
+              Condition:
+                StringEquals:
+                  events:source: "ecommerce.warehouse"
             - Effect: Allow
               Action:
                 - dynamodb:Query

@@ -16,4 +16,5 @@ _This service does not emit any event_
 This service defines the following SSM parameters:
 
 * `/ecommerce/{Environment}/platform/event-bus/name`: Event Bus Name
+* `/ecommerce/{Environment}/platform/event-bus/arn`: Event Bus ARN
 * `/ecommerce/{Environment}/platform/listener-api/url`: URL for the WebSocket Listener API

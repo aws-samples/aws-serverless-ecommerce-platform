@@ -33,28 +33,6 @@ def delete_id(connection_id: str):
     })
 
 
-@tracer.capture_method
-def disable_rule():
-    """
-    Disable EventBridge rule
-    """
-
-    # Check for active connextions
-    res = table.scan(Limit=1, ConsistentRead=True)
-    if res.get("Items"):
-        # Active connections, skipping
-        logger.info({
-            "message": "Keeping rule enabled due to active connections"
-        })
-        return
-
-    # Disable the rule
-    eventbridge.disable_rule(
-        Name=EVENT_RULE_NAME,
-        EventBusName=EVENT_BUS_NAME
-    )
-
-
 @logger.inject_lambda_context
 @tracer.capture_lambda_handler
 def handler(event, _):
@@ -76,9 +54,6 @@ def handler(event, _):
         "event": event
     })
 
-    # disable_rule must happen after delete_id, as it checks if there are
-    # active connections before deleting the rule.
     delete_id(connection_id)
-    disable_rule()
 
     return response("Disconnected")

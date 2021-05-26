@@ -20,6 +20,9 @@ Parameters:
   DeliveryApiArn:
     Type: AWS::SSM::Parameter::Value<String>
     Description: Delivery API Gateway ARN
+  EventBusArn:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: EventBridge Event Bus ARN
   EventBusName:
     Type: AWS::SSM::Parameter::Value<String>
     Description: EventBridge Event Bus Name
@@ -184,7 +187,10 @@ Resources:
             - Effect: Allow
               Action:
                 - events:PutEvents
-              Resource: "*"
+              Resource: !Ref EventBusArn
+              Condition:
+                StringEquals:
+                  events:source: "ecommerce.orders"
             - Effect: Allow
               Action:
                 - sqs:SendMessage

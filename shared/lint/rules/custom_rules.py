@@ -262,3 +262,49 @@ class LambdaInsightsPermission(CloudFormationLintRule):
                 ))
 
         return matches
+
+
+class IAMPutEventsConditions(CloudFormationLintRule):
+    """
+    Check that IAM Roles with events:PutEvents action restrict based on event source
+    """
+
+    id = "E9007"
+    shortdesct = "IAM PutEvents Condition"
+    description = "Ensure that IAM roles with event:PutEvents action restrict based on event source"
+
+    _message = "IAM role {} does not have an events:source condition for the events:PutEvents action"
+
+    def _match_policy(self, policy) -> bool:
+        """
+        Match policies with events:PutEvents and no events:source condition
+        """
+
+        for statement in policy.get("PolicyDocument", {}).get("Statement", []):
+            if "events:PutEvents" in statement.get("Action", {}):
+                if not statement.get("Condition", {}).get("StringEquals", {}).get("events:source", None):
+                    return True
+
+        return False
+
+    def match(self, cfn):
+        """
+        Match IAM roles that don't have conditions for events:PutEvents actions
+        """
+
+        matches = []
+
+        roles = cfn.get_resources("AWS::IAM::Role")
+        for role_name, role in roles.items():
+            found = False
+            for policy in role.get("Properties", {}).get("Policies", []):
+                if self._match_policy(policy):
+                    found = True
+
+            if found:
+                matches.append(RuleMatch(
+                    ["Resources", role_name],
+                    self._message.format(role_name)
+                ))
+
+        return matches
