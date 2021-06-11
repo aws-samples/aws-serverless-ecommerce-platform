@@ -1,4 +1,4 @@
-aws-lambda-powertools==1.6.1
+aws-lambda-powertools==1.16.1
 boto3
 requests
 ../shared/src/ecom/
