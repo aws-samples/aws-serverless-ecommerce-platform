@@ -5,7 +5,7 @@ If you are experience an issue while setting up this project, please take a look
 
 ## Setup the development environment
 
-To set up the development environment, you will need to install __pyenv__ on your computer. You can find installation instruction at [https://github.com/pyenv/pyenv#installation](https://github.com/pyenv/pyenv#installation). Please make sure that you have the [required tools and libraries](https://github.com/pyenv/pyenv/wiki/Common-build-problems) installed in your environment. If you're using [https://aws.amazon.com/cloud9/](AWS Cloud9) with Amazon Linux 2, you can use `make setup-cloud9` to install all necessary tools.
+To set up the development environment, you will need to install __pyenv__ on your computer. You can find installation instruction at [https://github.com/pyenv/pyenv#installation](https://github.com/pyenv/pyenv#installation). Please make sure that you have the [required tools and libraries](https://github.com/pyenv/pyenv/wiki/Common-build-problems) installed in your environment. If you're using [AWS Cloud9](https://aws.amazon.com/cloud9/) with Amazon Linux 2, you can use `make setup-cloud9` to install all necessary tools.
 
 When __pyenv__ is installed, you can run `make setup` to configure the Python environment for this project, including development tools and dependencies.
 
