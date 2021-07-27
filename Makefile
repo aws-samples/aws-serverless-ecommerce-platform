@@ -163,16 +163,17 @@ setup-cloud9:
 	sudo xfs_growfs -d /
 	@echo "[*] Install pyenv"
 	curl https://pyenv.run | bash
-	echo -e 'export PATH="$$HOME/.pyenv/bin:$$PATH"\neval "$$(pyenv init -)"\neval "$$(pyenv virtualenv-init -)"' >> ~/.bashrc
+	echo -e 'export PYENV_ROOT="$$HOME/.pyenv"\nexport PATH="$$PYENV_ROOT/bin:$$PATH"\neval "$$(pyenv init --path)"' >> ~/.profile
 	@echo "[*] Install node 12"
 	sudo yum remove -y nodejs npm
 	curl -sL https://rpm.nodesource.com/setup_12.x | sudo bash -
 	sudo yum install -y nodejs
 	@echo "****************************"
 	@echo "* BEFORE CONTINUING PLEASE *"
-	@echo "* RUN THIS COMMAND:        *"
+	@echo "* RUN THESE COMMANDS:      *"
 	@echo
 	@echo "  exec $${SHELL}            "
+	@echo "  source ~/.profile         "
 	@echo
 	@echo "* THEN CONTINUE WITH THE   *"
 	@echo "* FOLLOWING COMMAND:       *"
