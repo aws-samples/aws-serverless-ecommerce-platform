@@ -164,6 +164,7 @@ setup-cloud9:
 	@echo "[*] Install pyenv"
 	curl https://pyenv.run | bash
 	echo -e 'export PYENV_ROOT="$$HOME/.pyenv"\nexport PATH="$$PYENV_ROOT/bin:$$PATH"\neval "$$(pyenv init --path)"' >> ~/.profile
+	echo -e 'eval "$$(pyenv init -)"\neval "$$(pyenv virtualenv-init -)"' >> ~/.bashrc
 	@echo "[*] Install node 12"
 	sudo yum remove -y nodejs npm
 	curl -sL https://rpm.nodesource.com/setup_12.x | sudo bash -
@@ -172,8 +173,7 @@ setup-cloud9:
 	@echo "* BEFORE CONTINUING PLEASE *"
 	@echo "* RUN THESE COMMANDS:      *"
 	@echo
-	@echo "  exec $${SHELL}            "
-	@echo "  source ~/.profile         "
+	@echo "  exec /bin/bash -l         "
 	@echo
 	@echo "* THEN CONTINUE WITH THE   *"
 	@echo "* FOLLOWING COMMAND:       *"
