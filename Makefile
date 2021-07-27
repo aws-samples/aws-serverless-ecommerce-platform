@@ -173,7 +173,8 @@ setup-cloud9:
 	@echo "* BEFORE CONTINUING PLEASE *"
 	@echo "* RUN THESE COMMANDS:      *"
 	@echo
-	@echo "  exec /bin/bash -l         "
+	@echo "  source ~/.profile         "
+	@echo "  exec /bin/bash            "
 	@echo
 	@echo "* THEN CONTINUE WITH THE   *"
 	@echo "* FOLLOWING COMMAND:       *"
