@@ -2,7 +2,7 @@
 NAME = ecommerce-platform
 PYENV := $(shell which pyenv)
 JQ := $(shell which jq)
-PYTHON_VERSION = 3.8.1
+PYTHON_VERSION = 3.9.7
 MAKEOPTS += -j4
 
 # Service variables
