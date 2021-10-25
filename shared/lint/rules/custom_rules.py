@@ -42,22 +42,22 @@ class MandatoryParametersRule(CloudFormationLintRule):
         ]
 
 
-class Python38Rule(CloudFormationLintRule):
+class Python39Rule(CloudFormationLintRule):
     """
-    Check for Python3.8 usage
+    Check for Python3.9 usage
     """
 
     id = "E9001"
-    shortdesc = "Python3.8 Lambda usage"
-    description = "Ensure that Python3.8 is used by all Lambda functions"
+    shortdesc = "Python3.9 Lambda usage"
+    description = "Ensure that Python3.9 is used by all Lambda functions"
     tags = ["ecommerce", "lambda"]
 
-    _runtime = "python3.8"
+    _runtime = "python3.9"
     _message = "Function is using {} runtime instead of {}"
 
     def match(self, cfn):
         """
-        Match against Lambda functions not using python3.8
+        Match against Lambda functions not using python3.9
         """
 
         matches = []
