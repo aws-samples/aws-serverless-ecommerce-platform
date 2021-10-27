@@ -162,7 +162,7 @@ parameters:
 
 ## Python 3
 
-Services should use [Python 3.8](https://docs.python.org/3/whatsnew/3.8.html) whenever possible, both for tests and for Lambda function code. In the same way, internal tools should be made using Python 3.8.
+Services should use [Python 3.9](https://docs.python.org/3/whatsnew/3.9.html) whenever possible, both for tests and for Lambda function code. In the same way, internal tools should be made using Python 3.9.
 
 Tests should be written for [pytest](https://docs.pytest.org/en/latest/).
 
