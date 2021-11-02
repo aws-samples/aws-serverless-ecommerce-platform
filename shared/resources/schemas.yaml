@@ -229,10 +229,10 @@ User:
     createdDate:
       type: string
       format: date-time
-      description: Product creation date.
+      description: User creation date.
       example: "2020-01-23T10:53:49.131052"
     modifiedDate:
       type: string
       format: date-time
-      description: Product last modification date.
+      description: User last modification date.
       example: "2020-01-23T10:53:49.131052"
