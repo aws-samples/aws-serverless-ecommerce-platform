@@ -25,6 +25,8 @@ Parameters:
 Globals:
   Function:
     Runtime: python3.9
+    Architectures:
+      - arm64
     Timeout: 30
     Tracing: Active
     Environment:
