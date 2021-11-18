@@ -31,6 +31,8 @@ Parameters:
 Globals:
   Function:
     Runtime: python3.9
+    Architectures:
+      - arm64
     Handler: main.handler
     Timeout: 30
     Tracing: Active
@@ -43,7 +45,7 @@ Globals:
         POWERTOOLS_TRACE_DISABLED: "false"
         LOG_LEVEL: !Ref LogLevel
     Layers:
-      - !Sub "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:2"
+      - !Sub "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension-Arm64:1"
 
 
 Resources:

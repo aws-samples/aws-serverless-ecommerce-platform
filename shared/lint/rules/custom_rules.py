@@ -211,7 +211,12 @@ class LambdaInsightsLayer(CloudFormationLintRule):
     description = "Ensure that Lambda functions use the CloudWatch Lambda Insights Layer"
 
     _message = "Function {} does not use the CloudWatch Lambda Insights layer"
-    _layer_pattern = { "Fn::Sub": "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:2" }
+    # REMARK:
+    # This will only work in the following AWS regions:
+    # us-east-1, us-east-2, us-west-1, us-west-2, ap-south-1, ap-northeast-1,
+    # ap-northeast-2, ap-southeast-1, ap-southeast-2, ca-central-1, eu-central-1,
+    # eu-west-1, eu-west-2, eu-west-3, eu-north-1, or sa-east-1
+    _layer_pattern = { "Fn::Sub": "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension-Arm64:1" }
 
     def match(self, cfn):
         """
