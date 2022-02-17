@@ -71,7 +71,7 @@ lint_python3 () {
 
 lint_openapi () {
     if [ -f $service_dir/resources/openapi.yaml ]; then
-        speccy --config $ROOT/shared/lint/speccy.yaml \
+        speccy lint --config $ROOT/shared/lint/speccy.yaml \
             $service_dir/resources/openapi.yaml
     fi
 }
