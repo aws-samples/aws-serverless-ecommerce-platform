@@ -1,7 +1,7 @@
 Getting started
 ===============
 
-If you are experience an issue while setting up this project, please take a look at the [Common issues](common_issues.md) section of the documentation. If you cannot find a solution to your problem there, please [create a ticket](https://github.com/aws-samples/aws-serverless-ecommerce-platform/issues/new) explaining the issue that you are experiencing and the steps to reproduce it.
+If you are experiencing an issue while setting up this project, please take a look at the [Common issues](common_issues.md) section of the documentation. If you cannot find a solution to your problem there, please [create a ticket](https://github.com/aws-samples/aws-serverless-ecommerce-platform/issues/new) explaining the issue that you are experiencing and the steps to reproduce it.
 
 ## Setup the development environment
 
