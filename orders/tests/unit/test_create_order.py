@@ -254,12 +254,12 @@ def test_validate_fail(monkeypatch, lambda_module, order):
     Test validate() with failures
     """
 
-    def validate_true(order: dict) -> Tuple[bool, str]:
+    def validate_false(order: dict) -> Tuple[bool, str]:
         return (False, "Something is wrong")
 
-    monkeypatch.setattr(lambda_module, "validate_delivery", validate_true)
-    monkeypatch.setattr(lambda_module, "validate_payment", validate_true)
-    monkeypatch.setattr(lambda_module, "validate_products", validate_true)
+    monkeypatch.setattr(lambda_module, "validate_delivery", validate_false)
+    monkeypatch.setattr(lambda_module, "validate_payment", validate_false)
+    monkeypatch.setattr(lambda_module, "validate_products", validate_false)
 
     error_msgs = asyncio.run(lambda_module.validate(order))
     assert len(error_msgs) == 3
@@ -375,15 +375,15 @@ def test_handler_validation_failure(monkeypatch, lambda_module, context, order):
     Test handler() with failing validation
     """
 
-    def validate_true(order: dict) -> Tuple[bool, str]:
+    def validate_false(order: dict) -> Tuple[bool, str]:
         return (False, "Something went wrong")
 
     def store_order(order: dict) -> None:
         pass
 
-    monkeypatch.setattr(lambda_module, "validate_delivery", validate_true)
-    monkeypatch.setattr(lambda_module, "validate_payment", validate_true)
-    monkeypatch.setattr(lambda_module, "validate_products", validate_true)
+    monkeypatch.setattr(lambda_module, "validate_delivery", validate_false)
+    monkeypatch.setattr(lambda_module, "validate_payment", validate_false)
+    monkeypatch.setattr(lambda_module, "validate_products", validate_false)
     monkeypatch.setattr(lambda_module, "store_order", store_order)
 
     user_id = order["userId"]
