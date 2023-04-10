@@ -10,6 +10,6 @@
   "license": "MIT-0",
   "dependencies": {
     "@types/node": "^13.9.1",
-    "aws-sdk": "^2.814.0"
+    "aws-sdk": "^2.1354.0"
   }
 }
