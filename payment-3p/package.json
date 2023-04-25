@@ -23,7 +23,7 @@
     "@types/jest": "^27.0.2",
     "@types/node": "^10.17.17",
     "@types/uuid": "^7.0.0",
-    "aws-cdk": "^1.132.0",
+    "aws-cdk": "^1.199.0",
     "aws-sdk-mock": "^5.1.0",
     "axios": "^0.21.4",
     "babel": "^6.23.0",
