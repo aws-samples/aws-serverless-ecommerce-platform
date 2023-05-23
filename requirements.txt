@@ -7,7 +7,7 @@ pylint==2.11.1
 pytest==5.4.3
 pytest-cov==2.8.1
 PyYAML==5.4.1
-requests==2.26.0
+requests==2.31.0
 requests-mock==1.9.3
 websockets==9.1
 yq==2.12.2
