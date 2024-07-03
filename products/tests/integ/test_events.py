@@ -52,3 +52,4 @@ def test_table_update(table_name, listener, product):
         lambda: table.delete_item(Key={"productId": product["productId"]}),
         lambda m: product["productId"] in m["resources"] and m["detail-type"] == "ProductDeleted"
     )
+

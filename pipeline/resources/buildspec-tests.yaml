@@ -3,8 +3,8 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      nodejs: 12
-      python: 3.8
+      nodejs: 18
+      python: 3.9.7
   pre_build:
     commands:
       - apt-get update -y

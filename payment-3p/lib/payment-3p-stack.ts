@@ -5,7 +5,7 @@ import * as ssm from '@aws-cdk/aws-ssm';
 import * as dynamodb from '@aws-cdk/aws-dynamodb';
 
 const API_STAGE_NAME = "prod";
-const FUNCTION_RUNTIME = "nodejs12.x";
+const FUNCTION_RUNTIME = "nodejs18.x";
 const SERVICE_NAME = "payment-3p";
 
 export class Payment3PStack extends cdk.Stack {

@@ -55,7 +55,7 @@ Resources:
       KeySchema:
         - AttributeName: orderId
           KeyType: HASH
-
+  
   TableParameter:
     Type: AWS::SSM::Parameter
     Properties:
