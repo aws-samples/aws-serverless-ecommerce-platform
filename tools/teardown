@@ -57,10 +57,4 @@ teardown_cloudformation () {
     aws cloudformation wait stack-delete-complete --stack-name $stack_name
 }
 
-type teardown_$TYPE | grep -q "function" &>/dev/null || {
-    echo "Unsupported type: $TYPE"
-    echo
-    display_usage
-    exit 1
-}
 teardown_$TYPE

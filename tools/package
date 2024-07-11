@@ -69,10 +69,5 @@ package_cloudformation () {
     fi
 }
 
-type package_$TYPE | grep -q "function" &>/dev/null || {
-    echo "Unsupported type: $TYPE"
-    echo
-    display_usage
-    exit 1
-}
+
 package_$TYPE

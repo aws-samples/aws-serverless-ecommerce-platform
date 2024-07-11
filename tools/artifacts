@@ -72,10 +72,4 @@ artifacts_cloudformation () {
     rm -r $tmpdir
 }
 
-type artifacts_$TYPE | grep -q "function" &>/dev/null || {
-    echo "Unsupported type: $TYPE"
-    echo
-    display_usage
-    exit 1
-}
 artifacts_$TYPE

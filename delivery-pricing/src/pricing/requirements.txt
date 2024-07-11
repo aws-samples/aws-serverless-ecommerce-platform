@@ -1,2 +1,3 @@
 aws-lambda-powertools==1.16.1
-../shared/src/ecom/
+shared/src/ecom/
+

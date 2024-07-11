@@ -4,9 +4,9 @@
   "description": "Pre Authorization Function",
   "main": "index.js",
   "dependencies": {
-    "@types/node": "^13.9.0",
+    "@types/node": "^20.14.2",
+    "aws-sdk": "^2.1656.0",
     "@types/uuid": "^7.0.0",
-    "aws-sdk": "^2.814.0",
     "uuid": "^7.0.2"
   },
   "repository": {

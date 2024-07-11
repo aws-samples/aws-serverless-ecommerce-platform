@@ -119,11 +119,4 @@ build_openapi () {
     fi
 }
 
-
-type build_$TYPE | grep -q "function" &>/dev/null || {
-    echo "Unsupported type: $TYPE"
-    echo
-    display_usage
-    exit 1
-}
 build_$TYPE

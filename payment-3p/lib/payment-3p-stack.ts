@@ -1,15 +1,16 @@
-import * as cdk from '@aws-cdk/core';
-import * as logs from '@aws-cdk/aws-logs';
-import * as sam from '@aws-cdk/aws-sam';
-import * as ssm from '@aws-cdk/aws-ssm';
-import * as dynamodb from '@aws-cdk/aws-dynamodb';
+import * as cdk from 'aws-cdk-lib';
+import * as logs from 'aws-cdk-lib/aws-logs';
+import * as sam from 'aws-cdk-lib/aws-sam';
+import * as ssm from 'aws-cdk-lib/aws-ssm';
+import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import { Construct } from 'constructs';
 
 const API_STAGE_NAME = "prod";
-const FUNCTION_RUNTIME = "nodejs12.x";
+const FUNCTION_RUNTIME = "nodejs18.x";
 const SERVICE_NAME = "payment-3p";
 
 export class Payment3PStack extends cdk.Stack {
-  constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
     // Parameters

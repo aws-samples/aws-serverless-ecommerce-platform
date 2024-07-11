@@ -50,10 +50,20 @@ lint_cloudformation () {
         ignore_checks="$ignore_checks --ignore-checks E9000"
     }
 
-    if [ -f $service_dir/template.yaml ]; then
-        cfn-lint $service_dir/template.yaml \
+    # if [ -f $service_dir/template.yaml ]; then
+    #     cfn-lint $service_dir/template.yaml \
+    #         --append-rules $ROOT/shared/lint/rules/ \
+    #         $ignore_checks
+    # fi
+
+    # We need a build folder to CloudFormation template
+    if [ -f $service_dir/build/template.yaml ]; then
+        cfn-lint $service_dir/build/template.yaml \
             --append-rules $ROOT/shared/lint/rules/ \
             $ignore_checks
+    else
+        echo "Missing build's template file in $SERVICE"
+        exit 1
     fi
 }
 
@@ -76,10 +86,4 @@ lint_openapi () {
     fi
 }
 
-type lint_$TYPE | grep -q "function" &>/dev/null || {
-    echo "Unsupported type: $TYPE"
-    echo
-    display_usage
-    exit 1
-}
 lint_$TYPE

@@ -171,7 +171,6 @@ Resources:
       # delivery/build folder, not the delivery folder.
       TemplateURL: ../../shared/templates/dlq.yaml
 
-
   #############
   # DASHBOARD #
   #############

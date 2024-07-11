@@ -1,0 +1,358 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+  LogLevel:
+    Type: String
+    Default: INFO
+  RetentionInDays:
+    Type: Number
+    Default: 30
+    Description: CloudWatch Logs retention period for Lambda functions and EventBridge
+      event bus
+Globals:
+  Function:
+    Runtime: python3.9
+    Architectures:
+    - arm64
+    Handler: main.handler
+    Timeout: 30
+    Tracing: Active
+    Environment:
+      Variables:
+        ENVIRONMENT:
+          Ref: Environment
+        POWERTOOLS_SERVICE_NAME: platform
+        POWERTOOLS_TRACE_DISABLED: 'false'
+        LOG_LEVEL:
+          Ref: LogLevel
+    Layers:
+    - Fn::Sub: arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension-Arm64:1
+Conditions:
+  IsNotProd:
+    Fn::Not:
+    - Fn::Equals:
+      - Ref: Environment
+      - prod
+Resources:
+  EventBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name:
+        Fn::Sub: ecommerce-${Environment}
+  EventBusNameParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name:
+        Fn::Sub: /ecommerce/${Environment}/platform/event-bus/name
+      Type: String
+      Value:
+        Ref: EventBus
+  EventbusArnParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name:
+        Fn::Sub: /ecommerce/${Environment}/platform/event-bus/arn
+      Type: String
+      Value:
+        Fn::GetAtt:
+        - EventBus
+        - Arn
+  EventBusArchive:
+    Type: AWS::Events::Archive
+    Properties:
+      SourceArn:
+        Fn::GetAtt:
+        - EventBus
+        - Arn
+      RetentionDays:
+        Ref: RetentionInDays
+  ListenerTable:
+    Type: AWS::DynamoDB::Table
+    Condition: IsNotProd
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: id
+        AttributeType: S
+      - AttributeName: service
+        AttributeType: S
+      KeySchema:
+      - AttributeName: id
+        KeyType: HASH
+      GlobalSecondaryIndexes:
+      - IndexName: listener-service
+        KeySchema:
+        - AttributeName: service
+          KeyType: HASH
+        Projection:
+          ProjectionType: ALL
+      BillingMode: PAY_PER_REQUEST
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+  ListenerApi:
+    Type: AWS::ApiGatewayV2::Api
+    Condition: IsNotProd
+    Properties:
+      Name:
+        Fn::Sub: ecommerce-${Environment}-platform-listener
+      ProtocolType: WEBSOCKET
+      RouteSelectionExpression: $request.body.action
+  ListenerApiParameter:
+    Type: AWS::SSM::Parameter
+    Condition: IsNotProd
+    Properties:
+      Name:
+        Fn::Sub: /ecommerce/${Environment}/platform/listener-api/url
+      Type: String
+      Value:
+        Fn::Sub: wss://${ListenerApi}.execute-api.${AWS::Region}.amazonaws.com/prod/
+  ListenerApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Condition: IsNotProd
+    Properties:
+      StageName: prod
+      ApiId:
+        Ref: ListenerApi
+      DeploymentId:
+        Ref: ListenerApiDeployment
+  ListenerApiDeployment:
+    Type: AWS::ApiGatewayV2::Deployment
+    Condition: IsNotProd
+    DependsOn:
+    - ListenerConnectRoute
+    - ListenerDisconnectRoute
+    - ListenerRegisterRoute
+    Properties:
+      ApiId:
+        Ref: ListenerApi
+  ListenerConnectIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Condition: IsNotProd
+    Properties:
+      ApiId:
+        Ref: ListenerApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+        Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${OnConnectFunction.Arn}/invocations
+  ListenerConnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Condition: IsNotProd
+    Properties:
+      ApiId:
+        Ref: ListenerApi
+      RouteKey: $connect
+      AuthorizationType: AWS_IAM
+      Target:
+        Fn::Sub: integrations/${ListenerConnectIntegration}
+  OnConnectFunction:
+    Type: AWS::Serverless::Function
+    Condition: IsNotProd
+    Properties:
+      CodeUri: s3://ecommerce-artifacts-211125725702-us-east-1/artifacts/199b922768a1f0623adb5c63b7b41eef
+      Environment:
+        Variables:
+          EVENT_RULE_NAME:
+            Ref: OnEventsFunctionEvent
+          LISTENER_TABLE_NAME:
+            Ref: ListenerTable
+      Policies:
+      - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - dynamodb:PutItem
+          Resource:
+          - Fn::GetAtt:
+            - ListenerTable
+            - Arn
+  OnConnectPermission:
+    Type: AWS::Lambda::Permission
+    Condition: IsNotProd
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Ref: OnConnectFunction
+      Principal: apigateway.amazonaws.com
+  OnConnectLogGroup:
+    Type: AWS::Logs::LogGroup
+    Condition: IsNotProd
+    Properties:
+      LogGroupName:
+        Fn::Sub: /aws/lambda/${OnConnectFunction}
+      RetentionInDays:
+        Ref: RetentionInDays
+  ListenerDisconnectIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Condition: IsNotProd
+    Properties:
+      ApiId:
+        Ref: ListenerApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+        Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${OnDisconnectFunction.Arn}/invocations
+  ListenerDisconnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Condition: IsNotProd
+    Properties:
+      ApiId:
+        Ref: ListenerApi
+      RouteKey: $disconnect
+      Target:
+        Fn::Sub: integrations/${ListenerDisconnectIntegration}
+  OnDisconnectFunction:
+    Type: AWS::Serverless::Function
+    Condition: IsNotProd
+    Properties:
+      CodeUri: s3://ecommerce-artifacts-211125725702-us-east-1/artifacts/ed7ac84c6575450788dc745311b910fc
+      Environment:
+        Variables:
+          EVENT_RULE_NAME:
+            Ref: OnEventsFunctionEvent
+          LISTENER_TABLE_NAME:
+            Ref: ListenerTable
+      Policies:
+      - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - dynamodb:DeleteItem
+          Resource:
+          - Fn::GetAtt:
+            - ListenerTable
+            - Arn
+  OnDisconnectPermission:
+    Type: AWS::Lambda::Permission
+    Condition: IsNotProd
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Ref: OnDisconnectFunction
+      Principal: apigateway.amazonaws.com
+  OnDisconnectLogGroup:
+    Type: AWS::Logs::LogGroup
+    Condition: IsNotProd
+    Properties:
+      LogGroupName:
+        Fn::Sub: /aws/lambda/${OnDisconnectFunction}
+      RetentionInDays:
+        Ref: RetentionInDays
+  ListenerRegisterIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Condition: IsNotProd
+    Properties:
+      ApiId:
+        Ref: ListenerApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+        Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RegisterFunction.Arn}/invocations
+  ListenerRegisterRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Condition: IsNotProd
+    Properties:
+      ApiId:
+        Ref: ListenerApi
+      RouteKey: register
+      Target:
+        Fn::Sub: integrations/${ListenerRegisterIntegration}
+  RegisterFunction:
+    Type: AWS::Serverless::Function
+    Condition: IsNotProd
+    Properties:
+      CodeUri: s3://ecommerce-artifacts-211125725702-us-east-1/artifacts/6edef9f46de0deac5bf7563ce7c62b0f
+      Environment:
+        Variables:
+          LISTENER_TABLE_NAME:
+            Ref: ListenerTable
+      Policies:
+      - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - dynamodb:PutItem
+          Resource:
+          - Fn::GetAtt:
+            - ListenerTable
+            - Arn
+  RegisterPermission:
+    Type: AWS::Lambda::Permission
+    Condition: IsNotProd
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Ref: RegisterFunction
+      Principal: apigateway.amazonaws.com
+  RegisterLogGroup:
+    Type: AWS::Logs::LogGroup
+    Condition: IsNotProd
+    Properties:
+      LogGroupName:
+        Fn::Sub: /aws/lambda/${RegisterFunction}
+      RetentionInDays:
+        Ref: RetentionInDays
+  OnEventsFunction:
+    Type: AWS::Serverless::Function
+    Condition: IsNotProd
+    Properties:
+      CodeUri: s3://ecommerce-artifacts-211125725702-us-east-1/artifacts/3c50af6563dab1e8ff7af802687e9f66
+      Environment:
+        Variables:
+          LISTENER_API_URL:
+            Fn::Sub: https://${ListenerApi}.execute-api.${AWS::Region}.amazonaws.com/prod/
+          LISTENER_TABLE_NAME:
+            Ref: ListenerTable
+      Policies:
+      - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - dynamodb:Query
+          Resource:
+          - Fn::Sub: arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ListenerTable}/index/listener-service
+        - Effect: Allow
+          Action:
+          - execute-api:ManageConnections
+          Resource:
+          - Fn::Sub: arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ListenerApi}/prod/*
+      Events:
+        Event:
+          Type: CloudWatchEvent
+          Properties:
+            EventBusName:
+              Ref: EventBus
+            Pattern:
+              account:
+              - Ref: AWS::AccountId
+      EventInvokeConfig:
+        DestinationConfig:
+          OnFailure:
+            Type: SQS
+            Destination:
+              Fn::GetAtt:
+              - DeadLetterQueue
+              - Outputs.QueueArn
+  OnEventsLogGroup:
+    Type: AWS::Logs::LogGroup
+    Condition: IsNotProd
+    Properties:
+      LogGroupName:
+        Fn::Sub: /aws/lambda/${OnEventsFunction}
+      RetentionInDays:
+        Ref: RetentionInDays
+  DeadLetterQueue:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/ecommerce-artifacts-211125725702-us-east-1/artifacts/f076f26327a22855a586eae0fd9ab2ee.template
+      Parameters:
+        AlarmAction:
+          Ref: AlarmTopic
+  AlarmTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: Orders Alarm

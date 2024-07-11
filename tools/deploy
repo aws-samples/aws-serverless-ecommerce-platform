@@ -79,10 +79,4 @@ deploy_cloudformation () {
     fi
 }
 
-type deploy_$TYPE | grep -q "function" &>/dev/null || {
-    echo "Unsupported type: $TYPE"
-    echo
-    display_usage
-    exit 1
-}
 deploy_$TYPE

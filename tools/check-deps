@@ -87,10 +87,5 @@ check-deps_cloudformation () {
     done
 }
 
-type check-deps_$TYPE | grep -q "function" &>/dev/null || {
-    echo "Unsupported type: $TYPE"
-    echo
-    display_usage
-    exit 1
-}
+
 check-deps_$TYPE

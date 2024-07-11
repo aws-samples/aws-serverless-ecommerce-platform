@@ -2,6 +2,10 @@ dev:
   parameters:
     LogLevel: DEBUG
     RetentionInDays: "7"
+  flags:
+    can-tests-integ: true
+    can-tests-e2e: true
+   
 
 tests:
   parameters:
@@ -21,5 +25,5 @@ prod:
     RetentionInDays: "30"
   flags:
     can-tests-integ: false
-    can-tests-e2e: false
+    can-tests-e2e: true
     is-prod: true

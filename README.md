@@ -17,6 +17,58 @@ _Please note that you may incure AWS charges for deploying the ecommerce platfor
 
 To install the necessary tools and deploy this in your own AWS account, see the [getting started](docs/getting_started.md) guide in the documentation section.
 
+--------------------------------------------START CUSTOM PIPELINE ---------------------------------------------
+### Deploy without Makefile on LINUX/Ubuntu OS
+For the purpose of learning, we will build, package and deploy project in aws account using the scripts in the [tools] folder on linux system
+
+##### Run pipeline on services
+* [cd project_root](aws-serverless-ecommerce-platform)
+
+###### Build services
+*	./tools/build resources SERVICE
+*	./tools/build openapi SERVICE
+*	./tools/build python3 SERVICE
+*	./tools/build cloudformation SERVICE
+
+###### Check-deps services
+*	./tools/check-deps cloudformation SERVICE
+
+###### Clean services
+*	./tools/clean SERVICE
+
+###### Deploy services
+*	./tools/deploy cloudformation SERVICE
+
+###### Lint services
+*	./tools/lint cloudformation ${SERVICE}
+*	./tools/lint python3 SERVICE
+*	./tools/lint openapi SERVICE
+
+###### Package services
+*	./tools/package cloudformation SERVICE
+
+###### Teardown services
+*	./tools/teardown cloudformation SERVICE
+
+###### Integration tests
+*	./tools/tests-integ cloudformation SERVICE
+
+###### Unit tests
+*	./tools/tests-unit python3 SERVICE
+
+###### End-to-end tests
+[ENVIRONMENT=dev](/tools/tests-e2e)
+*	./tools/tests-e2e
+
+###### Automation
+We use script [package_services.sh](@root/package_services.sh) and [deploy_services.sh](@root/deploy_services.sh) for automate
+[cd project_root](aws-serverless-ecommerce-platform)
+
+*	$ ./package_services.sh SERVICE
+*	$ ./deploy_services.sh SERVICE
+
+--------------------------------------------END CUSTOM PIPELINE ---------------------------------------------
+
 ## Architecture
 
 ### High-level architecture

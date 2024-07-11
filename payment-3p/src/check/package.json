@@ -9,7 +9,7 @@
   },
   "license": "MIT-0",
   "dependencies": {
-    "@types/node": "^13.9.1",
-    "aws-sdk": "^2.814.0"
+    "@types/node": "^20.14.2",
+    "aws-sdk": "^2.1656.0"
   }
 }

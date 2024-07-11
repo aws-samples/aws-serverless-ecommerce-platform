@@ -115,7 +115,7 @@ paths:
               properties:
                 cardNumber:
                   type: string
-                  pattern: "^\d{16}$"
+                  pattern: "^\\d{16}$"
                   example: "1234567890123456"
                 amount:
                   type: integer

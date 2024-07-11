@@ -3,6 +3,7 @@
 set -e
 
 ROOT=${ROOT:-$(pwd)}
+ENVIRONMENT=dev
 
 tests_dir=${ROOT}/shared/tests/e2e
 reports_dir=${REPORTS_DIR:-$ROOT/reports}
